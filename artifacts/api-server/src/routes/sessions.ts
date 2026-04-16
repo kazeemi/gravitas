@@ -114,6 +114,9 @@ router.post(
       try {
         let transcript: string | undefined;
         let audioDeliveryAnalysis: string | undefined;
+        let pitchVariationScore: number | null = null;
+        let breathingScore: number | null = null;
+        let breathingObservation: string | null = null;
 
         if (audioBuffer && audioBuffer.length > 0) {
           const { buffer: wavBuffer, format } = await ensureCompatibleFormat(audioBuffer);
@@ -128,10 +131,6 @@ router.post(
           } else {
             console.error("Whisper transcription failed:", transcriptResult.reason);
           }
-
-          let pitchVariationScore: number | null = null;
-          let breathingScore: number | null = null;
-          let breathingObservation: string | null = null;
 
           if (deliveryResult.status === "fulfilled" && deliveryResult.value) {
             const dr = deliveryResult.value;

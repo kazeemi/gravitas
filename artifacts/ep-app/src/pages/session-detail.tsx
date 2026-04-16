@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { api, type SessionDetail } from "@/lib/api";
+import { api, type SessionDetail, type DimensionScore } from "@/lib/api";
 import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, DIMENSION_DESCRIPTIONS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
@@ -207,6 +207,8 @@ export default function SessionDetailPage() {
         ))}
       </div>
 
+      <SessionMetrics session={session} />
+
       {session.transcript && (
         <div className="rounded-lg border border-gray-200 bg-white p-6">
           <button
@@ -246,7 +248,145 @@ export default function SessionDetailPage() {
   );
 }
 
-function DimensionCard({ score }: { score: import("@/lib/api").DimensionScore }) {
+function SessionMetrics({ session }: { session: SessionDetail }) {
+  const duration = session.durationSeconds ?? 0;
+  const transcript = session.transcript ?? "";
+
+  const wordCount = transcript.trim()
+    ? transcript.trim().split(/\s+/).filter(Boolean).length
+    : null;
+
+  const wpm =
+    wordCount !== null && duration > 0
+      ? Math.round((wordCount / duration) * 60)
+      : null;
+
+  const fillerCount = transcript
+    ? (transcript.match(
+        /\b(um+|uh+|like|you know|so,?|basically|literally|actually|right\?|i mean|kind of|sort of|you see)\b/gi
+      ) || []).length
+    : null;
+
+  const durationMinutes = duration / 60;
+  const fillerRate =
+    fillerCount !== null && durationMinutes > 0
+      ? parseFloat((fillerCount / durationMinutes).toFixed(1))
+      : null;
+
+  const silences = session.silenceEvents ?? 0;
+
+  type Status = "good" | "warn" | "poor";
+
+  function wpmStatus(v: number): Status {
+    if (v >= 120 && v <= 160) return "good";
+    if ((v >= 100 && v < 120) || (v > 160 && v <= 185)) return "warn";
+    return "poor";
+  }
+
+  function fillerRateStatus(v: number): Status {
+    if (v < 1) return "good";
+    if (v < 3) return "warn";
+    return "poor";
+  }
+
+  function silenceStatus(v: number): Status {
+    if (v === 0) return "good";
+    if (v <= 2) return "warn";
+    return "poor";
+  }
+
+  const STATUS_COLORS: Record<Status, { dot: string; text: string; bg: string }> = {
+    good:  { dot: "bg-[#0F6E56]", text: "text-[#0F6E56]", bg: "bg-green-50" },
+    warn:  { dot: "bg-[#BA7517]", text: "text-[#BA7517]", bg: "bg-amber-50" },
+    poor:  { dot: "bg-[#E24B4A]", text: "text-[#E24B4A]", bg: "bg-red-50" },
+  };
+
+  const metrics: {
+    label: string;
+    value: string;
+    benchmark: string;
+    status: Status;
+    note?: string;
+  }[] = [];
+
+  if (duration > 0) {
+    const m = Math.floor(duration / 60);
+    const s = duration % 60;
+    metrics.push({
+      label: "Duration",
+      value: `${m}m ${s}s`,
+      benchmark: "≥ 1 minute",
+      status: duration >= 60 ? "good" : "poor",
+    });
+  }
+
+  if (wpm !== null) {
+    metrics.push({
+      label: "Speaking pace",
+      value: `${wpm} WPM`,
+      benchmark: "120–160 WPM",
+      status: wpmStatus(wpm),
+      note: wpm < 120 ? "Too slow — may lose listener attention" : wpm > 160 ? "Too fast — may reduce comprehension" : "Within ideal range",
+    });
+  }
+
+  if (wordCount !== null) {
+    metrics.push({
+      label: "Words spoken",
+      value: wordCount.toString(),
+      benchmark: "120+ for a 1-min response",
+      status: wordCount >= 120 ? "good" : wordCount >= 80 ? "warn" : "poor",
+    });
+  }
+
+  if (fillerRate !== null) {
+    metrics.push({
+      label: "Filler word rate",
+      value: fillerCount === 0 ? "None detected" : `${fillerRate}/min (${fillerCount} total)`,
+      benchmark: "< 1 per minute",
+      status: fillerRateStatus(fillerRate),
+      note: fillerCount === 0 ? "Excellent — no fillers detected in transcript" : undefined,
+    });
+  }
+
+  metrics.push({
+    label: "Long pauses (4s+)",
+    value: silences === 0 ? "None" : silences.toString(),
+    benchmark: "0 unplanned pauses",
+    status: silenceStatus(silences),
+    note: silences > 0 ? "Pauses over 4 seconds disrupt listener engagement" : "No long pauses detected",
+  });
+
+  if (metrics.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white p-6">
+      <h2 className="font-semibold text-gray-900 mb-1">Session metrics</h2>
+      <p className="text-xs text-gray-400 mb-4">Quantitative measurements compared to best-practice benchmarks</p>
+      <div className="divide-y divide-gray-100">
+        {metrics.map((m) => {
+          const c = STATUS_COLORS[m.status];
+          return (
+            <div key={m.label} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-800">{m.label}</p>
+                {m.note && (
+                  <p className="mt-0.5 text-xs text-gray-400">{m.note}</p>
+                )}
+              </div>
+              <div className="flex-shrink-0 text-right space-y-0.5">
+                <p className={`text-sm font-semibold ${c.text}`}>{m.value}</p>
+                <p className="text-xs text-gray-400">Benchmark: {m.benchmark}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DimensionCard({ score }: { score: DimensionScore }) {
   const colors = getTierColors(score.tier);
   const label = DIMENSION_LABELS[score.dimensionKey] || score.dimensionKey;
   const description = DIMENSION_DESCRIPTIONS[score.dimensionKey];

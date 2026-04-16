@@ -41,7 +41,7 @@ export function getTierColors(tier: string) {
 
 export const DIMENSION_LABELS: Record<string, string> = {
   vocal_clarity: "Vocal Clarity",
-  pace_rhythm: "Pace & Rhythm",
+  pace_rhythm: "Pace, Rhythm & Vocal Variety",
   volume_projection: "Volume & Projection",
   filler_words: "Filler Words",
   structure: "Structure",
@@ -58,7 +58,7 @@ export const DIMENSION_DESCRIPTIONS: Record<string, string> = {
   presence_engagement: "The sense that you command the room and hold your audience's attention.",
   vocal_clarity: "How clearly and precisely you articulate words — diction, enunciation, and ease of comprehension.",
   eye_contact: "Sustained, intentional gaze that builds connection and signals confidence.",
-  pace_rhythm: "Speaking speed and variation — avoiding monotony, rushing, or dragging.",
+  pace_rhythm: "Speaking speed, rhythm, pitch variation, and intonation — avoiding monotone delivery, rushing, or dragging.",
   gesture_movement: "Use of hands and body movement to reinforce and emphasize your message.",
   filler_words: "Absence of verbal crutches (um, uh, like, you know) that undermine credibility.",
   volume_projection: "Consistent, appropriately loud delivery that carries authority without straining.",

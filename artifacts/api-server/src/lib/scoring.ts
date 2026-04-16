@@ -33,7 +33,7 @@ export const VIDEO_DIMENSIONS: DimensionKey[] = [
 
 export const DIMENSION_LABELS: Record<DimensionKey, string> = {
   vocal_clarity: "Vocal Clarity",
-  pace_rhythm: "Pace & Rhythm",
+  pace_rhythm: "Pace, Rhythm & Vocal Variety",
   volume_projection: "Volume & Projection",
   filler_words: "Filler Words",
   structure: "Structure",
@@ -143,25 +143,25 @@ export async function analyzeAudioDelivery(
 Please listen carefully to this audio recording and provide a detailed, accurate vocal delivery analysis. Base your observations only on what you actually hear. Cover each of the following areas:
 
 1. Speaking pace: rate as fast, slow, or well-paced; note any significant rushes or drawn-out sections
-2. Volume and projection: note whether volume is consistent, too quiet, too loud, or appropriately varied
-3. Vocal clarity: assess articulation quality; note any mumbling, dropped endings, or unclear diction
-4. Filler words: identify each type of filler word heard (um, uh, like, you know, so, basically, right, etc.) and approximate frequency
-5. Pauses and silences: distinguish natural emphasis pauses from extended unplanned silences; note duration where significant
-6. Vocal confidence: characterize whether the tone sounds assured, tentative, or uncertain
-7. Vocal variety: assess whether pitch, pace, and energy vary or remain flat and monotone
+2. Pitch and intonation: does pitch vary naturally or is delivery monotone? Does pitch rise/fall appropriately at key points? Does it fall decisively at the end of statements (authority) or rise (uncertainty)?
+3. Volume and projection: note whether volume is consistent, too quiet, too loud, or appropriately varied
+4. Vocal clarity: assess articulation quality; note any mumbling, dropped endings, or unclear diction
+5. Filler words: identify each type of filler word heard (um, uh, like, you know, so, basically, right, etc.) and approximate frequency
+6. Pauses and silences: distinguish natural emphasis pauses from extended unplanned silences; note duration where significant
+7. Vocal confidence: characterize whether the tone sounds assured, tentative, or uncertain
 8. Energy and engagement: note whether the speaker sounds present and engaged or flat and disengaged
 
 Be specific and accurate. If delivery is weak in an area, describe exactly what you observed. If delivery is strong, describe what you observed. Avoid generic statements.
 
 Return your analysis as a JSON object with these exact keys:
 {
-  "pace": "specific observation",
+  "pace": "specific observation about speaking speed",
+  "pitchIntonation": "specific observation about pitch variation, monotone vs. dynamic delivery, whether pitch falls decisively at statements or rises (uncertainty), and intonation patterns",
   "volume": "specific observation",
   "clarity": "specific observation",
   "fillerWords": "each filler type and approximate count",
   "silences": "specific observation about pauses and silences",
   "confidence": "specific observation",
-  "vocalVariety": "specific observation",
   "energy": "specific observation",
   "overallDeliveryQuality": "direct summary in 1-2 sentences"
 }`;
@@ -238,6 +238,7 @@ CRITICAL RULES:
 
 RULE 1 — DATA SOURCES FOR EACH DIMENSION TYPE:
 - vocal_clarity, pace_rhythm, volume_projection, filler_words: Score and write feedback EXCLUSIVELY from the Audio Delivery Analysis. These dimensions measure HOW the person spoke, not what they said. The transcript is irrelevant for these four dimensions. If audio analysis says 5-6 fillers were heard, that is the fact — do not reference or compare to the transcript's filler count.
+- pace_rhythm specifically covers: speaking speed, rhythm, pitch variation, intonation (does pitch fall authoritatively at the end of statements, or rise with uncertainty?), monotone vs. dynamic delivery, and use of pauses for emphasis. Evaluate all of these from the audio pitchIntonation and pace fields.
 - structure, confidence_language: Score and write feedback based on the transcript content AND any relevant vocal delivery observations.
 
 RULE 2 — STRENGTHS MUST BE GENUINE:
@@ -291,7 +292,7 @@ Return a JSON object (no markdown):
 {
   "overallStrengths": "2-3 sentences on genuine strengths with specific evidence. If there are no significant strengths, say so directly.",
   "overallImprovements": "2-3 sentences on most important improvements needed. Be specific and direct.",
-  "overallNextStep": "The single most impactful action to practice before recording the next session here (1 sentence, specific and actionable). Do not reference external apps, tools, or websites.",
+  "overallNextStep": "The single most impactful action to practice before recording the next session here (1 sentence, specific and actionable). Do not reference external apps, tools, or websites. Never suggest a target duration under 60 seconds.",
   "dimensions": {
     ${dimensions
       .map(
@@ -299,7 +300,7 @@ Return a JSON object (no markdown):
       "score": <integer 1-10>,
       "strengthText": "<max 25 words — specific evidence from audio/transcript>",
       "gapText": "<max 25 words — primary gap with specific evidence>",
-      "nextStepText": "<max 30 words — a specific practice drill the speaker can do by recording another session here. Do not recommend external apps, tools, or websites.>"
+      "nextStepText": "<max 30 words — a specific practice drill the speaker can do by recording another session here. Do not recommend external apps, tools, or websites. Never suggest a target recording duration under 60 seconds.>"
     }`
       )
       .join(",\n    ")}

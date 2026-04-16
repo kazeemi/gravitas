@@ -150,34 +150,41 @@ export async function analyzeAudioDelivery(
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}
 
-Please listen carefully to this audio recording and provide a detailed, accurate vocal delivery analysis. Base your observations only on what you actually hear. Cover each of the following areas:
+You are a senior executive presence coach listening to this audio recording. Evaluate EVERYTHING you observe from the audio — both how the person speaks AND what they say. Base every observation solely on what you actually hear. Do not make generic statements; be specific about what you heard.
 
-1. Speaking pace: rate as fast, slow, or well-paced; note any significant rushes or drawn-out sections
-2. Pitch and intonation: does pitch vary naturally or is delivery monotone? Does pitch rise/fall appropriately at key points? Does it fall decisively at the end of statements (authority) or rise (uncertainty)?
-3. Volume and projection: note whether volume is consistent, too quiet, too loud, or appropriately varied
-4. Vocal clarity: assess articulation quality; note any mumbling, dropped endings, or unclear diction
-5. Filler words: identify each type of filler word heard (um, uh, like, you know, so, basically, right, etc.) and approximate frequency
-6. Pauses and silences: distinguish natural emphasis pauses from extended unplanned silences; note duration where significant
-7. Vocal confidence: characterize whether the tone sounds assured, tentative, or uncertain
-8. Energy and engagement: note whether the speaker sounds present and engaged or flat and disengaged
-9. Breathing: can you hear audible breath sounds, shallow breathing, breathlessness, or poor breath support? Does the speaker run out of breath mid-sentence? Is breath control relaxed and controlled, or strained and effortful?
+Cover all of the following:
 
-Be specific and accurate. If delivery is weak in an area, describe exactly what you observed. If delivery is strong, describe what you observed. Avoid generic statements.
+DELIVERY (how they spoke):
+1. Speaking pace — fast, slow, or well-paced; note rushes or drawn-out sections
+2. Pitch and intonation — does pitch vary naturally or is delivery monotone? Does pitch fall decisively at statements (authority) or rise (uncertainty)?
+3. Volume and projection — consistent, too quiet, too loud, or varied
+4. Vocal clarity — articulation, mumbling, dropped endings, ease of comprehension
+5. Filler words — identify every type heard (um, uh, like, you know, so, basically, right, etc.) and approximate count
+6. Pauses and silences — natural emphasis pauses vs. unplanned silences; note durations
+7. Vocal confidence — tone sounds assured vs. tentative/uncertain
+8. Energy and engagement — present and engaged vs. flat and disengaged
+9. Breathing — audible breath sounds, shallow or strained breathing, breathlessness, breath control quality
+
+CONTENT (what they said — assessed from listening):
+10. Structure — Did the response have a clear, confident opening? Organized, logical flow? A decisive close? Or did it wander, ramble, or trail off? Was the prompt directly addressed? Identify specifically where structure was strong or weak.
+11. Confidence language — Listen for hedging phrases ("I think", "maybe", "I guess", "kind of", "I believe", "hopefully", "I'm not sure but") versus assertive language ("I know", "We will", "The key point is", "I'm committed to", clear declarative statements). Quote specific phrases you heard. Assess whether the overall language projected authority or uncertainty.
 
 Return your analysis as a JSON object with these exact keys:
 {
-  "pace": "specific observation about speaking speed",
-  "pitchIntonation": "specific observation about pitch variation, monotone vs. dynamic delivery, whether pitch falls decisively at statements or rises (uncertainty), and intonation patterns",
-  "pitchVariationScore": <integer 1-5 where 1=completely monotone/flat, 2=minimal variation, 3=some variation but inconsistent, 4=good natural variation, 5=excellent expressive dynamic range>,
+  "pace": "specific observation",
+  "pitchIntonation": "specific observation about pitch variation, monotone vs. dynamic, whether pitch falls authoritatively or rises with uncertainty",
+  "pitchVariationScore": <integer 1-5 where 1=completely monotone, 2=minimal variation, 3=some variation but inconsistent, 4=good natural variation, 5=excellent expressive range>,
   "volume": "specific observation",
   "clarity": "specific observation",
-  "fillerWords": "each filler type and approximate count",
-  "silences": "specific observation about pauses and silences",
-  "confidence": "specific observation",
+  "fillerWords": "each filler type heard and approximate count",
+  "silences": "specific observation about pauses",
+  "confidence": "specific observation about vocal tone confidence",
   "energy": "specific observation",
-  "breathing": "specific observation about breath control, audible breathing, breathlessness, or breath support quality",
-  "breathingScore": <integer 1-5 where 1=severely out of breath or audible gasping, 2=noticeably shallow or strained, 3=adequate but some strain detectable, 4=mostly controlled and relaxed, 5=excellent breath control, relaxed and effortless>,
-  "overallDeliveryQuality": "direct summary in 1-2 sentences"
+  "breathing": "specific observation about breath control and audible breathing",
+  "breathingScore": <integer 1-5 where 1=severe breathlessness/gasping, 2=noticeably shallow or strained, 3=adequate but some strain, 4=mostly controlled, 5=excellent relaxed control>,
+  "structureObservation": "from listening: did the response have a clear opening, organized body, and decisive close? Was the prompt directly addressed or did the speaker wander? Quote specific moments that illustrate strong or weak structure.",
+  "confidenceLanguageObservation": "from listening: list specific hedging phrases heard (quote them) and specific assertive phrases heard (quote them). Assess overall whether word choice projected authority or uncertainty.",
+  "overallDeliveryQuality": "direct summary of both delivery and content in 2-3 sentences"
 }`;
 
   try {
@@ -270,10 +277,18 @@ SCORING CALIBRATION — follow this strictly:
 
 CRITICAL RULES:
 
-RULE 1 — DATA SOURCES FOR EACH DIMENSION TYPE:
-- vocal_clarity, pace_rhythm, volume_projection, filler_words: Score and write feedback EXCLUSIVELY from the Audio Delivery Analysis. These dimensions measure HOW the person spoke, not what they said. The transcript is irrelevant for these four dimensions. If audio analysis says 5-6 fillers were heard, that is the fact — do not reference or compare to the transcript's filler count.
-- pace_rhythm specifically covers: speaking speed, rhythm, pitch variation, intonation (does pitch fall authoritatively at the end of statements, or rise with uncertainty?), monotone vs. dynamic delivery, and use of pauses for emphasis. Evaluate all of these from the audio pitchIntonation and pace fields.
-- structure, confidence_language: Score and write feedback based on the transcript content AND any relevant vocal delivery observations.
+RULE 1 — AUDIO ANALYSIS IS THE SOLE SOURCE FOR ALL DIMENSIONS:
+The Audio Delivery Analysis below is the authoritative source for EVERY dimension — delivery AND content. The transcript is provided as a reference aid only; do not quote from it, do not base any scoring on it, and never write feedback that reads like a text analysis of what was written.
+
+Specific guidance per dimension:
+- vocal_clarity: use the audio "clarity" field
+- pace_rhythm: use "pace", "pitchIntonation", "pitchVariationScore", "silences" — this dimension covers speed, rhythm, pitch variation, intonation, and use of pauses for emphasis
+- volume_projection: use the audio "volume" field
+- filler_words: use the audio "fillerWords" field — the audio model's count is the fact; ignore any transcript-derived count
+- structure: use the audio "structureObservation" field — score and write feedback based solely on what the audio model heard about opening, flow, and close
+- confidence_language: use the audio "confidenceLanguageObservation" field — score and write feedback based solely on the specific phrases the audio model heard (hedging vs. assertive language)
+
+If the Audio Delivery Analysis is missing or empty for a dimension, state that it could not be assessed from audio rather than falling back to the transcript.
 
 RULE 2 — STRENGTHS MUST BE GENUINE:
 A strength is only a strength if it represents actual positive behavior that serves the session's objective. Do not reframe partial, inadequate, or counterproductive behavior as a positive. Specifically:
@@ -296,17 +311,15 @@ RULE 4 — CALIBRATION:
 PROMPT THEY WERE RESPONDING TO:
 "${input.promptText || "Open-ended speaking exercise"}"
 
-TRANSCRIPT (accurate Whisper transcription of what they said):
-${input.transcript ? `"${input.transcript}"` : "[No transcript captured]"}
+AUDIO DELIVERY ANALYSIS — PRIMARY SOURCE FOR ALL DIMENSIONS:
+${input.audioDeliveryAnalysis || "[No audio delivery analysis available — scoring quality will be limited]"}
 
-AUDIO DELIVERY ANALYSIS (from direct audio evaluation — use this for delivery dimensions):
-${input.audioDeliveryAnalysis || "[No audio delivery analysis available]"}
+TRANSCRIPT (reference only — do NOT use as the basis for any dimension score or feedback):
+${input.transcript ? `"${input.transcript}"` : "[No transcript captured]"}
 
 SUPPORTING METRICS:
 - Duration: ${input.durationSeconds}s (${Math.floor(input.durationSeconds / 60)}m ${input.durationSeconds % 60}s)
-- Word count: ${wordCount} words
 - Calculated speaking pace: ${wordsPerMinute} wpm (ideal: 120-160 wpm)
-${!input.audioDeliveryAnalysis ? `- Filler words in transcript: ${fillerCount} (no audio analysis available — use this as a rough indicator only)` : `- Note: Audio delivery analysis is present above — use it as the sole source for all delivery dimension scores (vocal_clarity, pace_rhythm, volume_projection, filler_words). Ignore transcript-derived filler counts for those dimensions.`}
 - Silence/pause events detected: ${input.silenceEvents}
 - Mode: ${input.mode}
 - Recording context: ${input.recordingContext || "seated"}
@@ -316,9 +329,9 @@ ${dimensionList}
 
 ${
   wordCount < 30
-    ? `⚠️ NOTE: This transcript is extremely short (${wordCount} words). Content dimensions (structure, confidence_language) must score 1-3.`
+    ? `⚠️ NOTE: The transcript is extremely short (${wordCount} words — under 30 seconds of speech). Structure and confidence_language must score 1-3 based on what the audio analysis captured.`
     : wordCount < 80
-    ? `⚠️ NOTE: This transcript is brief (${wordCount} words). Content dimensions should generally score no higher than 4-5.`
+    ? `⚠️ NOTE: The transcript is brief (${wordCount} words). Structure and confidence_language scores should reflect the limited content heard in the audio analysis.`
     : ""
 }
 

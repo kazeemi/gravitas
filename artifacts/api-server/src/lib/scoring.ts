@@ -291,7 +291,7 @@ Return a JSON object (no markdown):
 {
   "overallStrengths": "2-3 sentences on genuine strengths with specific evidence. If there are no significant strengths, say so directly.",
   "overallImprovements": "2-3 sentences on most important improvements needed. Be specific and direct.",
-  "overallNextStep": "The single most impactful action before next session (1 sentence, specific and actionable).",
+  "overallNextStep": "The single most impactful action to practice before recording the next session here (1 sentence, specific and actionable). Do not reference external apps, tools, or websites.",
   "dimensions": {
     ${dimensions
       .map(
@@ -299,7 +299,7 @@ Return a JSON object (no markdown):
       "score": <integer 1-10>,
       "strengthText": "<max 25 words — specific evidence from audio/transcript>",
       "gapText": "<max 25 words — primary gap with specific evidence>",
-      "nextStepText": "<max 30 words — concrete actionable practice drill>"
+      "nextStepText": "<max 30 words — a specific practice drill the speaker can do by recording another session here. Do not recommend external apps, tools, or websites.>"
     }`
       )
       .join(",\n    ")}

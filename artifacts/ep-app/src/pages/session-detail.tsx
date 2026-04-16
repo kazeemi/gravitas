@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { api, type SessionDetail } from "@/lib/api";
-import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER } from "@/lib/tier-colors";
+import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, DIMENSION_DESCRIPTIONS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeftIcon,
@@ -12,7 +12,6 @@ import {
   TrendingDownIcon,
   ZapIcon,
 } from "lucide-react";
-import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
 
 interface OverallFeedback {
@@ -75,12 +74,6 @@ export default function SessionDetailPage() {
     const bi = DIMENSION_DISPLAY_ORDER.indexOf(b.dimensionKey);
     return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
   });
-
-  const radarData = sortedDimensions.map((d) => ({
-    subject: (DIMENSION_LABELS[d.dimensionKey] || d.dimensionKey).split(" & ").join("\n& "),
-    score: d.score,
-    fullMark: 10,
-  }));
 
   const hasSilences = (session.silenceEvents ?? 0) > 0;
 
@@ -207,28 +200,6 @@ export default function SessionDetailPage() {
         </div>
       )}
 
-      {radarData.length > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Score overview</h2>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="#e5e7eb" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#6b7280" }} />
-                <Radar
-                  name="Score"
-                  dataKey="score"
-                  stroke={colors?.hex || "#534AB7"}
-                  fill={colors?.hex || "#534AB7"}
-                  fillOpacity={0.15}
-                  strokeWidth={2}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
-
       <div className="space-y-4">
         <h2 className="font-semibold text-gray-900">Dimension feedback</h2>
         {sortedDimensions.map((d) => (
@@ -278,12 +249,18 @@ export default function SessionDetailPage() {
 function DimensionCard({ score }: { score: import("@/lib/api").DimensionScore }) {
   const colors = getTierColors(score.tier);
   const label = DIMENSION_LABELS[score.dimensionKey] || score.dimensionKey;
+  const description = DIMENSION_DESCRIPTIONS[score.dimensionKey];
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
-      <div className="flex items-center justify-between">
-        <h3 className="font-medium text-gray-900">{label}</h3>
-        <div className="flex items-center gap-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="font-medium text-gray-900">{label}</h3>
+          {description && (
+            <p className="mt-0.5 text-xs text-gray-400 leading-snug">{description}</p>
+          )}
+        </div>
+        <div className="flex flex-shrink-0 items-center gap-2">
           <span className="text-xl font-bold" style={{ color: colors.hex }}>
             {score.score}
           </span>

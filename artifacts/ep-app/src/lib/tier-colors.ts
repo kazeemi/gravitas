@@ -52,6 +52,19 @@ export const DIMENSION_LABELS: Record<string, string> = {
   professional_appearance: "Professional Appearance",
 };
 
+export const DIMENSION_DESCRIPTIONS: Record<string, string> = {
+  confidence_language: "Word choice and phrasing that projects authority, conviction, and ownership.",
+  structure: "How clearly ideas are organized — opening, logical flow, and strong close.",
+  presence_engagement: "The sense that you command the room and hold your audience's attention.",
+  vocal_clarity: "How clearly and precisely you articulate words — diction, enunciation, and ease of comprehension.",
+  eye_contact: "Sustained, intentional gaze that builds connection and signals confidence.",
+  pace_rhythm: "Speaking speed and variation — avoiding monotony, rushing, or dragging.",
+  gesture_movement: "Use of hands and body movement to reinforce and emphasize your message.",
+  filler_words: "Absence of verbal crutches (um, uh, like, you know) that undermine credibility.",
+  volume_projection: "Consistent, appropriately loud delivery that carries authority without straining.",
+  professional_appearance: "Dress, grooming, and on-screen framing that reinforce executive credibility.",
+};
+
 // Dimensions ordered highest to lowest weightage for display
 export const DIMENSION_DISPLAY_ORDER: string[] = [
   "confidence_language",

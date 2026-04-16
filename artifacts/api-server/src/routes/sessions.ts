@@ -40,6 +40,16 @@ router.get("/v1/sessions", requireAuth, async (req, res) => {
   return res.json({ sessions });
 });
 
+router.get("/v1/sessions/progress", requireAuth, async (req, res) => {
+  const sessions = await db
+    .select()
+    .from(sessionsTable)
+    .where(and(eq(sessionsTable.userId, req.user!.userId), eq(sessionsTable.processingStatus, "complete")))
+    .orderBy(desc(sessionsTable.createdAt))
+    .limit(20);
+  return res.json({ sessions });
+});
+
 router.get("/v1/sessions/:id", requireAuth, async (req, res) => {
   const [session] = await db
     .select()
@@ -211,16 +221,6 @@ router.post("/v1/sessions/test-video", requireAuth, (_req, res) => {
     lighting: "adequate",
     recommendation: "Video quality is suitable for analysis.",
   });
-});
-
-router.get("/v1/sessions/progress", requireAuth, async (req, res) => {
-  const sessions = await db
-    .select()
-    .from(sessionsTable)
-    .where(and(eq(sessionsTable.userId, req.user!.userId), eq(sessionsTable.processingStatus, "complete")))
-    .orderBy(desc(sessionsTable.createdAt))
-    .limit(20);
-  return res.json({ sessions });
 });
 
 export default router;

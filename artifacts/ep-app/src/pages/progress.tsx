@@ -34,7 +34,7 @@ export default function ProgressPage() {
   }));
 
   const tierBands = [
-    { y: 1, label: "Emerging", color: "#E24B4A" },
+    { y: 1, label: "Needs Focus", color: "#E24B4A" },
     { y: 4, label: "Developing", color: "#BA7517" },
     { y: 6, label: "Strong", color: "#0F6E56" },
     { y: 8, label: "Distinguished", color: "#534AB7" },
@@ -116,7 +116,7 @@ export default function ProgressPage() {
 
 function TierLegend() {
   const tiers = [
-    { name: "Emerging", range: "1–3", hex: "#E24B4A" },
+    { name: "Needs Focus", range: "1–3", hex: "#E24B4A" },
     { name: "Developing", range: "4–5", hex: "#BA7517" },
     { name: "Strong", range: "6–7", hex: "#0F6E56" },
     { name: "Distinguished", range: "8–10", hex: "#534AB7" },

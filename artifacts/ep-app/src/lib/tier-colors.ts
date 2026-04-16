@@ -1,5 +1,5 @@
 export const TIER_COLORS = {
-  Emerging: {
+  "Needs Focus": {
     hex: "#E24B4A",
     bg: "bg-[#E24B4A]",
     text: "text-[#E24B4A]",
@@ -36,7 +36,7 @@ export const TIER_COLORS = {
 export type TierName = keyof typeof TIER_COLORS;
 
 export function getTierColors(tier: string) {
-  return TIER_COLORS[tier as TierName] || TIER_COLORS.Emerging;
+  return TIER_COLORS[tier as TierName] || TIER_COLORS["Needs Focus"];
 }
 
 export const DIMENSION_LABELS: Record<string, string> = {

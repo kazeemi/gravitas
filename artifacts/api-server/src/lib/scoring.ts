@@ -44,10 +44,10 @@ export const DIMENSION_LABELS: Record<DimensionKey, string> = {
   professional_appearance: "Professional Appearance",
 };
 
-export type Tier = "Emerging" | "Developing" | "Strong" | "Distinguished";
+export type Tier = "Needs Focus" | "Developing" | "Strong" | "Distinguished";
 
 export function scoreToTier(score: number): Tier {
-  if (score <= 3) return "Emerging";
+  if (score <= 3) return "Needs Focus";
   if (score <= 5) return "Developing";
   if (score <= 7) return "Strong";
   return "Distinguished";
@@ -57,7 +57,7 @@ export function computeCompositeTier(
   dimensionScores: Record<DimensionKey, number>
 ): { composite: number; tier: Tier } {
   const keys = Object.keys(dimensionScores) as DimensionKey[];
-  if (keys.length === 0) return { composite: 0, tier: "Emerging" };
+  if (keys.length === 0) return { composite: 0, tier: "Needs Focus" };
 
   const raw = keys.reduce((sum, k) => sum + dimensionScores[k], 0) / keys.length;
 
@@ -81,6 +81,13 @@ export function computeCompositeTier(
   return { composite, tier: scoreToTier(composite) };
 }
 
+export interface AudioDeliveryResult {
+  analysisText: string;
+  pitchVariationScore: number | null;
+  breathingScore: number | null;
+  breathingObservation: string | null;
+}
+
 export interface ScoringInput {
   mode: "audio" | "video";
   durationSeconds: number;
@@ -89,6 +96,9 @@ export interface ScoringInput {
   silenceEvents: number;
   transcript?: string;
   audioDeliveryAnalysis?: string;
+  pitchVariationScore?: number | null;
+  breathingScore?: number | null;
+  breathingObservation?: string | null;
   recordingContext?: string;
   promptText?: string;
 }
@@ -129,13 +139,13 @@ interface AIEvalResult {
 /**
  * Uses gpt-audio model to listen to the actual audio recording and produce
  * a detailed vocal delivery analysis covering pace, tone, volume, filler words,
- * pauses, confidence, and clarity — things only hearable from the audio itself.
+ * pauses, confidence, clarity, pitch variation, and breathing quality.
  */
 export async function analyzeAudioDelivery(
   audioBuffer: Buffer,
   format: "wav" | "mp3",
   promptText?: string
-): Promise<string> {
+): Promise<AudioDeliveryResult> {
   const audioBase64 = audioBuffer.toString("base64");
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}
@@ -150,6 +160,7 @@ Please listen carefully to this audio recording and provide a detailed, accurate
 6. Pauses and silences: distinguish natural emphasis pauses from extended unplanned silences; note duration where significant
 7. Vocal confidence: characterize whether the tone sounds assured, tentative, or uncertain
 8. Energy and engagement: note whether the speaker sounds present and engaged or flat and disengaged
+9. Breathing: can you hear audible breath sounds, shallow breathing, breathlessness, or poor breath support? Does the speaker run out of breath mid-sentence? Is breath control relaxed and controlled, or strained and effortful?
 
 Be specific and accurate. If delivery is weak in an area, describe exactly what you observed. If delivery is strong, describe what you observed. Avoid generic statements.
 
@@ -157,12 +168,15 @@ Return your analysis as a JSON object with these exact keys:
 {
   "pace": "specific observation about speaking speed",
   "pitchIntonation": "specific observation about pitch variation, monotone vs. dynamic delivery, whether pitch falls decisively at statements or rises (uncertainty), and intonation patterns",
+  "pitchVariationScore": <integer 1-5 where 1=completely monotone/flat, 2=minimal variation, 3=some variation but inconsistent, 4=good natural variation, 5=excellent expressive dynamic range>,
   "volume": "specific observation",
   "clarity": "specific observation",
   "fillerWords": "each filler type and approximate count",
   "silences": "specific observation about pauses and silences",
   "confidence": "specific observation",
   "energy": "specific observation",
+  "breathing": "specific observation about breath control, audible breathing, breathlessness, or breath support quality",
+  "breathingScore": <integer 1-5 where 1=severely out of breath or audible gasping, 2=noticeably shallow or strained, 3=adequate but some strain detectable, 4=mostly controlled and relaxed, 5=excellent breath control, relaxed and effortless>,
   "overallDeliveryQuality": "direct summary in 1-2 sentences"
 }`;
 
@@ -184,10 +198,30 @@ Return your analysis as a JSON object with these exact keys:
 
     const message = response.choices[0]?.message as Record<string, unknown>;
     const audioContent = message?.audio as Record<string, unknown> | undefined;
-    return (audioContent?.transcript as string) || (message?.content as string) || "";
+    const rawText = (audioContent?.transcript as string) || (message?.content as string) || "";
+
+    let pitchVariationScore: number | null = null;
+    let breathingScore: number | null = null;
+    let breathingObservation: string | null = null;
+
+    try {
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+        const pvs = Number(parsed.pitchVariationScore);
+        if (!isNaN(pvs) && pvs >= 1 && pvs <= 5) pitchVariationScore = pvs;
+        const bs = Number(parsed.breathingScore);
+        if (!isNaN(bs) && bs >= 1 && bs <= 5) breathingScore = bs;
+        if (typeof parsed.breathing === "string") breathingObservation = parsed.breathing;
+      }
+    } catch {
+      // parsing failure — scores remain null
+    }
+
+    return { analysisText: rawText, pitchVariationScore, breathingScore, breathingObservation };
   } catch (err) {
     console.error("gpt-audio delivery analysis failed:", err);
-    return "";
+    return { analysisText: "", pitchVariationScore: null, breathingScore: null, breathingObservation: null };
   }
 }
 
@@ -227,8 +261,8 @@ async function runAIEvaluation(
   const systemPrompt = `You are a senior executive presence coach and evaluator with 20+ years of experience coaching C-suite executives. Your role is to provide HONEST, CALIBRATED, and RIGOROUS assessment.
 
 SCORING CALIBRATION — follow this strictly:
-- 1-2 (Emerging): Absent, severely deficient, or harmful. Almost no evidence of the skill.
-- 3 (Emerging): Minimal, inconsistent, or unintentional demonstration. Major gaps throughout.
+- 1-2 (Needs Focus): Absent, severely deficient, or harmful. Almost no evidence of the skill.
+- 3 (Needs Focus): Minimal, inconsistent, or unintentional demonstration. Major gaps throughout.
 - 4-5 (Developing): Some evidence of the skill but significant inconsistency, gaps, or missed opportunities.
 - 6-7 (Strong): Solid, consistent demonstration with only minor gaps. Meets expectations for a professional speaker.
 - 8-9 (Distinguished): Noticeably above average; few coaches would find fault. Impressive control and intentionality.
@@ -368,15 +402,25 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
     const score = Math.round(Math.min(10, Math.max(1, aiDim.score)));
     const tier = scoreToTier(score);
 
+    const rawMetrics: Record<string, unknown> = {
+      durationSeconds: input.durationSeconds,
+      audioDeliveryAnalysis: input.audioDeliveryAnalysis ? "provided" : "not available",
+      aiRawScore: aiDim.score,
+    };
+
+    if (key === "pace_rhythm" && input.pitchVariationScore != null) {
+      rawMetrics.pitchVariationScore = input.pitchVariationScore;
+    }
+    if (key === "vocal_clarity") {
+      if (input.breathingScore != null) rawMetrics.breathingScore = input.breathingScore;
+      if (input.breathingObservation) rawMetrics.breathingObservation = input.breathingObservation;
+    }
+
     return {
       dimensionKey: key,
       score,
       tier,
-      rawMetrics: {
-        durationSeconds: input.durationSeconds,
-        audioDeliveryAnalysis: input.audioDeliveryAnalysis ? "provided" : "not available",
-        aiRawScore: aiDim.score,
-      },
+      rawMetrics,
       strengthText: aiDim.strengthText || "",
       gapText: aiDim.gapText || "",
       nextStepText: aiDim.nextStepText || "",

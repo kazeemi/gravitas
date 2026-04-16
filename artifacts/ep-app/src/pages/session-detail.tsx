@@ -252,9 +252,8 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
   const duration = session.durationSeconds ?? 0;
   const transcript = session.transcript ?? "";
 
-  const wordCount = transcript.trim()
-    ? transcript.trim().split(/\s+/).filter(Boolean).length
-    : null;
+  const words = transcript.trim() ? transcript.trim().split(/\s+/).filter(Boolean) : [];
+  const wordCount = words.length > 0 ? words.length : null;
 
   const wpm =
     wordCount !== null && duration > 0
@@ -274,6 +273,31 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
       : null;
 
   const silences = session.silenceEvents ?? 0;
+
+  const lexicalVariance = wordCount !== null && wordCount > 0
+    ? Math.round((new Set(words.map(w => w.toLowerCase().replace(/[^a-z]/g, ""))).size / wordCount) * 100)
+    : null;
+
+  const paceRhythm = session.dimensionScores?.find(d => d.dimensionKey === "pace_rhythm");
+  const vocalClarity = session.dimensionScores?.find(d => d.dimensionKey === "vocal_clarity");
+
+  const pitchVariationScore: number | null = paceRhythm?.rawMetrics
+    ? (typeof (paceRhythm.rawMetrics as Record<string, unknown>).pitchVariationScore === "number"
+      ? (paceRhythm.rawMetrics as Record<string, unknown>).pitchVariationScore as number
+      : null)
+    : null;
+
+  const breathingScore: number | null = vocalClarity?.rawMetrics
+    ? (typeof (vocalClarity.rawMetrics as Record<string, unknown>).breathingScore === "number"
+      ? (vocalClarity.rawMetrics as Record<string, unknown>).breathingScore as number
+      : null)
+    : null;
+
+  const breathingObservation: string | null = vocalClarity?.rawMetrics
+    ? (typeof (vocalClarity.rawMetrics as Record<string, unknown>).breathingObservation === "string"
+      ? (vocalClarity.rawMetrics as Record<string, unknown>).breathingObservation as string
+      : null)
+    : null;
 
   type Status = "good" | "warn" | "poor";
 
@@ -295,10 +319,32 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
     return "poor";
   }
 
-  const STATUS_COLORS: Record<Status, { dot: string; text: string; bg: string }> = {
-    good:  { dot: "bg-[#0F6E56]", text: "text-[#0F6E56]", bg: "bg-green-50" },
-    warn:  { dot: "bg-[#BA7517]", text: "text-[#BA7517]", bg: "bg-amber-50" },
-    poor:  { dot: "bg-[#E24B4A]", text: "text-[#E24B4A]", bg: "bg-red-50" },
+  function score5Status(v: number): Status {
+    if (v >= 4) return "good";
+    if (v === 3) return "warn";
+    return "poor";
+  }
+
+  const PITCH_LABELS: Record<number, string> = {
+    1: "Completely flat / monotone",
+    2: "Minimal pitch variation",
+    3: "Some variation — inconsistent",
+    4: "Good natural variation",
+    5: "Excellent dynamic range",
+  };
+
+  const BREATH_LABELS: Record<number, string> = {
+    1: "Severe breathlessness / audible gasping",
+    2: "Noticeably shallow or strained",
+    3: "Adequate — some strain detectable",
+    4: "Mostly controlled and relaxed",
+    5: "Excellent — relaxed, effortless control",
+  };
+
+  const STATUS_COLORS: Record<Status, { text: string }> = {
+    good: { text: "text-[#0F6E56]" },
+    warn: { text: "text-[#BA7517]" },
+    poor: { text: "text-[#E24B4A]" },
   };
 
   const metrics: {
@@ -330,12 +376,22 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
     });
   }
 
-  if (wordCount !== null) {
+  if (pitchVariationScore !== null) {
     metrics.push({
-      label: "Words spoken",
-      value: wordCount.toString(),
-      benchmark: "120+ for a 1-min response",
-      status: wordCount >= 120 ? "good" : wordCount >= 80 ? "warn" : "poor",
+      label: "Tonal variety",
+      value: `${pitchVariationScore}/5 — ${PITCH_LABELS[pitchVariationScore] ?? ""}`,
+      benchmark: "4–5 (natural expressive variation)",
+      status: score5Status(pitchVariationScore),
+    });
+  }
+
+  if (breathingScore !== null) {
+    metrics.push({
+      label: "Breath control",
+      value: `${breathingScore}/5 — ${BREATH_LABELS[breathingScore] ?? ""}`,
+      benchmark: "4–5 (controlled, relaxed breath support)",
+      status: score5Status(breathingScore),
+      note: breathingObservation ?? undefined,
     });
   }
 
@@ -345,7 +401,21 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
       value: fillerCount === 0 ? "None detected" : `${fillerRate}/min (${fillerCount} total)`,
       benchmark: "< 1 per minute",
       status: fillerRateStatus(fillerRate),
-      note: fillerCount === 0 ? "Excellent — no fillers detected in transcript" : undefined,
+      note: fillerCount === 0 ? "No fillers detected in transcript" : undefined,
+    });
+  }
+
+  if (lexicalVariance !== null && wordCount !== null && wordCount >= 50) {
+    metrics.push({
+      label: "Vocabulary variety",
+      value: `${lexicalVariance}% unique words`,
+      benchmark: "> 70% (rich, non-repetitive language)",
+      status: lexicalVariance > 70 ? "good" : lexicalVariance >= 55 ? "warn" : "poor",
+      note: lexicalVariance <= 55
+        ? "High word repetition — vary your phrasing to sound more dynamic"
+        : lexicalVariance <= 70
+        ? "Moderate vocabulary — some repetition present"
+        : "Strong vocabulary variety",
     });
   }
 

@@ -38,13 +38,13 @@ lib/
 
 - 6 audio dimensions: vocal_clarity, pace_rhythm, volume_projection, filler_words, structure, confidence_language
 - 10 video dimensions: above + presence_engagement, eye_contact, gesture_movement, professional_appearance
-- Tiers: Emerging (1-3), Developing (4-5), Strong (6-7), Distinguished (8-10)
+- Tiers: Needs Focus (1-3), Developing (4-5), Strong (6-7), Distinguished (8-10)
 - Distinguished composite capped at 8.0 if any gating dimension (vocal_clarity, confidence_language, structure, presence_engagement) scores 1-3
 - No raw audio/video is ever persisted — scoring uses heuristic metrics + optional transcript
 
 ## Design Tokens (PRD §10.1)
 
-- Emerging: #E24B4A (red)
+- Needs Focus: #E24B4A (red)
 - Developing: #BA7517 (amber)
 - Strong: #0F6E56 (teal)
 - Distinguished: #534AB7 (purple)

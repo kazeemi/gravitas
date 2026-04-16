@@ -129,8 +129,16 @@ router.post(
             console.error("Whisper transcription failed:", transcriptResult.reason);
           }
 
+          let pitchVariationScore: number | null = null;
+          let breathingScore: number | null = null;
+          let breathingObservation: string | null = null;
+
           if (deliveryResult.status === "fulfilled" && deliveryResult.value) {
-            audioDeliveryAnalysis = deliveryResult.value;
+            const dr = deliveryResult.value;
+            audioDeliveryAnalysis = dr.analysisText;
+            pitchVariationScore = dr.pitchVariationScore;
+            breathingScore = dr.breathingScore;
+            breathingObservation = dr.breathingObservation;
           } else {
             console.error("Audio delivery analysis failed:", deliveryResult.status === "rejected" ? deliveryResult.reason : "empty result");
           }
@@ -144,6 +152,9 @@ router.post(
           silenceEvents,
           transcript,
           audioDeliveryAnalysis,
+          pitchVariationScore,
+          breathingScore,
+          breathingObservation,
           recordingContext: session.recordingContext || "seated",
           promptText: session.promptText || undefined,
         });

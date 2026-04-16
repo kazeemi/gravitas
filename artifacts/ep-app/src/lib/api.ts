@@ -50,6 +50,11 @@ export const api = {
         body: JSON.stringify({ email, password }),
       }),
     logout: () => request("/v1/auth/logout", { method: "POST" }),
+    google: (credential: string) =>
+      request<{ token: string; user: { id: string; email: string; name: string | null }; isNewUser?: boolean }>("/v1/auth/google", {
+        method: "POST",
+        body: JSON.stringify({ credential }),
+      }),
     changePassword: (currentPassword: string, newPassword: string) =>
       request("/v1/auth/change-password", {
         method: "POST",
@@ -132,12 +137,15 @@ export interface SessionDetail extends SessionSummary {
   faceCoverageFlag: boolean | null;
   audioGapEvents: number | null;
   faceLostEvents: number | null;
+  silenceEvents: number | null;
+  overallFeedback: string | null;
   processingError: string | null;
 }
 
 export interface UploadData {
   audioGapEvents?: number;
   faceLostEvents?: number;
+  silenceEvents?: number;
   videoDownloaded?: boolean;
   durationSeconds?: number;
   transcript?: string;

@@ -3,9 +3,35 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { CheckIcon } from "lucide-react";
+
+const ROLE_OPTIONS = [
+  "CEO / President",
+  "C-Suite Executive (CFO, COO, CTO, CMO)",
+  "VP / Senior VP",
+  "Director",
+  "Senior Manager / Manager",
+  "Team Lead",
+  "Individual Contributor",
+  "Founder / Entrepreneur",
+  "Board Member / Advisor",
+  "Consultant / Coach",
+  "Sales / Business Development",
+  "Other",
+];
+
+const GOAL_OPTIONS = [
+  "Improve confidence when speaking to senior leadership",
+  "Reduce filler words and verbal hesitation",
+  "Strengthen executive presence in large presentations",
+  "Communicate more clearly and concisely",
+  "Improve storytelling and narrative structure",
+  "Increase vocal authority and gravitas",
+  "Enhance presence in video calls and virtual meetings",
+  "Prepare for a board presentation or keynote",
+  "Build persuasiveness in negotiations and pitches",
+  "Develop a more commanding physical presence",
+];
 
 const COMMUNICATION_CONTEXTS = [
   { value: "internal", label: "Internal meetings" },
@@ -22,12 +48,18 @@ const RECORDING_CONTEXTS = [
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [roleTitle, setRoleTitle] = useState("");
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const [communicationContext, setCommunicationContext] = useState("");
-  const [goal, setGoal] = useState("");
   const [defaultRecordingContext, setDefaultRecordingContext] = useState("seated");
   const [loading, setLoading] = useState(false);
   const { refreshUser } = useAuth();
   const [, setLocation] = useLocation();
+
+  const toggleGoal = (goal: string) => {
+    setSelectedGoals(prev =>
+      prev.includes(goal) ? prev.filter(g => g !== goal) : [...prev, goal]
+    );
+  };
 
   const handleFinish = async () => {
     setLoading(true);
@@ -35,7 +67,7 @@ export default function OnboardingPage() {
       await api.users.completeOnboarding({
         roleTitle,
         communicationContext,
-        goal,
+        goal: selectedGoals.join("; "),
         defaultRecordingContext,
       });
       await refreshUser();
@@ -48,7 +80,7 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Welcome to Executive Presence</h1>
@@ -64,38 +96,91 @@ export default function OnboardingPage() {
         </div>
 
         {step === 1 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Tell us about yourself</h2>
+          <div className="space-y-5">
             <div>
-              <Label htmlFor="roleTitle">Your role / title</Label>
-              <Input
-                id="roleTitle"
-                value={roleTitle}
+              <h2 className="text-lg font-semibold">Tell us about yourself</h2>
+              <p className="text-sm text-gray-500 mt-1">Select your current role</p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 max-h-80 overflow-y-auto">
+              {ROLE_OPTIONS.map(role => (
+                <button
+                  key={role}
+                  onClick={() => setRoleTitle(role)}
+                  className={`flex items-center justify-between rounded border px-4 py-3 text-sm text-left transition-colors ${
+                    roleTitle === role
+                      ? "border-gray-900 bg-gray-900 text-white"
+                      : "border-gray-200 hover:border-gray-400"
+                  }`}
+                >
+                  <span>{role}</span>
+                  {roleTitle === role && <CheckIcon className="h-4 w-4 flex-shrink-0" />}
+                </button>
+              ))}
+            </div>
+            <div className="pt-1">
+              <p className="text-xs text-gray-400 mb-1">Or type your own title:</p>
+              <input
+                type="text"
+                value={ROLE_OPTIONS.includes(roleTitle) ? "" : roleTitle}
                 onChange={(e) => setRoleTitle(e.target.value)}
-                placeholder="e.g. VP of Engineering"
-                className="mt-1"
+                placeholder="e.g. Head of Product"
+                className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
               />
             </div>
-            <div>
-              <Label htmlFor="goal">What's your primary goal?</Label>
-              <Textarea
-                id="goal"
-                value={goal}
-                onChange={(e) => setGoal(e.target.value)}
-                placeholder="e.g. I want to improve my presence when presenting to the board."
-                rows={3}
-                className="mt-1"
-              />
-            </div>
-            <Button className="w-full" onClick={() => setStep(2)}>
+            <Button className="w-full" onClick={() => setStep(2)} disabled={!roleTitle}>
               Continue
             </Button>
           </div>
         )}
 
         {step === 2 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Your communication context</h2>
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold">What are your goals?</h2>
+              <p className="text-sm text-gray-500 mt-1">Select all that apply</p>
+            </div>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {GOAL_OPTIONS.map(goal => {
+                const selected = selectedGoals.includes(goal);
+                return (
+                  <button
+                    key={goal}
+                    onClick={() => toggleGoal(goal)}
+                    className={`flex items-start gap-3 w-full rounded border px-4 py-3 text-sm text-left transition-colors ${
+                      selected
+                        ? "border-gray-900 bg-gray-50"
+                        : "border-gray-200 hover:border-gray-400"
+                    }`}
+                  >
+                    <span
+                      className={`mt-0.5 h-4 w-4 flex-shrink-0 rounded border-2 flex items-center justify-center ${
+                        selected ? "border-gray-900 bg-gray-900" : "border-gray-300"
+                      }`}
+                    >
+                      {selected && <CheckIcon className="h-3 w-3 text-white" />}
+                    </span>
+                    <span>{goal}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
+                Back
+              </Button>
+              <Button className="flex-1" onClick={() => setStep(3)} disabled={selectedGoals.length === 0}>
+                Continue
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold">Your communication context</h2>
+              <p className="text-sm text-gray-500 mt-1">Where do you primarily present or speak?</p>
+            </div>
             <div className="space-y-2">
               {COMMUNICATION_CONTEXTS.map(ctx => (
                 <label
@@ -114,50 +199,39 @@ export default function OnboardingPage() {
                     onChange={() => setCommunicationContext(ctx.value)}
                     className="sr-only"
                   />
-                  <span className={`h-4 w-4 rounded-full border-2 flex-shrink-0 ${
-                    communicationContext === ctx.value ? "border-gray-900 bg-gray-900" : "border-gray-300"
-                  }`} />
-                  <span className="text-sm">{ctx.label}</span>
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>Back</Button>
-              <Button className="flex-1" onClick={() => setStep(3)}>Continue</Button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-4">
-            <h2 className="text-lg font-semibold">Your recording setup</h2>
-            <div className="space-y-2">
-              {RECORDING_CONTEXTS.map(ctx => (
-                <label
-                  key={ctx.value}
-                  className={`flex items-center gap-3 rounded border p-3 cursor-pointer transition-colors ${
-                    defaultRecordingContext === ctx.value
-                      ? "border-gray-900 bg-gray-50"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="recordingContext"
-                    value={ctx.value}
-                    checked={defaultRecordingContext === ctx.value}
-                    onChange={() => setDefaultRecordingContext(ctx.value)}
-                    className="sr-only"
+                  <span
+                    className={`h-4 w-4 rounded-full border-2 flex-shrink-0 ${
+                      communicationContext === ctx.value
+                        ? "border-gray-900 bg-gray-900"
+                        : "border-gray-300"
+                    }`}
                   />
-                  <span className={`h-4 w-4 rounded-full border-2 flex-shrink-0 ${
-                    defaultRecordingContext === ctx.value ? "border-gray-900 bg-gray-900" : "border-gray-300"
-                  }`} />
                   <span className="text-sm">{ctx.label}</span>
                 </label>
               ))}
             </div>
+            <div className="pt-2">
+              <p className="text-sm font-medium text-gray-700 mb-2">Default recording position</p>
+              <div className="flex gap-2">
+                {RECORDING_CONTEXTS.map(ctx => (
+                  <button
+                    key={ctx.value}
+                    onClick={() => setDefaultRecordingContext(ctx.value)}
+                    className={`flex-1 rounded border py-2 text-sm transition-colors ${
+                      defaultRecordingContext === ctx.value
+                        ? "border-gray-900 bg-gray-900 text-white"
+                        : "border-gray-200"
+                    }`}
+                  >
+                    {ctx.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>Back</Button>
+              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
+                Back
+              </Button>
               <Button className="flex-1" onClick={handleFinish} disabled={loading}>
                 {loading ? "Saving..." : "Get started"}
               </Button>

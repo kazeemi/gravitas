@@ -72,10 +72,18 @@ router.post("/v1/sessions/:id/upload", requireAuth, async (req, res) => {
   const {
     audioGapEvents = 0,
     faceLostEvents = 0,
+    silenceEvents = 0,
     videoDownloaded = false,
-    durationSeconds = 60,
+    durationSeconds = 0,
     transcript,
   } = req.body;
+
+  if (durationSeconds < 60) {
+    await db.delete(sessionsTable).where(eq(sessionsTable.id, session.id));
+    return res.status(400).json({
+      error: `Recording too short — minimum 60 seconds required (got ${durationSeconds}s). Please record at least 1 minute.`,
+    });
+  }
 
   await db.update(sessionsTable).set({ processingStatus: "processing" }).where(eq(sessionsTable.id, session.id));
 
@@ -88,6 +96,7 @@ router.post("/v1/sessions/:id/upload", requireAuth, async (req, res) => {
         durationSeconds,
         audioGapEvents,
         faceLostEvents,
+        silenceEvents,
         transcript,
         recordingContext: session.recordingContext || "seated",
         promptText: session.promptText || undefined,
@@ -112,9 +121,11 @@ router.post("/v1/sessions/:id/upload", requireAuth, async (req, res) => {
         compositeTier: result.compositeTier,
         audioQualityFlag: result.audioQualityFlag,
         faceCoverageFlag: result.faceCoverageFlag,
+        overallFeedback: result.overallFeedback,
         durationSeconds,
         audioGapEvents,
         faceLostEvents,
+        silenceEvents,
         videoDownloaded,
         transcript,
         scoredAt: new Date(),

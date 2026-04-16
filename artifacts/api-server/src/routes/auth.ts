@@ -59,6 +59,55 @@ router.post("/v1/auth/reset-password", async (req, res) => {
   res.status(400).json({ error: "Password reset not supported in this build" });
 });
 
+router.post("/v1/auth/google", async (req, res) => {
+  const { credential } = req.body;
+  if (!credential) {
+    return res.status(400).json({ error: "credential is required" });
+  }
+  try {
+    const tokenInfoRes = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`
+    );
+    if (!tokenInfoRes.ok) {
+      return res.status(401).json({ error: "Invalid Google token" });
+    }
+    const tokenInfo = await tokenInfoRes.json() as {
+      email?: string;
+      name?: string;
+      given_name?: string;
+      family_name?: string;
+      sub?: string;
+      aud?: string;
+    };
+
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (clientId && tokenInfo.aud !== clientId) {
+      return res.status(401).json({ error: "Token audience mismatch" });
+    }
+
+    if (!tokenInfo.email) {
+      return res.status(401).json({ error: "No email in Google token" });
+    }
+
+    const email = tokenInfo.email.toLowerCase();
+    const name = tokenInfo.name || tokenInfo.given_name || email.split("@")[0];
+
+    let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
+    if (!user) {
+      [user] = await db.insert(usersTable).values({ email, name }).returning();
+    }
+
+    const token = signToken({ userId: user.id, email: user.email });
+    return res.json({
+      token,
+      user: { id: user.id, email: user.email, name: user.name },
+      isNewUser: !user.onboardingCompleted,
+    });
+  } catch {
+    return res.status(401).json({ error: "Google authentication failed" });
+  }
+});
+
 router.post("/v1/auth/change-password", requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) {

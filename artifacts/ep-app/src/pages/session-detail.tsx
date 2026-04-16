@@ -3,20 +3,45 @@ import { useParams, useLocation } from "wouter";
 import { api, type SessionDetail } from "@/lib/api";
 import { getTierColors, DIMENSION_LABELS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, MicIcon, VideoIcon, AlertTriangleIcon } from "lucide-react";
+import {
+  ChevronLeftIcon,
+  MicIcon,
+  VideoIcon,
+  AlertTriangleIcon,
+  TrendingUpIcon,
+  TrendingDownIcon,
+  ZapIcon,
+} from "lucide-react";
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
+
+interface OverallFeedback {
+  strengths?: string;
+  improvements?: string;
+  nextStep?: string;
+}
+
+function parseOverallFeedback(raw: string | null): OverallFeedback | null {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as OverallFeedback;
+  } catch {
+    return { strengths: raw };
+  }
+}
 
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showTranscript, setShowTranscript] = useState(false);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (!id) return;
-    api.sessions.get(id)
+    api.sessions
+      .get(id)
       .then(setSession)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -43,15 +68,18 @@ export default function SessionDetailPage() {
 
   const colors = session.compositeTier ? getTierColors(session.compositeTier) : null;
   const score = session.compositeScore ? parseFloat(session.compositeScore) : null;
+  const overallFeedback = parseOverallFeedback(session.overallFeedback ?? null);
 
-  const radarData = session.dimensionScores.map(d => ({
+  const radarData = session.dimensionScores.map((d) => ({
     subject: (DIMENSION_LABELS[d.dimensionKey] || d.dimensionKey).split(" & ").join("\n& "),
     score: d.score,
     fullMark: 10,
   }));
 
+  const hasSilences = (session.silenceEvents ?? 0) > 0;
+
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-6 pb-10">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setLocation("/history")}
@@ -84,11 +112,11 @@ export default function SessionDetailPage() {
               )}
             </div>
             {session.promptText && (
-              <p className="mt-2 text-gray-700">{session.promptText}</p>
+              <p className="mt-2 font-medium text-gray-800">{session.promptText}</p>
             )}
           </div>
           {score !== null && colors && (
-            <div className="text-right">
+            <div className="text-right flex-shrink-0 ml-4">
               <p className="text-3xl font-bold" style={{ color: colors.hex }}>
                 {score.toFixed(1)}
               </p>
@@ -111,7 +139,67 @@ export default function SessionDetailPage() {
             </p>
           </div>
         )}
+
+        {hasSilences && (
+          <div className="mt-3 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3">
+            <AlertTriangleIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-amber-700">
+              {session.silenceEvents} long pause{session.silenceEvents !== 1 ? "s" : ""} detected during your recording (pauses over 4 seconds). This can disrupt your listeners' engagement and affect your pacing score.
+            </p>
+          </div>
+        )}
       </div>
+
+      {overallFeedback && (
+        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+          <h2 className="font-semibold text-gray-900 text-lg">Overall coaching summary</h2>
+          {overallFeedback.strengths && (
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
+                  <TrendingUpIcon className="h-3.5 w-3.5 text-green-600" />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-green-700 mb-1">
+                  Strengths
+                </p>
+                <p className="text-sm text-gray-700 leading-relaxed">{overallFeedback.strengths}</p>
+              </div>
+            </div>
+          )}
+          {overallFeedback.improvements && (
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <div className="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center">
+                  <TrendingDownIcon className="h-3.5 w-3.5 text-amber-600" />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-1">
+                  Areas to improve
+                </p>
+                <p className="text-sm text-gray-700 leading-relaxed">{overallFeedback.improvements}</p>
+              </div>
+            </div>
+          )}
+          {overallFeedback.nextStep && (
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
+                  <ZapIcon className="h-3.5 w-3.5 text-blue-600" />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-1">
+                  Priority next step
+                </p>
+                <p className="text-sm text-gray-700 leading-relaxed">{overallFeedback.nextStep}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {radarData.length > 0 && (
         <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -120,10 +208,7 @@ export default function SessionDetailPage() {
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart data={radarData}>
                 <PolarGrid stroke="#e5e7eb" />
-                <PolarAngleAxis
-                  dataKey="subject"
-                  tick={{ fontSize: 11, fill: "#6b7280" }}
-                />
+                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#6b7280" }} />
                 <Radar
                   name="Score"
                   dataKey="score"
@@ -140,12 +225,31 @@ export default function SessionDetailPage() {
 
       <div className="space-y-4">
         <h2 className="font-semibold text-gray-900">Dimension feedback</h2>
-        {session.dimensionScores.map(d => (
+        {session.dimensionScores.map((d) => (
           <DimensionCard key={d.id} score={d} />
         ))}
       </div>
 
-      <div className="flex gap-3 pb-8">
+      {session.transcript && (
+        <div className="rounded-lg border border-gray-200 bg-white p-6">
+          <button
+            onClick={() => setShowTranscript(!showTranscript)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <h2 className="font-semibold text-gray-900">Session transcript</h2>
+            <span className="text-xs text-gray-400">{showTranscript ? "Hide" : "Show"}</span>
+          </button>
+          {showTranscript && (
+            <div className="mt-4 rounded border border-gray-100 bg-gray-50 p-4">
+              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {session.transcript}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-3">
         <Button variant="outline" onClick={() => setLocation("/record")}>
           New session
         </Button>

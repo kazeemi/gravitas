@@ -29,6 +29,8 @@ export const sessionsTable = pgTable("sessions", {
   audioGapEvents: integer("audio_gap_events").default(0),
   faceLostEvents: integer("face_lost_events").default(0),
   videoDownloaded: boolean("video_downloaded").default(false),
+  silenceEvents: integer("silence_events").default(0),
+  overallFeedback: text("overall_feedback"),
   processingStatus: varchar("processing_status", { length: 20 }).notNull().default("pending"),
   processingError: text("processing_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

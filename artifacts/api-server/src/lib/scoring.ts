@@ -1,4 +1,6 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
+import { openai } from "@workspace/integrations-openai-ai-server";
+import { ensureCompatibleFormat, speechToText } from "@workspace/integrations-openai-ai-server/audio";
 
 export type DimensionKey =
   | "vocal_clarity"
@@ -86,6 +88,7 @@ export interface ScoringInput {
   faceLostEvents: number;
   silenceEvents: number;
   transcript?: string;
+  audioDeliveryAnalysis?: string;
   recordingContext?: string;
   promptText?: string;
 }
@@ -123,10 +126,83 @@ interface AIEvalResult {
   dimensions: Record<string, AIDimensionEval>;
 }
 
+/**
+ * Uses gpt-audio model to listen to the actual audio recording and produce
+ * a detailed vocal delivery analysis covering pace, tone, volume, filler words,
+ * pauses, confidence, and clarity — things only hearable from the audio itself.
+ */
+export async function analyzeAudioDelivery(
+  audioBuffer: Buffer,
+  format: "wav" | "mp3",
+  promptText?: string
+): Promise<string> {
+  const audioBase64 = audioBuffer.toString("base64");
+
+  const analysisPrompt = `${promptText ? `The speaker was asked to respond to this prompt: "${promptText}". ` : ""}
+
+Listen carefully to this audio recording and provide a detailed, specific vocal delivery analysis. Report only what you actually hear in the audio — do NOT guess or infer. Cover:
+
+1. Speaking pace: was it fast, slow, or varied? Any significant rushes or drags?
+2. Volume and projection: consistent? Too quiet? Too loud? Did it vary appropriately?
+3. Vocal clarity: was articulation clear? Any mumbling, dropping of word endings, or poor diction?
+4. Filler words: list EVERY specific filler word you heard (um, uh, like, you know, so, basically, etc.) and approximately how many times
+5. Pauses and silences: any awkward long pauses? Natural pauses for emphasis? How long were they?
+6. Vocal confidence: did the voice sound assured, tentative, nervous, or authoritative?
+7. Vocal variety: monotone or did the pitch, pace, and energy vary appropriately?
+8. Energy and engagement: did the speaker sound engaged and present, or flat and disengaged?
+
+Be brutally honest and specific. If the speech was disorganized, say so. If the speaker sounded nervous, say so. If there were barely any words spoken, say so. Do not be encouraging if the delivery was poor.
+
+Format your response as a JSON object:
+{
+  "pace": "specific observation",
+  "volume": "specific observation", 
+  "clarity": "specific observation",
+  "fillerWords": "list each filler word and count",
+  "silences": "specific observation about pauses",
+  "confidence": "specific observation",
+  "vocalVariety": "specific observation",
+  "energy": "specific observation",
+  "overallDeliveryQuality": "brief honest summary (1-2 sentences)"
+}`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-audio",
+      modalities: ["text", "audio"],
+      audio: { voice: "alloy", format: "mp3" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "input_audio", input_audio: { data: audioBase64, format } } as const,
+            { type: "text", text: analysisPrompt } as const,
+          ],
+        },
+      ],
+    } as Parameters<typeof openai.chat.completions.create>[0]);
+
+    const message = response.choices[0]?.message as Record<string, unknown>;
+    const audioContent = message?.audio as Record<string, unknown> | undefined;
+    return (audioContent?.transcript as string) || (message?.content as string) || "";
+  } catch (err) {
+    console.error("gpt-audio delivery analysis failed:", err);
+    return "";
+  }
+}
+
+/**
+ * Transcribes audio using OpenAI Whisper (gpt-4o-mini-transcribe).
+ * Returns the full accurate transcript.
+ */
+export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
+  const { buffer, format } = await ensureCompatibleFormat(audioBuffer);
+  return speechToText(buffer, format);
+}
+
 async function runAIEvaluation(
   input: ScoringInput,
-  dimensions: DimensionKey[],
-  deliveryMetrics: Record<string, unknown>
+  dimensions: DimensionKey[]
 ): Promise<AIEvalResult> {
   const wordCount = input.transcript
     ? input.transcript.trim().split(/\s+/).filter(Boolean).length
@@ -159,32 +235,32 @@ SCORING CALIBRATION — follow this strictly:
 - 10 (Distinguished): Exceptionally rare — reserved for world-class delivery. Almost never awarded.
 
 CRITICAL RULES:
-1. Base ALL feedback ONLY on what is explicitly present in the transcript and observable metrics. Never infer, project, or assume positive qualities that are not evident.
-2. A response of fewer than 50 words is almost always Emerging (1-3) on content dimensions (structure, confidence_language). Do not award 5+ to short responses.
-3. An incomplete response that does not address the full prompt must be scored low on structure and confidence.
-4. If the transcript shows casual/informal language (e.g., "friend", "alright") in a professional context, penalize confidence_language.
-5. If there is no clear opening, development, and closing, score structure ≤ 4.
-6. DO NOT write generic praise. Every positive comment must reference something specific from the transcript.
-7. DO NOT soften honest criticism with flattery. Be direct and professional.
-8. Gaps and next steps must be specific and actionable — not generic advice.`;
+1. For audio/delivery dimensions (vocal_clarity, pace_rhythm, volume_projection, filler_words), base your scoring PRIMARILY on the Audio Delivery Analysis — not the transcript. These dimensions measure HOW the person spoke, not what they said.
+2. For content dimensions (structure, confidence_language), base scoring on BOTH the transcript content AND how it was delivered vocally.
+3. A response of fewer than 50 words is almost always Emerging (1-3) on content dimensions.
+4. Never award 6+ to short/shallow responses that don't adequately address the prompt.
+5. DO NOT write generic praise. Every positive comment must reference something specific.
+6. DO NOT soften honest criticism. Be direct and professional.
+7. Gaps and next steps must be specific and actionable.`;
 
   const userPrompt = `Evaluate this speaker on executive presence dimensions.
 
 PROMPT THEY WERE RESPONDING TO:
 "${input.promptText || "Open-ended speaking exercise"}"
 
-TRANSCRIPT (what they actually said):
-${input.transcript ? `"${input.transcript}"` : "[No transcript captured — evaluate delivery metrics only]"}
+TRANSCRIPT (accurate Whisper transcription of what they said):
+${input.transcript ? `"${input.transcript}"` : "[No transcript captured]"}
 
-DELIVERY METRICS:
+AUDIO DELIVERY ANALYSIS (from direct audio evaluation — use this for delivery dimensions):
+${input.audioDeliveryAnalysis || "[No audio delivery analysis available]"}
+
+SUPPORTING METRICS:
 - Duration: ${input.durationSeconds}s (${Math.floor(input.durationSeconds / 60)}m ${input.durationSeconds % 60}s)
 - Word count: ${wordCount} words
-- Speaking pace: ${wordsPerMinute} words/minute (ideal: 120-160 wpm)
-- Filler words detected: ${fillerCount} (${wordCount > 0 ? ((fillerCount / wordCount) * 100).toFixed(1) : 0}% of words)
-- Silence/pause events: ${input.silenceEvents}
-- Audio gap events: ${input.audioGapEvents}
-${input.mode === "video" ? `- Face lost events: ${input.faceLostEvents}` : ""}
-- Session mode: ${input.mode}
+- Calculated speaking pace: ${wordsPerMinute} wpm (ideal: 120-160 wpm)
+- Filler words in transcript: ${fillerCount}
+- Silence/pause events detected: ${input.silenceEvents}
+- Mode: ${input.mode}
 - Recording context: ${input.recordingContext || "seated"}
 
 DIMENSIONS TO EVALUATE:
@@ -192,24 +268,28 @@ ${dimensionList}
 
 ${
   wordCount < 30
-    ? `⚠️ EVALUATOR NOTE: This transcript is extremely short (${wordCount} words). Content-based dimensions (structure, confidence_language) must score 1-3 unless there is clear, exceptional quality in the few words spoken. Short duration alone is a major deficiency.`
+    ? `⚠️ NOTE: This transcript is extremely short (${wordCount} words). Content dimensions (structure, confidence_language) must score 1-3.`
     : wordCount < 80
-    ? `⚠️ EVALUATOR NOTE: This transcript is brief (${wordCount} words). Content dimensions should generally score no higher than 4-5 unless the content is unusually strong and directly addresses the prompt.`
+    ? `⚠️ NOTE: This transcript is brief (${wordCount} words). Content dimensions should generally score no higher than 4-5.`
     : ""
 }
 
-Return a JSON object with this exact structure (no markdown, just JSON):
+Return a JSON object (no markdown):
 {
-  "overallStrengths": "2-3 sentences summarizing the genuine strengths observed. Must be grounded in specific evidence from the transcript/metrics. If there are no significant strengths, say so honestly.",
-  "overallImprovements": "2-3 sentences identifying the most important areas to improve. Be specific and direct.",
-  "overallNextStep": "The single most impactful action this speaker should take before their next session (1 sentence, specific and actionable).",
+  "overallStrengths": "2-3 sentences on genuine strengths with specific evidence. If there are no significant strengths, say so directly.",
+  "overallImprovements": "2-3 sentences on most important improvements needed. Be specific and direct.",
+  "overallNextStep": "The single most impactful action before next session (1 sentence, specific and actionable).",
   "dimensions": {
-    ${dimensions.map(d => `"${d}": {
+    ${dimensions
+      .map(
+        d => `"${d}": {
       "score": <integer 1-10>,
-      "strengthText": "<one sentence, max 25 words, what specifically they did well — or state honestly if nothing stands out>",
-      "gapText": "<one sentence, max 25 words, the primary gap — must reference specific evidence>",
-      "nextStepText": "<one sentence, max 30 words, a concrete actionable practice drill>"
-    }`).join(",\n    ")}
+      "strengthText": "<max 25 words — specific evidence from audio/transcript>",
+      "gapText": "<max 25 words — primary gap with specific evidence>",
+      "nextStepText": "<max 30 words — concrete actionable practice drill>"
+    }`
+      )
+      .join(",\n    ")}
   }
 }`;
 
@@ -227,12 +307,11 @@ Return a JSON object with this exact structure (no markdown, just JSON):
     const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text) as AIEvalResult;
     return parsed;
   } catch (err) {
-    return buildFallbackEvaluation(input, dimensions, wordCount);
+    return buildFallbackEvaluation(dimensions, wordCount);
   }
 }
 
 function buildFallbackEvaluation(
-  input: ScoringInput,
   dimensions: DimensionKey[],
   wordCount: number
 ): AIEvalResult {
@@ -240,92 +319,19 @@ function buildFallbackEvaluation(
   const result: AIEvalResult = {
     overallStrengths: "Unable to generate AI feedback at this time.",
     overallImprovements:
-      "Please ensure your response fully addresses the prompt with sufficient depth and duration.",
-    overallNextStep: "Record a session of at least 90 seconds with a structured response to the prompt.",
+      "Please ensure your response fully addresses the prompt with sufficient depth.",
+    overallNextStep: "Record a session of at least 90 seconds with a structured response.",
     dimensions: {},
   };
   for (const d of dimensions) {
     result.dimensions[d] = {
       score: baseScore,
-      strengthText: `Some foundational elements were present in your ${DIMENSION_LABELS[d]}.`,
-      gapText: `Significant development needed in ${DIMENSION_LABELS[d]} for executive presence.`,
-      nextStepText: `Practice dedicated ${DIMENSION_LABELS[d]} exercises for 10 minutes daily.`,
+      strengthText: `Some foundational elements present in ${DIMENSION_LABELS[d]}.`,
+      gapText: `Significant development needed in ${DIMENSION_LABELS[d]}.`,
+      nextStepText: `Practice dedicated ${DIMENSION_LABELS[d]} exercises daily.`,
     };
   }
   return result;
-}
-
-function applyDeliveryAdjustments(
-  aiScores: Record<string, AIDimensionEval>,
-  input: ScoringInput
-): Record<string, AIDimensionEval> {
-  const adjusted = { ...aiScores };
-  const { durationSeconds, audioGapEvents, silenceEvents } = input;
-
-  const audioGapRate =
-    durationSeconds > 0 ? audioGapEvents / (durationSeconds / 30) : 0;
-
-  if (adjusted["vocal_clarity"]) {
-    const penalty = Math.min(2, Math.round(audioGapRate));
-    adjusted["vocal_clarity"] = {
-      ...adjusted["vocal_clarity"],
-      score: Math.max(1, adjusted["vocal_clarity"].score - penalty),
-    };
-  }
-
-  if (adjusted["pace_rhythm"]) {
-    const transcript = input.transcript || "";
-    const wordCount = transcript.trim().split(/\s+/).filter(Boolean).length;
-    const wpm =
-      durationSeconds > 0 ? Math.round((wordCount / durationSeconds) * 60) : 0;
-    if (wpm > 0 && (wpm < 100 || wpm > 190)) {
-      adjusted["pace_rhythm"] = {
-        ...adjusted["pace_rhythm"],
-        score: Math.max(1, adjusted["pace_rhythm"].score - 1),
-      };
-    }
-  }
-
-  if (adjusted["filler_words"] && input.transcript) {
-    const fillers = (
-      input.transcript.match(
-        /\b(um+|uh+|like|you know|so,?|basically|literally|actually|right\?|i mean|kind of|sort of)\b/gi
-      ) || []
-    ).length;
-    const wordCount = input.transcript.trim().split(/\s+/).filter(Boolean).length;
-    const fillerRate = wordCount > 0 ? fillers / wordCount : 0;
-    if (fillerRate > 0.1) {
-      adjusted["filler_words"] = {
-        ...adjusted["filler_words"],
-        score: Math.max(1, Math.min(adjusted["filler_words"].score, 4)),
-      };
-    }
-  }
-
-  if (adjusted["presence_engagement"] && input.mode === "video") {
-    const faceLostRate =
-      durationSeconds > 0 ? input.faceLostEvents / (durationSeconds / 30) : 0;
-    if (faceLostRate > 1) {
-      adjusted["presence_engagement"] = {
-        ...adjusted["presence_engagement"],
-        score: Math.max(1, adjusted["presence_engagement"].score - 2),
-      };
-    }
-  }
-
-  if (silenceEvents > 3) {
-    const penalty = Math.min(2, Math.floor(silenceEvents / 3));
-    for (const key of ["vocal_clarity", "pace_rhythm"] as const) {
-      if (adjusted[key]) {
-        adjusted[key] = {
-          ...adjusted[key],
-          score: Math.max(1, adjusted[key].score - penalty),
-        };
-      }
-    }
-  }
-
-  return adjusted;
 }
 
 export async function scoreSession(input: ScoringInput): Promise<ScoringResult> {
@@ -335,26 +341,14 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
   const audioQualityFlag = input.audioGapEvents > 5;
   const faceCoverageFlag = input.mode === "video" && input.faceLostEvents > 3;
 
-  const deliveryMetrics: Record<string, unknown> = {
-    durationSeconds: input.durationSeconds,
-    audioGapEvents: input.audioGapEvents,
-    silenceEvents: input.silenceEvents,
-    ...(input.mode === "video" ? { faceLostEvents: input.faceLostEvents } : {}),
-  };
-
-  const aiResult = await runAIEvaluation(input, dimensions, deliveryMetrics);
-
-  const adjustedDimensions = applyDeliveryAdjustments(
-    aiResult.dimensions,
-    input
-  );
+  const aiResult = await runAIEvaluation(input, dimensions);
 
   const dimensionResults: DimensionResult[] = dimensions.map(key => {
-    const aiDim = adjustedDimensions[key] || {
+    const aiDim = aiResult.dimensions[key] ?? {
       score: 3,
       strengthText: `Limited evidence of ${DIMENSION_LABELS[key]} in this session.`,
       gapText: `${DIMENSION_LABELS[key]} needs significant development.`,
-      nextStepText: `Focus on ${DIMENSION_LABELS[key]} in your next practice session.`,
+      nextStepText: `Focus on ${DIMENSION_LABELS[key]} in your next session.`,
     };
 
     const score = Math.round(Math.min(10, Math.max(1, aiDim.score)));
@@ -364,7 +358,11 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       dimensionKey: key,
       score,
       tier,
-      rawMetrics: { ...deliveryMetrics, aiRawScore: aiDim.score },
+      rawMetrics: {
+        durationSeconds: input.durationSeconds,
+        audioDeliveryAnalysis: input.audioDeliveryAnalysis ? "provided" : "not available",
+        aiRawScore: aiDim.score,
+      },
       strengthText: aiDim.strengthText || "",
       gapText: aiDim.gapText || "",
       nextStepText: aiDim.nextStepText || "",

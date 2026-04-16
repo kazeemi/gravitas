@@ -17,14 +17,6 @@ type Step = "setup" | "recording" | "processing" | "done";
 type RecordingState = "idle" | "recording" | "paused";
 
 const MIN_DURATION = 60;
-const SILENCE_THRESHOLD_MS = 4000;
-
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
 
 export default function RecordPage() {
   const search = useSearch();
@@ -39,20 +31,15 @@ export default function RecordPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
-  const [transcript, setTranscript] = useState("");
-  const [silenceEvents, setSilenceEvents] = useState(0);
-  const [audioGapEvents, setAudioGapEvents] = useState(0);
   const [error, setError] = useState("");
   const [processingStatus, setProcessingStatus] = useState("");
 
   const timerRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const transcriptRef = useRef("");
-  const silenceTimerRef = useRef<number | null>(null);
-  const silenceCountRef = useRef(0);
-  const audioGapRef = useRef(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const elapsedRef = useRef(0);
+  const streamRef = useRef<MediaStream | null>(null);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -74,86 +61,19 @@ export default function RecordPage() {
     }
   }, []);
 
-  const stopRecognition = useCallback(() => {
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {}
-      recognitionRef.current = null;
-    }
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
+  const releaseStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
     }
   }, []);
-
-  const startSilenceTimer = useCallback(() => {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    silenceTimerRef.current = window.setTimeout(() => {
-      silenceCountRef.current += 1;
-      setSilenceEvents(silenceCountRef.current);
-    }, SILENCE_THRESHOLD_MS);
-  }, []);
-
-  const startSpeechRecognition = useCallback(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-
-    const recognition = new SR();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-    recognitionRef.current = recognition;
-
-    let finalTranscript = transcriptRef.current;
-
-    recognition.onresult = (event) => {
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += (finalTranscript ? " " : "") + result[0].transcript.trim();
-          transcriptRef.current = finalTranscript;
-          setTranscript(finalTranscript);
-        } else {
-          interim += result[0].transcript;
-        }
-      }
-      startSilenceTimer();
-    };
-
-    recognition.onspeechend = () => {
-      audioGapRef.current += 1;
-      setAudioGapEvents(audioGapRef.current);
-      startSilenceTimer();
-    };
-
-    recognition.onend = () => {
-      if (recognitionRef.current === recognition) {
-        try {
-          recognition.start();
-        } catch {}
-      }
-    };
-
-    recognition.onerror = (event) => {
-      if (event.error !== "no-speech" && event.error !== "aborted") {
-        console.warn("Speech recognition error:", event.error);
-      }
-    };
-
-    try {
-      recognition.start();
-      startSilenceTimer();
-    } catch (e) {
-      console.warn("Could not start speech recognition:", e);
-    }
-  }, [startSilenceTimer]);
 
   const startRecording = async () => {
     setError("");
     try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+
       const session = await api.sessions.create({
         mode,
         promptText: prompt?.text || customPrompt || undefined,
@@ -161,57 +81,78 @@ export default function RecordPage() {
         recordingContext,
       });
       setSessionId(session.id);
+
+      audioChunksRef.current = [];
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "";
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+
+      recorder.start(1000);
+
       setStep("recording");
       setRecordingState("recording");
       setElapsed(0);
       elapsedRef.current = 0;
-      setTranscript("");
-      transcriptRef.current = "";
-      setSilenceEvents(0);
-      silenceCountRef.current = 0;
-      setAudioGapEvents(0);
-      audioGapRef.current = 0;
-
       timerRef.current = window.setInterval(() => setElapsed(e => e + 1), 1000);
-      startSpeechRecognition();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to start session");
+      const msg = err instanceof Error ? err.message : "Failed to start recording";
+      setError(
+        msg.includes("Permission") || msg.includes("NotAllowed")
+          ? "Microphone permission denied — please allow microphone access and try again."
+          : msg
+      );
+      releaseStream();
     }
   };
 
   const pauseRecording = () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      mediaRecorderRef.current.pause();
+    }
     stopTimer();
-    stopRecognition();
     setRecordingState("paused");
   };
 
   const resumeRecording = () => {
-    setRecordingState("recording");
+    if (mediaRecorderRef.current?.state === "paused") {
+      mediaRecorderRef.current.resume();
+    }
     timerRef.current = window.setInterval(() => setElapsed(e => e + 1), 1000);
-    startSpeechRecognition();
+    setRecordingState("recording");
   };
 
   const restartRecording = async () => {
     stopTimer();
-    stopRecognition();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    audioChunksRef.current = [];
+    releaseStream();
+
     if (sessionId) {
-      try {
-        await api.sessions.delete(sessionId);
-      } catch {}
+      try { await api.sessions.delete(sessionId); } catch {}
     }
     setSessionId(null);
     setElapsed(0);
-    setTranscript("");
-    transcriptRef.current = "";
-    setSilenceEvents(0);
-    silenceCountRef.current = 0;
-    setAudioGapEvents(0);
-    audioGapRef.current = 0;
+    elapsedRef.current = 0;
     setRecordingState("idle");
     setStep("setup");
+    setError("");
   };
 
-  const stopRecording = async () => {
+  const stopRecording = () => {
     const finalDuration = elapsedRef.current;
 
     if (finalDuration < MIN_DURATION) {
@@ -221,20 +162,42 @@ export default function RecordPage() {
       return;
     }
 
-    stopTimer();
-    stopRecognition();
     if (!sessionId) return;
 
+    stopTimer();
+
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      submitAudio(finalDuration, new Blob([]));
+      return;
+    }
+
+    recorder.onstop = () => {
+      const mimeType = recorder.mimeType || "audio/webm";
+      const blob = new Blob(audioChunksRef.current, { type: mimeType });
+      releaseStream();
+      submitAudio(finalDuration, blob);
+    };
+
+    recorder.stop();
+  };
+
+  const submitAudio = async (durationSeconds: number, audioBlob: Blob) => {
+    if (!sessionId) return;
     setStep("processing");
-    setProcessingStatus("Uploading and analyzing…");
+    setProcessingStatus("Uploading audio for analysis…");
+
     try {
       await api.sessions.upload(sessionId, {
-        durationSeconds: finalDuration,
-        audioGapEvents: audioGapRef.current,
+        durationSeconds,
+        audioGapEvents: 0,
         faceLostEvents: 0,
-        silenceEvents: silenceCountRef.current,
-        transcript: transcriptRef.current || undefined,
+        silenceEvents: 0,
+        audioBlob: audioBlob.size > 0 ? audioBlob : undefined,
       });
+
+      setProcessingStatus("Transcribing and analyzing your delivery…");
+
       pollRef.current = window.setInterval(async () => {
         try {
           const status = await api.sessions.status(sessionId);
@@ -245,11 +208,12 @@ export default function RecordPage() {
             clearInterval(pollRef.current!);
             setError(status.processingError || "Processing failed");
             setStep("recording");
+            setRecordingState("paused");
           }
         } catch {}
       }, 2000);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to process session";
+      const msg = err instanceof Error ? err.message : "Failed to upload";
       setError(msg);
       setStep("recording");
       setRecordingState("paused");
@@ -259,10 +223,13 @@ export default function RecordPage() {
   useEffect(() => {
     return () => {
       stopTimer();
-      stopRecognition();
+      if (mediaRecorderRef.current?.state !== "inactive") {
+        mediaRecorderRef.current?.stop();
+      }
+      releaseStream();
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [stopTimer, stopRecognition]);
+  }, [stopTimer, releaseStream]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -273,8 +240,6 @@ export default function RecordPage() {
   const getNewPrompt = () => {
     api.prompts.random().then(setPrompt).catch(() => {});
   };
-
-  const isUnderMinimum = elapsed < MIN_DURATION && step === "recording";
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -363,7 +328,7 @@ export default function RecordPage() {
           </div>
 
           <div className="rounded border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            Minimum recording duration: 1 minute. Your speech will be transcribed live via your microphone.
+            Minimum recording duration: 1 minute. Your audio will be transcribed and analyzed after recording.
           </div>
 
           <Button className="w-full gap-2" onClick={startRecording}>
@@ -383,27 +348,21 @@ export default function RecordPage() {
                   : "bg-gray-100"
               }`}
             >
-              {mode === "audio" ? (
-                <MicIcon
-                  className={`h-10 w-10 ${
-                    recordingState === "recording" ? "text-[#E24B4A]" : "text-gray-400"
-                  }`}
-                />
-              ) : (
-                <VideoIcon
-                  className={`h-10 w-10 ${
-                    recordingState === "recording" ? "text-[#E24B4A]" : "text-gray-400"
-                  }`}
-                />
-              )}
+              <MicIcon
+                className={`h-10 w-10 ${
+                  recordingState === "recording" ? "text-[#E24B4A]" : "text-gray-400"
+                }`}
+              />
             </div>
 
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
                 {recordingState === "paused" ? "Paused" : "Recording"}
               </p>
-              <p className="mt-1 text-3xl font-bold font-mono text-gray-900">{formatTime(elapsed)}</p>
-              {isUnderMinimum && (
+              <p className="mt-1 text-3xl font-bold font-mono text-gray-900">
+                {formatTime(elapsed)}
+              </p>
+              {elapsed < MIN_DURATION && (
                 <p className="mt-1 text-xs text-amber-600">
                   {MIN_DURATION - elapsed}s remaining to reach minimum
                 </p>
@@ -415,20 +374,6 @@ export default function RecordPage() {
             <div className="rounded border border-gray-100 bg-gray-50 p-4">
               <p className="text-xs font-medium text-gray-400 mb-1">Your prompt</p>
               <p className="text-sm text-gray-700">{prompt?.text || customPrompt}</p>
-            </div>
-          )}
-
-          {transcript && (
-            <div className="rounded border border-blue-100 bg-blue-50 p-4">
-              <p className="text-xs font-medium text-blue-600 mb-1">Live transcript</p>
-              <p className="text-sm text-gray-700 leading-relaxed">{transcript}</p>
-            </div>
-          )}
-
-          {silenceEvents > 0 && (
-            <div className="flex items-center gap-2 text-xs text-amber-600">
-              <AlertCircleIcon className="h-3.5 w-3.5" />
-              {silenceEvents} long pause{silenceEvents !== 1 ? "s" : ""} detected
             </div>
           )}
 
@@ -466,7 +411,6 @@ export default function RecordPage() {
               onClick={stopRecording}
               variant="outline"
               className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50"
-              disabled={recordingState === "paused" && elapsed < MIN_DURATION}
             >
               <StopCircleIcon className="h-4 w-4" />
               Stop & analyze
@@ -478,9 +422,10 @@ export default function RecordPage() {
       {step === "processing" && (
         <div className="space-y-4 text-center py-12">
           <div className="mx-auto h-12 w-12 rounded-full border-4 border-gray-200 border-t-gray-900 animate-spin" />
-          <p className="text-sm text-gray-500">{processingStatus}</p>
+          <p className="text-sm font-medium text-gray-700">{processingStatus}</p>
           <p className="text-xs text-gray-400">
-            Generating coaching feedback — this may take up to 30 seconds.
+            Your audio is being transcribed, your vocal delivery analyzed, and coaching feedback generated.
+            This may take up to 60 seconds.
           </p>
         </div>
       )}

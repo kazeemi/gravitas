@@ -83,11 +83,26 @@ export const api = {
     list: () => request<{ sessions: SessionSummary[] }>("/v1/sessions"),
     get: (id: string) => request<SessionDetail>(`/v1/sessions/${id}`),
     delete: (id: string) => request(`/v1/sessions/${id}`, { method: "DELETE" }),
-    upload: (id: string, data: UploadData) =>
-      request(`/v1/sessions/${id}/upload`, {
+    upload: (id: string, data: UploadData & { audioBlob?: Blob }) => {
+      const form = new FormData();
+      if (data.audioBlob) form.append("audio", data.audioBlob, "recording.webm");
+      if (data.durationSeconds != null) form.append("durationSeconds", String(data.durationSeconds));
+      if (data.audioGapEvents != null) form.append("audioGapEvents", String(data.audioGapEvents));
+      if (data.faceLostEvents != null) form.append("faceLostEvents", String(data.faceLostEvents));
+      if (data.silenceEvents != null) form.append("silenceEvents", String(data.silenceEvents));
+      const token = getToken();
+      return fetch(`${API_BASE}/v1/sessions/${id}/upload`, {
         method: "POST",
-        body: JSON.stringify(data),
-      }),
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: form,
+      }).then(async res => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({ error: "Unknown error" }));
+          throw new Error(body.error || `HTTP ${res.status}`);
+        }
+        return res.json();
+      });
+    },
     status: (id: string) =>
       request<{ id: string; processingStatus: string; processingError?: string }>(`/v1/sessions/${id}/status`),
     progress: () => request<{ sessions: SessionSummary[] }>("/v1/sessions/progress"),

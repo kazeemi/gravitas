@@ -235,13 +235,26 @@ SCORING CALIBRATION — follow this strictly:
 - 10 (Distinguished): Exceptionally rare — reserved for world-class delivery. Almost never awarded.
 
 CRITICAL RULES:
-1. For audio/delivery dimensions (vocal_clarity, pace_rhythm, volume_projection, filler_words), base your scoring PRIMARILY on the Audio Delivery Analysis — not the transcript. These dimensions measure HOW the person spoke, not what they said.
-2. For content dimensions (structure, confidence_language), base scoring on BOTH the transcript content AND how it was delivered vocally.
-3. A response of fewer than 50 words is almost always Emerging (1-3) on content dimensions.
-4. Never award 6+ to short/shallow responses that don't adequately address the prompt.
-5. Do not write generic praise. Every positive comment must reference something specific from the audio or transcript.
-6. Be direct and professional. Do not understate genuine gaps.
-7. Gaps and next steps must be specific and actionable.`;
+
+RULE 1 — DATA SOURCES FOR EACH DIMENSION TYPE:
+- vocal_clarity, pace_rhythm, volume_projection, filler_words: Score and write feedback EXCLUSIVELY from the Audio Delivery Analysis. These dimensions measure HOW the person spoke, not what they said. The transcript is irrelevant for these four dimensions. If audio analysis says 5-6 fillers were heard, that is the fact — do not reference or compare to the transcript's filler count.
+- structure, confidence_language: Score and write feedback based on the transcript content AND any relevant vocal delivery observations.
+
+RULE 2 — STRENGTHS MUST BE GENUINE:
+A strength is only a strength if it represents actual positive behavior that serves the session's objective. Do not reframe partial, inadequate, or counterproductive behavior as a positive. Specifically:
+- If the speaker was asked to negotiate but instead capitulated or made unconditional promises, this is a failure — not a strength in "client orientation."
+- If the speaker avoided the core task of the prompt entirely, this is a failure — not a strength in "staying calm."
+- If there are no genuine strengths, write exactly: "This session did not demonstrate significant strengths in the areas assessed."
+- A positive comment is only valid if the behavior it describes would be considered successful by an objective evaluator.
+
+RULE 3 — NO CONTRADICTIONS IN FEEDBACK:
+Each dimension's strengthText and gapText must be consistent with each other and with the score. Do not say something is a strength and then give a gap that contradicts it. Pick the single most important observation for each.
+
+RULE 4 — CALIBRATION:
+- A response of fewer than 50 words almost always scores 1-3 on content dimensions.
+- Never award 6+ to shallow responses that don't address the prompt.
+- Be direct. Do not understate genuine gaps.
+- Gaps and next steps must be specific and actionable.`;
 
   const userPrompt = `Evaluate this speaker on executive presence dimensions.
 
@@ -258,7 +271,7 @@ SUPPORTING METRICS:
 - Duration: ${input.durationSeconds}s (${Math.floor(input.durationSeconds / 60)}m ${input.durationSeconds % 60}s)
 - Word count: ${wordCount} words
 - Calculated speaking pace: ${wordsPerMinute} wpm (ideal: 120-160 wpm)
-- Filler words in transcript: ${fillerCount}
+${!input.audioDeliveryAnalysis ? `- Filler words in transcript: ${fillerCount} (no audio analysis available — use this as a rough indicator only)` : `- Note: Audio delivery analysis is present above — use it as the sole source for all delivery dimension scores (vocal_clarity, pace_rhythm, volume_projection, filler_words). Ignore transcript-derived filler counts for those dimensions.`}
 - Silence/pause events detected: ${input.silenceEvents}
 - Mode: ${input.mode}
 - Recording context: ${input.recordingContext || "seated"}

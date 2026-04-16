@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { api, type SessionDetail } from "@/lib/api";
-import { getTierColors, DIMENSION_LABELS } from "@/lib/tier-colors";
+import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeftIcon,
@@ -70,7 +70,13 @@ export default function SessionDetailPage() {
   const score = session.compositeScore ? parseFloat(session.compositeScore) : null;
   const overallFeedback = parseOverallFeedback(session.overallFeedback ?? null);
 
-  const radarData = session.dimensionScores.map((d) => ({
+  const sortedDimensions = [...session.dimensionScores].sort((a, b) => {
+    const ai = DIMENSION_DISPLAY_ORDER.indexOf(a.dimensionKey);
+    const bi = DIMENSION_DISPLAY_ORDER.indexOf(b.dimensionKey);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+
+  const radarData = sortedDimensions.map((d) => ({
     subject: (DIMENSION_LABELS[d.dimensionKey] || d.dimensionKey).split(" & ").join("\n& "),
     score: d.score,
     fullMark: 10,
@@ -225,7 +231,7 @@ export default function SessionDetailPage() {
 
       <div className="space-y-4">
         <h2 className="font-semibold text-gray-900">Dimension feedback</h2>
-        {session.dimensionScores.map((d) => (
+        {sortedDimensions.map((d) => (
           <DimensionCard key={d.id} score={d} />
         ))}
       </div>

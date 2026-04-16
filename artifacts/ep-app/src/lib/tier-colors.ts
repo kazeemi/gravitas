@@ -51,3 +51,17 @@ export const DIMENSION_LABELS: Record<string, string> = {
   gesture_movement: "Gesture & Movement",
   professional_appearance: "Professional Appearance",
 };
+
+// Dimensions ordered highest to lowest weightage for display
+export const DIMENSION_DISPLAY_ORDER: string[] = [
+  "confidence_language",
+  "structure",
+  "presence_engagement",
+  "vocal_clarity",
+  "eye_contact",
+  "pace_rhythm",
+  "gesture_movement",
+  "filler_words",
+  "volume_projection",
+  "professional_appearance",
+];

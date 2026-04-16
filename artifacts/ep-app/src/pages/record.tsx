@@ -11,7 +11,12 @@ import {
   RotateCcwIcon,
   CheckCircleIcon,
   AlertCircleIcon,
+  AlertTriangleIcon,
 } from "lucide-react";
+
+const SILENCE_THRESHOLD = 8;      // avg amplitude (0–255) below which = silence
+const SILENCE_WARN_SECS = 10;     // seconds of continuous silence before warning
+const LEVEL_CHECK_MS = 150;       // how often to sample audio level (ms)
 
 type Step = "setup" | "recording" | "processing" | "done";
 type RecordingState = "idle" | "recording" | "paused";
@@ -34,12 +39,21 @@ export default function RecordPage() {
   const [error, setError] = useState("");
   const [processingStatus, setProcessingStatus] = useState("");
 
+  const [audioLevel, setAudioLevel] = useState(0);       // 0–100 live mic level
+  const [silenceWarning, setSilenceWarning] = useState(false);
+  const [silenceSecs, setSilenceSecs] = useState(0);      // current silence streak in seconds
+
   const timerRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const elapsedRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const levelCheckRef = useRef<number | null>(null);
+  const silenceMsRef = useRef(0);
+  const recordingStateRef = useRef<RecordingState>("idle");
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -54,6 +68,10 @@ export default function RecordPage() {
     elapsedRef.current = elapsed;
   }, [elapsed]);
 
+  useEffect(() => {
+    recordingStateRef.current = recordingState;
+  }, [recordingState]);
+
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -65,6 +83,61 @@ export default function RecordPage() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
+    }
+  }, []);
+
+  const stopLevelMonitor = useCallback(() => {
+    if (levelCheckRef.current) {
+      clearInterval(levelCheckRef.current);
+      levelCheckRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close().catch(() => {});
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    silenceMsRef.current = 0;
+    setAudioLevel(0);
+    setSilenceWarning(false);
+    setSilenceSecs(0);
+  }, []);
+
+  const startLevelMonitor = useCallback((stream: MediaStream) => {
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.6;
+      source.connect(analyser);
+      audioContextRef.current = ctx;
+      analyserRef.current = analyser;
+
+      const data = new Uint8Array(analyser.frequencyBinCount);
+
+      levelCheckRef.current = window.setInterval(() => {
+        if (recordingStateRef.current !== "recording") return;
+
+        analyser.getByteFrequencyData(data);
+        const avg = data.reduce((s, v) => s + v, 0) / data.length;
+        const level = Math.min(100, Math.round((avg / 80) * 100));
+        setAudioLevel(level);
+
+        if (avg < SILENCE_THRESHOLD) {
+          silenceMsRef.current += LEVEL_CHECK_MS;
+          const secs = Math.floor(silenceMsRef.current / 1000);
+          setSilenceSecs(secs);
+          if (silenceMsRef.current >= SILENCE_WARN_SECS * 1000) {
+            setSilenceWarning(true);
+          }
+        } else {
+          silenceMsRef.current = 0;
+          setSilenceSecs(0);
+          setSilenceWarning(false);
+        }
+      }, LEVEL_CHECK_MS);
+    } catch {
+      // AudioContext not available — degrade gracefully, no monitor
     }
   }, []);
 
@@ -99,6 +172,7 @@ export default function RecordPage() {
       };
 
       recorder.start(1000);
+      startLevelMonitor(stream);
 
       setStep("recording");
       setRecordingState("recording");
@@ -121,6 +195,10 @@ export default function RecordPage() {
       mediaRecorderRef.current.pause();
     }
     stopTimer();
+    // Reset silence counter on pause — don't penalise deliberate pauses
+    silenceMsRef.current = 0;
+    setSilenceSecs(0);
+    setSilenceWarning(false);
     setRecordingState("paused");
   };
 
@@ -134,6 +212,7 @@ export default function RecordPage() {
 
   const restartRecording = async () => {
     stopTimer();
+    stopLevelMonitor();
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
@@ -165,6 +244,7 @@ export default function RecordPage() {
     if (!sessionId) return;
 
     stopTimer();
+    stopLevelMonitor();
 
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state === "inactive") {
@@ -223,13 +303,14 @@ export default function RecordPage() {
   useEffect(() => {
     return () => {
       stopTimer();
+      stopLevelMonitor();
       if (mediaRecorderRef.current?.state !== "inactive") {
         mediaRecorderRef.current?.stop();
       }
       releaseStream();
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [stopTimer, releaseStream]);
+  }, [stopTimer, releaseStream, stopLevelMonitor]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -340,20 +421,57 @@ export default function RecordPage() {
 
       {step === "recording" && (
         <div className="space-y-6">
+
+          {silenceWarning && (
+            <div className="rounded border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700 flex items-start gap-2">
+              <AlertTriangleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">No audio detected for {silenceSecs}s</p>
+                <p className="mt-0.5 text-xs text-red-600">
+                  Your microphone isn't picking up any sound. Check that the correct microphone is selected and that it's not muted.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="text-center space-y-4">
             <div
               className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full ${
                 recordingState === "recording"
-                  ? "bg-red-50 animate-pulse"
+                  ? silenceWarning ? "bg-red-100" : "bg-red-50 animate-pulse"
                   : "bg-gray-100"
               }`}
             >
               <MicIcon
                 className={`h-10 w-10 ${
-                  recordingState === "recording" ? "text-[#E24B4A]" : "text-gray-400"
+                  recordingState === "recording"
+                    ? silenceWarning ? "text-red-600" : "text-[#E24B4A]"
+                    : "text-gray-400"
                 }`}
               />
             </div>
+
+            {recordingState === "recording" && (
+              <div className="mx-auto w-48 space-y-1">
+                <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-150 ${
+                      audioLevel === 0
+                        ? "bg-gray-300 w-0"
+                        : audioLevel < 15
+                        ? "bg-red-400"
+                        : audioLevel < 40
+                        ? "bg-amber-400"
+                        : "bg-[#0F6E56]"
+                    }`}
+                    style={{ width: `${Math.max(2, audioLevel)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-400">
+                  {audioLevel === 0 ? "No audio signal" : audioLevel < 15 ? "Very low — speak louder" : audioLevel < 40 ? "Low level" : "Good level"}
+                </p>
+              </div>
+            )}
 
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-gray-400">

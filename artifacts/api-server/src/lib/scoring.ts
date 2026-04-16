@@ -138,32 +138,32 @@ export async function analyzeAudioDelivery(
 ): Promise<string> {
   const audioBase64 = audioBuffer.toString("base64");
 
-  const analysisPrompt = `${promptText ? `The speaker was asked to respond to this prompt: "${promptText}". ` : ""}
+  const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}
 
-Listen carefully to this audio recording and provide a detailed, specific vocal delivery analysis. Report only what you actually hear in the audio — do NOT guess or infer. Cover:
+Please listen carefully to this audio recording and provide a detailed, accurate vocal delivery analysis. Base your observations only on what you actually hear. Cover each of the following areas:
 
-1. Speaking pace: was it fast, slow, or varied? Any significant rushes or drags?
-2. Volume and projection: consistent? Too quiet? Too loud? Did it vary appropriately?
-3. Vocal clarity: was articulation clear? Any mumbling, dropping of word endings, or poor diction?
-4. Filler words: list EVERY specific filler word you heard (um, uh, like, you know, so, basically, etc.) and approximately how many times
-5. Pauses and silences: any awkward long pauses? Natural pauses for emphasis? How long were they?
-6. Vocal confidence: did the voice sound assured, tentative, nervous, or authoritative?
-7. Vocal variety: monotone or did the pitch, pace, and energy vary appropriately?
-8. Energy and engagement: did the speaker sound engaged and present, or flat and disengaged?
+1. Speaking pace: rate as fast, slow, or well-paced; note any significant rushes or drawn-out sections
+2. Volume and projection: note whether volume is consistent, too quiet, too loud, or appropriately varied
+3. Vocal clarity: assess articulation quality; note any mumbling, dropped endings, or unclear diction
+4. Filler words: identify each type of filler word heard (um, uh, like, you know, so, basically, right, etc.) and approximate frequency
+5. Pauses and silences: distinguish natural emphasis pauses from extended unplanned silences; note duration where significant
+6. Vocal confidence: characterize whether the tone sounds assured, tentative, or uncertain
+7. Vocal variety: assess whether pitch, pace, and energy vary or remain flat and monotone
+8. Energy and engagement: note whether the speaker sounds present and engaged or flat and disengaged
 
-Be brutally honest and specific. If the speech was disorganized, say so. If the speaker sounded nervous, say so. If there were barely any words spoken, say so. Do not be encouraging if the delivery was poor.
+Be specific and accurate. If delivery is weak in an area, describe exactly what you observed. If delivery is strong, describe what you observed. Avoid generic statements.
 
-Format your response as a JSON object:
+Return your analysis as a JSON object with these exact keys:
 {
   "pace": "specific observation",
-  "volume": "specific observation", 
+  "volume": "specific observation",
   "clarity": "specific observation",
-  "fillerWords": "list each filler word and count",
-  "silences": "specific observation about pauses",
+  "fillerWords": "each filler type and approximate count",
+  "silences": "specific observation about pauses and silences",
   "confidence": "specific observation",
   "vocalVariety": "specific observation",
   "energy": "specific observation",
-  "overallDeliveryQuality": "brief honest summary (1-2 sentences)"
+  "overallDeliveryQuality": "direct summary in 1-2 sentences"
 }`;
 
   try {
@@ -239,8 +239,8 @@ CRITICAL RULES:
 2. For content dimensions (structure, confidence_language), base scoring on BOTH the transcript content AND how it was delivered vocally.
 3. A response of fewer than 50 words is almost always Emerging (1-3) on content dimensions.
 4. Never award 6+ to short/shallow responses that don't adequately address the prompt.
-5. DO NOT write generic praise. Every positive comment must reference something specific.
-6. DO NOT soften honest criticism. Be direct and professional.
+5. Do not write generic praise. Every positive comment must reference something specific from the audio or transcript.
+6. Be direct and professional. Do not understate genuine gaps.
 7. Gaps and next steps must be specific and actionable.`;
 
   const userPrompt = `Evaluate this speaker on executive presence dimensions.

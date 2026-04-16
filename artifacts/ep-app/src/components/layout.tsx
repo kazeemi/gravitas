@@ -1,0 +1,85 @@
+import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth-context";
+import { LayoutDashboardIcon, MicIcon, ClockIcon, TrendingUpIcon, SettingsIcon, LogOutIcon } from "lucide-react";
+
+const navItems = [
+  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
+  { path: "/record", label: "Record", icon: MicIcon },
+  { path: "/history", label: "History", icon: ClockIcon },
+  { path: "/progress", label: "Progress", icon: TrendingUpIcon },
+  { path: "/settings", label: "Settings", icon: SettingsIcon },
+];
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  const [location, setLocation] = useLocation();
+  const { logout } = useAuth();
+
+  return (
+    <div className="flex min-h-screen bg-gray-50">
+      <nav className="hidden md:flex w-56 flex-col border-r border-gray-200 bg-white px-3 py-6">
+        <div className="mb-8 px-3">
+          <h1 className="text-base font-bold text-gray-900" style={{ fontFamily: "Inter, sans-serif" }}>
+            Executive Presence
+          </h1>
+        </div>
+        <div className="flex flex-1 flex-col gap-1">
+          {navItems.map(item => {
+            const Icon = item.icon;
+            const active = location.startsWith(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => setLocation(item.path)}
+                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                  active
+                    ? "bg-gray-100 font-medium text-gray-900"
+                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"
+        >
+          <LogOutIcon className="h-4 w-4" />
+          Sign out
+        </button>
+      </nav>
+
+      <div className="flex flex-1 flex-col">
+        <header className="flex md:hidden items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
+          <h1 className="text-sm font-bold text-gray-900">Executive Presence</h1>
+          <button onClick={logout} className="text-xs text-gray-400">Sign out</button>
+        </header>
+
+        <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
+          {children}
+        </main>
+
+        <nav className="flex md:hidden items-center justify-around border-t border-gray-200 bg-white px-2 py-2">
+          {navItems.slice(0, 4).map(item => {
+            const Icon = item.icon;
+            const active = location.startsWith(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => setLocation(item.path)}
+                className={`flex flex-col items-center gap-0.5 rounded px-2 py-1 text-xs transition-colors ${
+                  active ? "text-gray-900" : "text-gray-400"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+    </div>
+  );
+}

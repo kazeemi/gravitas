@@ -3,20 +3,28 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Executive Presence API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: users
+    description: User profile operations
+  - name: sessions
+    description: Recording session operations
+  - name: prompts
+    description: Prompt library operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +32,547 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /v1/auth/signup:
+    post:
+      operationId: signup
+      tags: [auth]
+      summary: Sign up with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignupBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /v1/auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      tags: [auth]
+      summary: Request password reset email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /v1/auth/reset-password:
+    post:
+      operationId: resetPassword
+      tags: [auth]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Invalid or expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: updateMe
+      tags: [users]
+      summary: Update current user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteMe
+      tags: [users]
+      summary: Soft-delete account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/users/me/export:
+    get:
+      operationId: exportMyData
+      tags: [users]
+      summary: Export all user data (GDPR)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataExport"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/users/me/change-password:
+    post:
+      operationId: changePassword
+      tags: [users]
+      summary: Change password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordBody"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Wrong current password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List user sessions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [audio, video]
+        - name: tier
+          in: query
+          schema:
+            type: string
+            enum: [emerging, developing, strong, distinguished]
+        - name: from_date
+          in: query
+          schema:
+            type: string
+        - name: to_date
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Create a new session record
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionCreated"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/sessions/{id}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get session details
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionDetail"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteSession
+      tags: [sessions]
+      summary: Delete a session
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/sessions/{id}/status:
+    get:
+      operationId: getSessionStatus
+      tags: [sessions]
+      summary: Get session processing status
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionStatus"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/sessions/{id}/upload:
+    post:
+      operationId: uploadSessionRecording
+      tags: [sessions]
+      summary: Upload recording for a session
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadSessionBody"
+      responses:
+        "202":
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/sessions/test-audio:
+    post:
+      operationId: testAudio
+      tags: [sessions]
+      summary: Test audio quality before recording
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AudioTestResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/sessions/test-video:
+    post:
+      operationId: testVideo
+      tags: [sessions]
+      summary: Test video quality before recording
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VideoTestResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/sessions/progress:
+    get:
+      operationId: getProgress
+      tags: [sessions]
+      summary: Get progress over time for current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: mode
+          in: query
+          schema:
+            type: string
+            enum: [all, audio, video]
+            default: all
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgressData"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /v1/prompts:
+    get:
+      operationId: getPrompts
+      tags: [prompts]
+      summary: Get prompt library
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromptList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +582,513 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required:
+        - token
+        - user
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: ["string", "null"]
+        roleTitle:
+          type: ["string", "null"]
+        communicationContext:
+          type: ["string", "null"]
+        goal:
+          type: ["string", "null"]
+        onboardingCompleted:
+          type: boolean
+        methodologyVersion:
+          type: string
+        defaultRecordingContext:
+          type: ["string", "null"]
+        emailSummaries:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - email
+        - onboardingCompleted
+        - methodologyVersion
+        - emailSummaries
+        - createdAt
+
+    SignupBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        name:
+          type: string
+      required:
+        - email
+        - password
+        - name
+
+    LoginBody:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    ForgotPasswordBody:
+      type: object
+      properties:
+        email:
+          type: string
+      required:
+        - email
+
+    ResetPasswordBody:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+      required:
+        - token
+        - password
+
+    ChangePasswordBody:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+      required:
+        - currentPassword
+        - newPassword
+
+    UpdateProfileBody:
+      type: object
+      properties:
+        name:
+          type: string
+        roleTitle:
+          type: string
+        communicationContext:
+          type: string
+        goal:
+          type: string
+        onboardingCompleted:
+          type: boolean
+        defaultRecordingContext:
+          type: string
+        emailSummaries:
+          type: boolean
+
+    DataExport:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionDetail"
+      required:
+        - user
+        - sessions
+
+    CreateSessionBody:
+      type: object
+      properties:
+        mode:
+          type: string
+          enum: [audio, video]
+        promptText:
+          type: string
+        promptType:
+          type: string
+          enum: [structured, situational, impromptu, free_practice, custom]
+        recordingContext:
+          type: string
+          enum: [seated, standing]
+      required:
+        - mode
+
+    SessionCreated:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        mode:
+          type: string
+        processingStatus:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - userId
+        - mode
+        - processingStatus
+        - createdAt
+
+    SessionSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        mode:
+          type: string
+        promptText:
+          type: ["string", "null"]
+        promptType:
+          type: ["string", "null"]
+        durationSeconds:
+          type: ["integer", "null"]
+        compositeScore:
+          type: ["number", "null"]
+        compositeTier:
+          type: ["string", "null"]
+        processingStatus:
+          type: string
+        videoDownloaded:
+          type: boolean
+        createdAt:
+          type: string
+        scoredAt:
+          type: ["string", "null"]
+      required:
+        - id
+        - mode
+        - processingStatus
+        - videoDownloaded
+        - createdAt
+
+    SessionList:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/SessionSummary"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - sessions
+        - total
+        - page
+        - limit
+
+    DimensionScore:
+      type: object
+      properties:
+        id:
+          type: string
+        dimensionKey:
+          type: string
+        score:
+          type: integer
+        tier:
+          type: string
+        rawMetrics:
+          type: object
+          additionalProperties: true
+        strengthText:
+          type: ["string", "null"]
+        gapText:
+          type: ["string", "null"]
+        nextStepText:
+          type: ["string", "null"]
+      required:
+        - id
+        - dimensionKey
+        - score
+        - tier
+
+    DiagnosticMetrics:
+      type: object
+      properties:
+        fillerWordsJson:
+          type: object
+          additionalProperties: true
+        wpmOverall:
+          type: ["number", "null"]
+        wpmByWindow:
+          type: object
+          additionalProperties: true
+        rushEvents:
+          type: ["integer", "null"]
+        strategicPauses:
+          type: ["integer", "null"]
+        preStatementPauses:
+          type: ["integer", "null"]
+        eyeContactRate:
+          type: ["number", "null"]
+        selfSootheEvents:
+          type: ["integer", "null"]
+        selfSootheTypes:
+          type: object
+          additionalProperties: true
+        conciseness_flag:
+          type: ["boolean", "null"]
+        breathSupportScore:
+          type: ["number", "null"]
+        audibleBreathEvents:
+          type: ["integer", "null"]
+
+    SessionDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        mode:
+          type: string
+        methodologyVersion:
+          type: string
+        promptText:
+          type: ["string", "null"]
+        promptType:
+          type: ["string", "null"]
+        recordingContext:
+          type: ["string", "null"]
+        durationSeconds:
+          type: ["integer", "null"]
+        transcript:
+          type: ["string", "null"]
+        compositeScore:
+          type: ["number", "null"]
+        compositeTier:
+          type: ["string", "null"]
+        audioQualityFlag:
+          type: boolean
+        faceCoverageFlag:
+          type: boolean
+        audioGapEvents:
+          type: integer
+        faceLostEvents:
+          type: integer
+        videoDownloaded:
+          type: boolean
+        processingStatus:
+          type: string
+        processingError:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        scoredAt:
+          type: ["string", "null"]
+        dimensions:
+          type: array
+          items:
+            $ref: "#/components/schemas/DimensionScore"
+        diagnostics:
+          $ref: "#/components/schemas/DiagnosticMetrics"
+      required:
+        - id
+        - userId
+        - mode
+        - methodologyVersion
+        - audioQualityFlag
+        - faceCoverageFlag
+        - audioGapEvents
+        - faceLostEvents
+        - videoDownloaded
+        - processingStatus
+        - createdAt
+        - dimensions
+
+    SessionStatus:
+      type: object
+      properties:
+        id:
+          type: string
+        processingStatus:
+          type: string
+        progressPercent:
+          type: ["integer", "null"]
+        processingError:
+          type: ["string", "null"]
+      required:
+        - id
+        - processingStatus
+
+    AudioTestResult:
+      type: object
+      properties:
+        pass:
+          type: boolean
+        rmsDb:
+          type: number
+        noiseFloorDb:
+          type: number
+        message:
+          type: ["string", "null"]
+      required:
+        - pass
+        - rmsDb
+        - noiseFloorDb
+
+    VideoTestResult:
+      type: object
+      properties:
+        pass:
+          type: boolean
+        faceDetected:
+          type: boolean
+        faceCoverage:
+          type: number
+        lightingOk:
+          type: boolean
+        framingOk:
+          type: boolean
+        message:
+          type: ["string", "null"]
+      required:
+        - pass
+        - faceDetected
+        - faceCoverage
+        - lightingOk
+        - framingOk
+
+    ProgressDataPoint:
+      type: object
+      properties:
+        sessionId:
+          type: string
+        date:
+          type: string
+        compositeScore:
+          type: number
+        compositeTier:
+          type: string
+        mode:
+          type: string
+      required:
+        - sessionId
+        - date
+        - compositeScore
+        - compositeTier
+        - mode
+
+    DimensionTrend:
+      type: object
+      properties:
+        dimensionKey:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              sessionId:
+                type: string
+              date:
+                type: string
+              score:
+                type: integer
+            required:
+              - sessionId
+              - date
+              - score
+      required:
+        - dimensionKey
+        - data
+
+    ProgressData:
+      type: object
+      properties:
+        compositeHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgressDataPoint"
+        dimensionTrends:
+          type: array
+          items:
+            $ref: "#/components/schemas/DimensionTrend"
+        bestSession:
+          $ref: "#/components/schemas/SessionSummary"
+        mostImprovedDimension:
+          type: ["string", "null"]
+      required:
+        - compositeHistory
+        - dimensionTrends
+
+    Prompt:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        text:
+          type: string
+        recommendedDurationSeconds:
+          type: integer
+      required:
+        - id
+        - type
+        - text
+        - recommendedDurationSeconds
+
+    UploadSessionBody:
+      type: object
+      properties:
+        audioGapEvents:
+          type: integer
+        faceLostEvents:
+          type: integer
+        videoDownloaded:
+          type: boolean
+        durationSeconds:
+          type: integer
+
+    PromptList:
+      type: object
+      properties:
+        prompts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Prompt"
+      required:
+        - prompts

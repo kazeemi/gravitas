@@ -27,10 +27,11 @@ export default function ProgressPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const chartData = [...sessions].reverse().map(s => ({
+  const chartData = [...sessions].reverse().map((s, i) => ({
     date: format(new Date(s.createdAt), "MMM d"),
     score: parseFloat(s.compositeScore || "0"),
     tier: s.compositeTier,
+    key: `${s.id ?? i}`,
   }));
 
   const tierBands = [
@@ -100,12 +101,12 @@ export default function ProgressPage() {
                   dataKey="score"
                   stroke="#9ca3af"
                   strokeWidth={2}
-                  dot={(props: { cx?: number; cy?: number; payload?: { tier?: string; date?: string } }) => {
-                    const { cx = 0, cy = 0, payload } = props;
+                  dot={(props: { cx?: number; cy?: number; index?: number; payload?: { tier?: string; key?: string } }) => {
+                    const { cx = 0, cy = 0, index = 0, payload } = props;
                     const colors = payload?.tier ? getTierColors(payload.tier) : null;
                     return (
                       <circle
-                        key={`dot-${payload?.date ?? cx}`}
+                        key={payload?.key ?? `dot-${index}`}
                         cx={cx}
                         cy={cy}
                         r={5}

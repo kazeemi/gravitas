@@ -73,6 +73,13 @@ export default function RecordPage() {
     recordingStateRef.current = recordingState;
   }, [recordingState]);
 
+  // Attach camera stream to video element once it mounts (step changes to "recording")
+  useEffect(() => {
+    if (step === "recording" && mode === "video" && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [step, mode]);
+
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
@@ -153,10 +160,6 @@ export default function RecordPage() {
         : { audio: true };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
-
-      if (mode === "video" && videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
 
       const session = await api.sessions.create({
         mode,
@@ -573,8 +576,13 @@ export default function RecordPage() {
 
             <Button
               onClick={stopRecording}
+              disabled={elapsed < MIN_DURATION}
               variant="outline"
-              className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50"
+              className={`gap-1.5 ${
+                elapsed < MIN_DURATION
+                  ? "border-gray-100 text-gray-300 cursor-not-allowed"
+                  : "border-red-200 text-red-600 hover:bg-red-50"
+              }`}
             >
               <StopCircleIcon className="h-4 w-4" />
               Stop & analyze

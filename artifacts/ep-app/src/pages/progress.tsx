@@ -98,9 +98,23 @@ export default function ProgressPage() {
                 <Line
                   type="monotone"
                   dataKey="score"
-                  stroke="#534AB7"
+                  stroke="#9ca3af"
                   strokeWidth={2}
-                  dot={{ r: 4, fill: "#534AB7" }}
+                  dot={(props: { cx?: number; cy?: number; payload?: { tier?: string; date?: string } }) => {
+                    const { cx = 0, cy = 0, payload } = props;
+                    const colors = payload?.tier ? getTierColors(payload.tier) : null;
+                    return (
+                      <circle
+                        key={`dot-${payload?.date ?? cx}`}
+                        cx={cx}
+                        cy={cy}
+                        r={5}
+                        fill={colors ? colors.hex : "#9ca3af"}
+                        stroke="white"
+                        strokeWidth={1.5}
+                      />
+                    );
+                  }}
                   activeDot={{ r: 6 }}
                 />
               </LineChart>

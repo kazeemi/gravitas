@@ -49,6 +49,7 @@ export default function RecordPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const elapsedRef = useRef(0);
   const streamRef = useRef<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const levelCheckRef = useRef<number | null>(null);
@@ -83,6 +84,9 @@ export default function RecordPage() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
   }, []);
 
@@ -144,23 +148,40 @@ export default function RecordPage() {
   const startRecording = async () => {
     setError("");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const constraints = mode === "video"
+        ? { audio: true, video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } }
+        : { audio: true };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
+
+      if (mode === "video" && videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
 
       const session = await api.sessions.create({
         mode,
         promptText: prompt?.text || customPrompt || undefined,
         promptType: prompt?.type,
-        recordingContext,
+        recordingContext: mode === "video" ? recordingContext : "seated",
       });
       setSessionId(session.id);
 
       audioChunksRef.current = [];
-      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-        ? "audio/webm;codecs=opus"
-        : MediaRecorder.isTypeSupported("audio/webm")
-        ? "audio/webm"
-        : "";
+
+      let mimeType = "";
+      if (mode === "video") {
+        mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+          ? "video/webm;codecs=vp8,opus"
+          : MediaRecorder.isTypeSupported("video/webm")
+          ? "video/webm"
+          : "";
+      } else {
+        mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+          ? "audio/webm;codecs=opus"
+          : MediaRecorder.isTypeSupported("audio/webm")
+          ? "audio/webm"
+          : "";
+      }
 
       const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
       mediaRecorderRef.current = recorder;
@@ -183,7 +204,7 @@ export default function RecordPage() {
       const msg = err instanceof Error ? err.message : "Failed to start recording";
       setError(
         msg.includes("Permission") || msg.includes("NotAllowed")
-          ? "Microphone permission denied — please allow microphone access and try again."
+          ? `${mode === "video" ? "Camera and microphone" : "Microphone"} permission denied — please allow access and try again.`
           : msg
       );
       releaseStream();
@@ -265,7 +286,7 @@ export default function RecordPage() {
   const submitAudio = async (durationSeconds: number, audioBlob: Blob) => {
     if (!sessionId) return;
     setStep("processing");
-    setProcessingStatus("Uploading audio for analysis…");
+    setProcessingStatus(`Uploading ${mode === "video" ? "video" : "audio"} for analysis…`);
 
     try {
       await api.sessions.upload(sessionId, {
@@ -365,22 +386,24 @@ export default function RecordPage() {
             </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-gray-700">Recording context</label>
-            <div className="mt-2 grid grid-cols-2 gap-3">
-              {(["seated", "standing"] as const).map(ctx => (
-                <button
-                  key={ctx}
-                  onClick={() => setRecordingContext(ctx)}
-                  className={`rounded border p-3 text-sm transition-colors ${
-                    recordingContext === ctx ? "border-gray-900 bg-gray-50" : "border-gray-200"
-                  }`}
-                >
-                  <span className="capitalize">{ctx}</span>
-                </button>
-              ))}
+          {mode === "video" && (
+            <div>
+              <label className="text-sm font-medium text-gray-700">Recording context</label>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                {(["seated", "standing"] as const).map(ctx => (
+                  <button
+                    key={ctx}
+                    onClick={() => setRecordingContext(ctx)}
+                    className={`rounded border p-3 text-sm transition-colors ${
+                      recordingContext === ctx ? "border-gray-900 bg-gray-50" : "border-gray-200"
+                    }`}
+                  >
+                    <span className="capitalize">{ctx}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <div className="flex items-center justify-between">
@@ -435,21 +458,44 @@ export default function RecordPage() {
           )}
 
           <div className="text-center space-y-4">
-            <div
-              className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full ${
-                recordingState === "recording"
-                  ? silenceWarning ? "bg-red-100" : "bg-red-50 animate-pulse"
-                  : "bg-gray-100"
-              }`}
-            >
-              <MicIcon
-                className={`h-10 w-10 ${
+            {mode === "video" ? (
+              <div className="relative aspect-video w-full rounded-lg overflow-hidden bg-gray-900">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="h-full w-full object-cover scale-x-[-1]"
+                />
+                {recordingState === "recording" && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1.5 rounded-full bg-red-600 px-2.5 py-1">
+                    <div className="h-2 w-2 rounded-full bg-white animate-pulse" />
+                    <span className="text-xs font-semibold text-white">REC</span>
+                  </div>
+                )}
+                {recordingState === "paused" && (
+                  <div className="absolute top-2 right-2 flex items-center gap-1.5 rounded-full bg-amber-500 px-2.5 py-1">
+                    <span className="text-xs font-semibold text-white">PAUSED</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full ${
                   recordingState === "recording"
-                    ? silenceWarning ? "text-red-600" : "text-[#E24B4A]"
-                    : "text-gray-400"
+                    ? silenceWarning ? "bg-red-100" : "bg-red-50 animate-pulse"
+                    : "bg-gray-100"
                 }`}
-              />
-            </div>
+              >
+                <MicIcon
+                  className={`h-10 w-10 ${
+                    recordingState === "recording"
+                      ? silenceWarning ? "text-red-600" : "text-[#E24B4A]"
+                      : "text-gray-400"
+                  }`}
+                />
+              </div>
+            )}
 
             {recordingState === "recording" && (
               <div className="mx-auto w-48 space-y-1">
@@ -542,7 +588,7 @@ export default function RecordPage() {
           <div className="mx-auto h-12 w-12 rounded-full border-4 border-gray-200 border-t-gray-900 animate-spin" />
           <p className="text-sm font-medium text-gray-700">{processingStatus}</p>
           <p className="text-xs text-gray-400">
-            Your audio is being transcribed, your vocal delivery analyzed, and coaching feedback generated.
+            Your {mode === "video" ? "video" : "audio"} is being transcribed, your delivery analyzed, and coaching feedback generated.
             This may take up to 60 seconds.
           </p>
         </div>

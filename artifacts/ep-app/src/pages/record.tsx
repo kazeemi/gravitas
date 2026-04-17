@@ -156,7 +156,7 @@ export default function RecordPage() {
     setError("");
     try {
       const constraints = mode === "video"
-        ? { audio: true, video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } }
+        ? { audio: true, video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } }
         : { audio: true };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
@@ -171,22 +171,20 @@ export default function RecordPage() {
 
       audioChunksRef.current = [];
 
-      let mimeType = "";
-      if (mode === "video") {
-        mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
-          ? "video/webm;codecs=vp8,opus"
-          : MediaRecorder.isTypeSupported("video/webm")
-          ? "video/webm"
-          : "";
-      } else {
-        mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
-          ? "audio/webm;codecs=opus"
-          : MediaRecorder.isTypeSupported("audio/webm")
-          ? "audio/webm"
-          : "";
-      }
+      // For video mode: capture audio-only for the upload blob.
+      // The live camera preview is driven by srcObject on the <video> element — no recording needed.
+      // This keeps the upload small and fast regardless of video length.
+      const recordingStream = mode === "video"
+        ? new MediaStream(stream.getAudioTracks())
+        : stream;
 
-      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : MediaRecorder.isTypeSupported("audio/webm")
+        ? "audio/webm"
+        : "";
+
+      const recorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : {});
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (e) => {
@@ -289,7 +287,7 @@ export default function RecordPage() {
   const submitAudio = async (durationSeconds: number, audioBlob: Blob) => {
     if (!sessionId) return;
     setStep("processing");
-    setProcessingStatus(`Uploading ${mode === "video" ? "video" : "audio"} for analysis…`);
+    setProcessingStatus("Uploading for analysis…");
 
     try {
       await api.sessions.upload(sessionId, {

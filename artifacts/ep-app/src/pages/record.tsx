@@ -55,6 +55,9 @@ export default function RecordPage() {
   const levelCheckRef = useRef<number | null>(null);
   const silenceMsRef = useRef(0);
   const recordingStateRef = useRef<RecordingState>("idle");
+  const framesRef = useRef<string[]>([]);
+  const frameIntervalRef = useRef<number | null>(null);
+  const firstFrameTimeoutRef = useRef<number | null>(null);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -112,6 +115,49 @@ export default function RecordPage() {
     setSilenceWarning(false);
     setSilenceSecs(0);
   }, []);
+
+  const captureFrame = useCallback((): string | null => {
+    const video = videoRef.current;
+    if (!video || video.videoWidth === 0 || video.videoHeight === 0) return null;
+    try {
+      const canvas = document.createElement("canvas");
+      const scale = Math.min(320 / video.videoWidth, 320 / video.videoHeight);
+      canvas.width = Math.round(video.videoWidth * scale);
+      canvas.height = Math.round(video.videoHeight * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return null;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+      return dataUrl.split(",")[1] ?? null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const stopFrameCapture = useCallback(() => {
+    if (firstFrameTimeoutRef.current) {
+      clearTimeout(firstFrameTimeoutRef.current);
+      firstFrameTimeoutRef.current = null;
+    }
+    if (frameIntervalRef.current) {
+      clearInterval(frameIntervalRef.current);
+      frameIntervalRef.current = null;
+    }
+  }, []);
+
+  const startFrameCapture = useCallback(() => {
+    framesRef.current = [];
+    firstFrameTimeoutRef.current = window.setTimeout(() => {
+      const frame = captureFrame();
+      if (frame) framesRef.current.push(frame);
+      frameIntervalRef.current = window.setInterval(() => {
+        if (recordingStateRef.current !== "recording") return;
+        if (framesRef.current.length >= 10) return;
+        const f = captureFrame();
+        if (f) framesRef.current.push(f);
+      }, 8000);
+    }, 2500);
+  }, [captureFrame]);
 
   const startLevelMonitor = useCallback((stream: MediaStream) => {
     try {
@@ -195,6 +241,7 @@ export default function RecordPage() {
 
       recorder.start(1000);
       startLevelMonitor(stream);
+      if (mode === "video") startFrameCapture();
 
       setStep("recording");
       setRecordingState("recording");
@@ -235,6 +282,8 @@ export default function RecordPage() {
   const restartRecording = async () => {
     stopTimer();
     stopLevelMonitor();
+    stopFrameCapture();
+    framesRef.current = [];
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
@@ -267,10 +316,12 @@ export default function RecordPage() {
 
     stopTimer();
     stopLevelMonitor();
+    stopFrameCapture();
+    const capturedFrames = mode === "video" ? [...framesRef.current] : [];
 
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state === "inactive") {
-      submitAudio(finalDuration, new Blob([]));
+      submitAudio(finalDuration, new Blob([]), capturedFrames);
       return;
     }
 
@@ -278,13 +329,13 @@ export default function RecordPage() {
       const mimeType = recorder.mimeType || "audio/webm";
       const blob = new Blob(audioChunksRef.current, { type: mimeType });
       releaseStream();
-      submitAudio(finalDuration, blob);
+      submitAudio(finalDuration, blob, capturedFrames);
     };
 
     recorder.stop();
   };
 
-  const submitAudio = async (durationSeconds: number, audioBlob: Blob) => {
+  const submitAudio = async (durationSeconds: number, audioBlob: Blob, videoFrames: string[] = []) => {
     if (!sessionId) return;
     setStep("processing");
     setProcessingStatus("Uploading for analysis…");
@@ -296,6 +347,7 @@ export default function RecordPage() {
         faceLostEvents: 0,
         silenceEvents: 0,
         audioBlob: audioBlob.size > 0 ? audioBlob : undefined,
+        videoFrames: videoFrames.length > 0 ? videoFrames : undefined,
       });
 
       setProcessingStatus("Transcribing and analyzing your delivery…");
@@ -326,13 +378,14 @@ export default function RecordPage() {
     return () => {
       stopTimer();
       stopLevelMonitor();
+      stopFrameCapture();
       if (mediaRecorderRef.current?.state !== "inactive") {
         mediaRecorderRef.current?.stop();
       }
       releaseStream();
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [stopTimer, releaseStream, stopLevelMonitor]);
+  }, [stopTimer, releaseStream, stopLevelMonitor, stopFrameCapture]);
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);

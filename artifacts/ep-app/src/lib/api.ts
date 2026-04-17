@@ -83,13 +83,16 @@ export const api = {
     list: () => request<{ sessions: SessionSummary[] }>("/v1/sessions"),
     get: (id: string) => request<SessionDetail>(`/v1/sessions/${id}`),
     delete: (id: string) => request(`/v1/sessions/${id}`, { method: "DELETE" }),
-    upload: (id: string, data: UploadData & { audioBlob?: Blob }) => {
+    upload: (id: string, data: UploadData & { audioBlob?: Blob; videoFrames?: string[] }) => {
       const form = new FormData();
       if (data.audioBlob) form.append("audio", data.audioBlob, "recording.webm");
       if (data.durationSeconds != null) form.append("durationSeconds", String(data.durationSeconds));
       if (data.audioGapEvents != null) form.append("audioGapEvents", String(data.audioGapEvents));
       if (data.faceLostEvents != null) form.append("faceLostEvents", String(data.faceLostEvents));
       if (data.silenceEvents != null) form.append("silenceEvents", String(data.silenceEvents));
+      if (data.videoFrames && data.videoFrames.length > 0) {
+        form.append("videoFrames", JSON.stringify(data.videoFrames));
+      }
       const token = getToken();
       return fetch(`${API_BASE}/v1/sessions/${id}/upload`, {
         method: "POST",

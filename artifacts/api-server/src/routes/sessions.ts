@@ -4,7 +4,7 @@ import { eq, desc, and } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { requireAuth } from "../lib/auth.js";
 import { sessionsTable, dimensionScoresTable } from "@workspace/db";
-import { scoreSession, transcribeAudio, analyzeAudioDelivery } from "../lib/scoring.js";
+import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresence, type VideoPresenceResult } from "../lib/scoring.js";
 import { ensureCompatibleFormat } from "@workspace/integrations-openai-ai-server/audio";
 
 const upload = multer({
@@ -110,6 +110,17 @@ router.post(
 
     res.status(202).json({ message: "Processing started" });
 
+    // Parse video frames if present (video mode only)
+    let videoFrames: string[] = [];
+    if (session.mode === "video" && req.body?.videoFrames) {
+      try {
+        const parsed = JSON.parse(req.body.videoFrames as string);
+        if (Array.isArray(parsed)) videoFrames = parsed.filter((f): f is string => typeof f === "string");
+      } catch {
+        console.error("Failed to parse videoFrames JSON");
+      }
+    }
+
     setImmediate(async () => {
       try {
         let transcript: string | undefined;
@@ -117,6 +128,7 @@ router.post(
         let pitchVariationScore: number | null = null;
         let breathingScore: number | null = null;
         let breathingObservation: string | null = null;
+        let videoPresenceAnalysis: VideoPresenceResult | null = null;
 
         if (audioBuffer && audioBuffer.length > 0) {
           const { buffer: wavBuffer, format } = await ensureCompatibleFormat(audioBuffer);
@@ -143,11 +155,29 @@ router.post(
           }
         }
 
+        // Run video presence analysis in parallel with audio analysis for video sessions
+        if (session.mode === "video" && videoFrames.length > 0) {
+          try {
+            console.log(`Running video presence analysis on ${videoFrames.length} frames`);
+            videoPresenceAnalysis = await analyzeVideoPresence(
+              videoFrames,
+              session.promptText || undefined,
+              session.recordingContext || "seated"
+            );
+            console.log("Video presence analysis complete");
+          } catch (err) {
+            console.error("Video presence analysis failed:", err);
+          }
+        } else if (session.mode === "video") {
+          console.warn("Video session but no frames received — visual dimensions will not be assessable");
+        }
+
         const result = await scoreSession({
           mode: session.mode as "audio" | "video",
           durationSeconds,
           audioGapEvents,
           faceLostEvents,
+          videoPresenceAnalysis,
           silenceEvents,
           transcript,
           audioDeliveryAnalysis,

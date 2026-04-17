@@ -88,6 +88,15 @@ export interface AudioDeliveryResult {
   breathingObservation: string | null;
 }
 
+export interface VideoPresenceResult {
+  eyeContactObservation: string;
+  gestureObservation: string;
+  presenceObservation: string;
+  professionalAppearanceObservation: string;
+  overallVisualPresence: string;
+  framesAnalyzed: number;
+}
+
 export interface ScoringInput {
   mode: "audio" | "video";
   durationSeconds: number;
@@ -99,6 +108,7 @@ export interface ScoringInput {
   pitchVariationScore?: number | null;
   breathingScore?: number | null;
   breathingObservation?: string | null;
+  videoPresenceAnalysis?: VideoPresenceResult | null;
   recordingContext?: string;
   promptText?: string;
 }
@@ -233,6 +243,89 @@ Return your analysis as a JSON object with these exact keys:
 }
 
 /**
+ * Analyzes video frames using Claude Vision to assess visual presence dimensions:
+ * eye contact, gesture & movement, presence & engagement, professional appearance.
+ * Frames should be base64-encoded JPEG strings (without the data URL prefix).
+ */
+export async function analyzeVideoPresence(
+  frameBase64Array: string[],
+  promptText?: string,
+  recordingContext?: string
+): Promise<VideoPresenceResult> {
+  const frames = frameBase64Array.slice(0, 10);
+
+  const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}${recordingContext ? `Recording context: ${recordingContext}.` : ""}
+
+You are a senior executive presence coach reviewing a series of video frames captured at regular intervals during a ${recordingContext || "seated"} presentation. Analyze ONLY what you can directly observe in the images. Be specific and honest — if you cannot see something clearly, say so.
+
+Assess the following four areas based solely on what you see:
+
+1. EYE CONTACT: Where is the speaker looking in each frame? Are they looking directly at the camera (which represents the audience)? Do they look away frequently? How sustained is their camera connection?
+
+2. GESTURE & MOVEMENT: Are hand or arm gestures visible? Are they purposeful, natural, and complementary to the message? Or are there distracting fidgets, excessive stillness, or no gestures at all? Describe specific movements observed.
+
+3. PRESENCE & ENGAGEMENT: Does the speaker appear physically engaged and present? Assess posture, energy visible in body language, whether they appear animated or stiff/withdrawn. Is there visible energy and conviction?
+
+4. PROFESSIONAL APPEARANCE: Assess attire, grooming, and background environment visible in the frames. Is the overall presentation appropriate for a professional or executive context?
+
+Return your analysis as a JSON object with these exact keys:
+{
+  "eyeContactObservation": "specific description of where the speaker was looking in each frame, how often they met the camera, and overall gaze consistency",
+  "gestureObservation": "specific description of hand/arm gestures observed, whether they were purposeful, absent, or distracting",
+  "presenceObservation": "specific description of posture, body language, visible energy, and physical engagement observed",
+  "professionalAppearanceObservation": "specific assessment of attire, grooming, and background visible in the frames",
+  "overallVisualPresence": "2-sentence summary of the speaker's overall visual executive presence"
+}`;
+
+  const imageContent = frames.map(frame => ({
+    type: "image" as const,
+    source: {
+      type: "base64" as const,
+      media_type: "image/jpeg" as const,
+      data: frame,
+    },
+  }));
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...imageContent,
+            { type: "text", text: analysisPrompt },
+          ],
+        },
+      ],
+    });
+
+    const rawText = response.content
+      .filter(b => b.type === "text")
+      .map(b => (b as { type: "text"; text: string }).text)
+      .join("");
+
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
+      return {
+        eyeContactObservation: String(parsed.eyeContactObservation || ""),
+        gestureObservation: String(parsed.gestureObservation || ""),
+        presenceObservation: String(parsed.presenceObservation || ""),
+        professionalAppearanceObservation: String(parsed.professionalAppearanceObservation || ""),
+        overallVisualPresence: String(parsed.overallVisualPresence || ""),
+        framesAnalyzed: frames.length,
+      };
+    }
+    throw new Error("No JSON found in vision response");
+  } catch (err) {
+    console.error("Video presence analysis failed:", err);
+    throw err;
+  }
+}
+
+/**
  * Transcribes audio using OpenAI Whisper (gpt-4o-mini-transcribe).
  * Returns the full accurate transcript.
  */
@@ -277,18 +370,28 @@ SCORING CALIBRATION — follow this strictly:
 
 CRITICAL RULES:
 
-RULE 1 — AUDIO ANALYSIS IS THE SOLE SOURCE FOR ALL DIMENSIONS:
-The Audio Delivery Analysis below is the authoritative source for EVERY dimension — delivery AND content. The transcript is provided as a reference aid only; do not quote from it, do not base any scoring on it, and never write feedback that reads like a text analysis of what was written.
+RULE 1 — STRICT DATA SOURCE SEPARATION BY DIMENSION TYPE:
+Every dimension must be scored from its correct data source. Using the wrong source is a scoring error.
 
-Specific guidance per dimension:
-- vocal_clarity: use the audio "clarity" field
-- pace_rhythm: use "pace", "pitchIntonation", "pitchVariationScore", "silences" — this dimension covers speed, rhythm, pitch variation, intonation, and use of pauses for emphasis
-- volume_projection: use the audio "volume" field
-- filler_words: use the audio "fillerWords" field — the audio model's count is the fact; ignore any transcript-derived count
-- structure: use the audio "structureObservation" field — score and write feedback based solely on what the audio model heard about opening, flow, and close
-- confidence_language: use the audio "confidenceLanguageObservation" field — score and write feedback based solely on the specific phrases the audio model heard (hedging vs. assertive language)
+AUDIO DIMENSIONS — use Audio Delivery Analysis ONLY (never the transcript, never the video analysis):
+- vocal_clarity → audio "clarity" field
+- pace_rhythm → audio "pace", "pitchIntonation", "pitchVariationScore", "silences" (covers speed, rhythm, pitch variation, intonation, use of pauses)
+- volume_projection → audio "volume" field
+- filler_words → audio "fillerWords" field (audio model's count is authoritative; ignore any transcript-derived count)
+- structure → audio "structureObservation" field
+- confidence_language → audio "confidenceLanguageObservation" field
 
-If the Audio Delivery Analysis is missing or empty for a dimension, state that it could not be assessed from audio rather than falling back to the transcript.
+VISUAL DIMENSIONS — use Video Presence Analysis ONLY (never infer from audio, never assume from recording context):
+- eye_contact → video "eyeContactObservation" field. Score based ONLY on what was directly observed in the video frames (where did the speaker look? how often did they hold camera connection?). If no video analysis: score must state it could not be assessed visually.
+- gesture_movement → video "gestureObservation" field. Score based ONLY on gestures directly observed in frames. Do NOT infer from audio or recording context.
+- presence_engagement → video "presenceObservation" field for physical/visual presence. May also incorporate audio "energy" and "confidence" fields for vocal energy.
+- professional_appearance → video "professionalAppearanceObservation" field ONLY.
+
+If Video Presence Analysis is missing or empty and the dimension is a visual dimension:
+- Set score to null/0 and write: "Visual analysis was unavailable for this session. [dimension name] could not be assessed."
+- Do NOT infer, guess, or extrapolate from audio signals for visual dimensions.
+
+The transcript is provided as context only — never quote it or base any scoring on it.
 
 RULE 2 — STRENGTHS MUST BE GENUINE:
 A strength is only a strength if it represents actual positive behavior that serves the session's objective. Do not reframe partial, inadequate, or counterproductive behavior as a positive. Specifically:
@@ -311,10 +414,20 @@ RULE 4 — CALIBRATION:
 PROMPT THEY WERE RESPONDING TO:
 "${input.promptText || "Open-ended speaking exercise"}"
 
-AUDIO DELIVERY ANALYSIS — PRIMARY SOURCE FOR ALL DIMENSIONS:
+AUDIO DELIVERY ANALYSIS — SOURCE FOR AUDIO DIMENSIONS (vocal_clarity, pace_rhythm, volume_projection, filler_words, structure, confidence_language):
 ${input.audioDeliveryAnalysis || "[No audio delivery analysis available — scoring quality will be limited]"}
 
-TRANSCRIPT (reference only — do NOT use as the basis for any dimension score or feedback):
+${input.mode === "video" ? `VIDEO PRESENCE ANALYSIS — SOURCE FOR VISUAL DIMENSIONS (eye_contact, gesture_movement, presence_engagement, professional_appearance):
+${input.videoPresenceAnalysis
+  ? `Frames analyzed: ${input.videoPresenceAnalysis.framesAnalyzed}
+Eye contact: ${input.videoPresenceAnalysis.eyeContactObservation}
+Gesture & movement: ${input.videoPresenceAnalysis.gestureObservation}
+Presence & engagement: ${input.videoPresenceAnalysis.presenceObservation}
+Professional appearance: ${input.videoPresenceAnalysis.professionalAppearanceObservation}
+Overall visual presence: ${input.videoPresenceAnalysis.overallVisualPresence}`
+  : "[No video frame analysis available — visual dimensions cannot be assessed from video]"}` : ""}
+
+TRANSCRIPT (context only — do NOT base any score or feedback on this):
 ${input.transcript ? `"${input.transcript}"` : "[No transcript captured]"}
 
 SUPPORTING METRICS:

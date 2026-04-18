@@ -1,6 +1,6 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { ensureCompatibleFormat, speechToText } from "@workspace/integrations-openai-ai-server/audio";
+import { ensureCompatibleFormat, speechToText, speechToTextWithTiming } from "@workspace/integrations-openai-ai-server/audio";
 
 export type DimensionKey =
   | "vocal_clarity"
@@ -100,6 +100,7 @@ export interface VideoPresenceResult {
 export interface ScoringInput {
   mode: "audio" | "video";
   durationSeconds: number;
+  speechDurationSeconds?: number | null; // first-word to last-word span, excludes leading/trailing silence
   audioGapEvents: number;
   faceLostEvents: number;
   silenceEvents: number;
@@ -161,6 +162,8 @@ export async function analyzeAudioDelivery(
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}
 
 You are a senior executive presence coach listening to this audio recording. Evaluate EVERYTHING you observe from the audio — both how the person speaks AND what they say. Base every observation solely on what you actually hear. Do not make generic statements; be specific about what you heard.
+
+IMPORTANT: Ignore any silence at the very beginning or end of the recording (e.g. before the speaker starts or after they finish). Your analysis should cover only the span from the first spoken word to the last spoken word.
 
 Cover all of the following:
 
@@ -327,11 +330,14 @@ Return your analysis as a JSON object with these exact keys:
 
 /**
  * Transcribes audio using OpenAI Whisper (gpt-4o-mini-transcribe).
- * Returns the full accurate transcript.
+ * Returns the transcript and the actual speech duration (first word → last word),
+ * which excludes any silence at the beginning or end of the recording.
  */
-export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
+export async function transcribeAudio(
+  audioBuffer: Buffer
+): Promise<{ transcript: string; speechDurationSeconds: number | null }> {
   const { buffer, format } = await ensureCompatibleFormat(audioBuffer);
-  return speechToText(buffer, format);
+  return speechToTextWithTiming(buffer, format);
 }
 
 async function runAIEvaluation(
@@ -341,9 +347,13 @@ async function runAIEvaluation(
   const wordCount = input.transcript
     ? input.transcript.trim().split(/\s+/).filter(Boolean).length
     : 0;
+  // Use actual speech duration (first word → last word) when available — this
+  // excludes any silence at the beginning or end of the recording, giving an
+  // accurate WPM. Fall back to total recording duration if timing is unavailable.
+  const paceDuration = input.speechDurationSeconds ?? input.durationSeconds;
   const wordsPerMinute =
-    input.durationSeconds > 0
-      ? Math.round((wordCount / input.durationSeconds) * 60)
+    paceDuration > 0
+      ? Math.round((wordCount / paceDuration) * 60)
       : 0;
 
   const fillerCount = input.transcript
@@ -443,8 +453,9 @@ TRANSCRIPT (context only — do NOT base any score or feedback on this):
 ${input.transcript ? `"${input.transcript}"` : "[No transcript captured]"}
 
 SUPPORTING METRICS:
-- Duration: ${input.durationSeconds}s (${Math.floor(input.durationSeconds / 60)}m ${input.durationSeconds % 60}s)
-- Calculated speaking pace: ${wordsPerMinute} wpm (ideal: 120-160 wpm)
+- Total recording duration: ${input.durationSeconds}s (includes any leading/trailing silence)
+- Active speech duration: ${input.speechDurationSeconds != null ? `${Math.round(input.speechDurationSeconds)}s (first word to last word — use this for pace assessment)` : `unknown (use total duration as approximation)`}
+- Calculated speaking pace: ${wordsPerMinute} wpm based on active speech duration (ideal: 120-160 wpm)
 - Silence/pause events detected: ${input.silenceEvents}
 - Mode: ${input.mode}
 - Recording context: ${input.recordingContext || "seated"}

@@ -124,6 +124,7 @@ router.post(
     setImmediate(async () => {
       try {
         let transcript: string | undefined;
+        let speechDurationSeconds: number | null = null;
         let audioDeliveryAnalysis: string | undefined;
         let pitchVariationScore: number | null = null;
         let breathingScore: number | null = null;
@@ -139,7 +140,8 @@ router.post(
           ]);
 
           if (transcriptResult.status === "fulfilled") {
-            transcript = transcriptResult.value;
+            transcript = transcriptResult.value.transcript;
+            speechDurationSeconds = transcriptResult.value.speechDurationSeconds;
           } else {
             console.error("Whisper transcription failed:", transcriptResult.reason);
           }
@@ -175,6 +177,7 @@ router.post(
         const result = await scoreSession({
           mode: session.mode as "audio" | "video",
           durationSeconds,
+          speechDurationSeconds,
           audioGapEvents,
           faceLostEvents,
           videoPresenceAnalysis,

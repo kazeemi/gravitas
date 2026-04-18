@@ -229,6 +229,51 @@ export async function speechToText(
   return response.text;
 }
 
+/**
+ * Speech-to-Text with segment timestamps so the caller can derive actual
+ * speech duration (first-word start → last-word end), stripping any silence
+ * at the beginning or end of the recording.
+ */
+export async function speechToTextWithTiming(
+  audioBuffer: Buffer,
+  format: "wav" | "mp3" | "webm" = "wav"
+): Promise<{ text: string; speechDurationSeconds: number | null }> {
+  const file = await toFile(audioBuffer, `audio.${format}`);
+  try {
+    const response = await openai.audio.transcriptions.create({
+      file,
+      model: "gpt-4o-mini-transcribe",
+      response_format: "verbose_json",
+      timestamp_granularities: ["segment"],
+    } as Parameters<typeof openai.audio.transcriptions.create>[0]);
+
+    const r = response as unknown as {
+      text: string;
+      segments?: Array<{ start: number; end: number }>;
+    };
+
+    const text = r.text ?? "";
+    const segments = r.segments ?? [];
+
+    if (segments.length > 0) {
+      const speechStart = segments[0].start;
+      const speechEnd = segments[segments.length - 1].end;
+      const speechDurationSeconds = Math.max(1, speechEnd - speechStart);
+      return { text, speechDurationSeconds };
+    }
+
+    return { text, speechDurationSeconds: null };
+  } catch {
+    // Fallback: plain transcription without timing
+    const file2 = await toFile(audioBuffer, `audio.${format}`);
+    const response = await openai.audio.transcriptions.create({
+      file: file2,
+      model: "gpt-4o-mini-transcribe",
+    });
+    return { text: response.text, speechDurationSeconds: null };
+  }
+}
+
 /** Streaming Speech-to-Text. */
 export async function speechToTextStream(
   audioBuffer: Buffer,

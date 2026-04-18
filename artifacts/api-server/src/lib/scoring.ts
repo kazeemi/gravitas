@@ -47,10 +47,10 @@ export const DIMENSION_LABELS: Record<DimensionKey, string> = {
 export type Tier = "Needs Focus" | "Developing" | "Strong" | "Distinguished";
 
 export function scoreToTier(score: number): Tier {
-  if (score <= 3) return "Needs Focus";
-  if (score <= 5) return "Developing";
-  if (score <= 7) return "Strong";
-  return "Distinguished";
+  if (score < 4) return "Needs Focus";   // 1–3: Needs Focus
+  if (score < 6) return "Developing";    // 4–5: Developing
+  if (score < 8) return "Strong";        // 6–7: Strong
+  return "Distinguished";                // 8–10: Distinguished
 }
 
 export function computeCompositeTier(

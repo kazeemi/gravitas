@@ -407,12 +407,24 @@ RULE 4 — CALIBRATION:
 - A response of fewer than 50 words almost always scores 1-3 on content dimensions.
 - Never award 6+ to shallow responses that don't address the prompt.
 - Be direct. Do not understate genuine gaps.
-- Gaps and next steps must be specific and actionable.`;
+- Gaps and next steps must be specific and actionable.
+
+RULE 5 — RECITATION / READING CONTEXT:
+When the session prompt indicates the speaker is reading, reciting, or performing a pre-written literary or published text (poem, speech, passage, excerpt, prayer, scripture, monologue, etc.), apply the following adjustments:
+- STRUCTURE: Do NOT penalize for lacking "original structural architecture." The structure belongs to the source text. Instead, evaluate only how the speaker's delivery honored that structure through their voice — did their pacing, pausing, phrasing, and breath control serve the text's natural rhythm, line breaks, and emotional arc? Score and give feedback entirely on this delivery dimension.
+- CONFIDENCE_LANGUAGE: The words spoken are not the speaker's own choices. Do NOT penalize for language that sounds hedging, formal, archaic, or unusual — it reflects the source text, not the speaker's confidence. Instead, evaluate only the vocal conviction, commitment, and presence with which the speaker performed the words. Score and give feedback entirely on this delivery dimension.
+- OVERALL STRENGTHS/IMPROVEMENTS: Do not critique or praise the content, argument, or structure of the source text itself. Focus only on what the speaker did with their voice and body.`;
+
+  // Detect recitation/reading context from the prompt text
+  const recitationKeywords = /\b(read|reading|recit|poem|poetry|poet|verse|stanza|lyric|speech by|passage|excerpt|monologue|prayer|scripture|psalm|soliloquy|ode|sonnet|perform|performed|performing|famous|literary|published|wrote|written by|marianne|williamson|shakespeare|rumi|frost|angelou|dickinson|neruda|whitman|keats|yeats|eliot|cummings)\b/i;
+  const isRecitation = !!(input.promptText && recitationKeywords.test(input.promptText));
 
   const userPrompt = `Evaluate this speaker on executive presence dimensions.
 
 PROMPT THEY WERE RESPONDING TO:
 "${input.promptText || "Open-ended speaking exercise"}"
+
+${isRecitation ? `⚠️ RECITATION CONTEXT DETECTED: The speaker's prompt indicates they were reading or reciting a pre-written literary or published text. RULE 5 applies. Do NOT penalize structure for lacking original architecture — evaluate only how the delivery served the text's structure. Do NOT penalize confidence_language for the text's word choices — evaluate only vocal conviction and commitment.` : ""}
 
 AUDIO DELIVERY ANALYSIS — SOURCE FOR AUDIO DIMENSIONS (vocal_clarity, pace_rhythm, volume_projection, filler_words, structure, confidence_language):
 ${input.audioDeliveryAnalysis || "[No audio delivery analysis available — scoring quality will be limited]"}

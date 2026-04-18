@@ -22,6 +22,7 @@ type Step = "setup" | "recording" | "processing" | "done";
 type RecordingState = "idle" | "recording" | "paused";
 
 const MIN_DURATION = 60;
+const MAX_DURATION = 600; // 10 minutes
 
 export default function RecordPage() {
   const search = useSearch();
@@ -42,6 +43,8 @@ export default function RecordPage() {
   const [audioLevel, setAudioLevel] = useState(0);       // 0–100 live mic level
   const [silenceWarning, setSilenceWarning] = useState(false);
   const [silenceSecs, setSilenceSecs] = useState(0);      // current silence streak in seconds
+  const [processingStep, setProcessingStep] = useState(0); // 0–3 for animated steps
+  const processingStepRef = useRef<number | null>(null);
 
   const timerRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
@@ -75,6 +78,14 @@ export default function RecordPage() {
   useEffect(() => {
     recordingStateRef.current = recordingState;
   }, [recordingState]);
+
+  // Auto-stop when max duration reached
+  useEffect(() => {
+    if (recordingState === "recording" && elapsed >= MAX_DURATION) {
+      stopRecording();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [elapsed, recordingState]);
 
   // Attach camera stream to video element once it mounts (step changes to "recording")
   useEffect(() => {
@@ -209,7 +220,7 @@ export default function RecordPage() {
 
       const session = await api.sessions.create({
         mode,
-        promptText: prompt?.text || customPrompt || undefined,
+        promptText: customPrompt.trim() || prompt?.text || undefined,
         promptType: prompt?.type,
         recordingContext: mode === "video" ? recordingContext : "seated",
       });
@@ -338,7 +349,14 @@ export default function RecordPage() {
   const submitAudio = async (durationSeconds: number, audioBlob: Blob, videoFrames: string[] = []) => {
     if (!sessionId) return;
     setStep("processing");
-    setProcessingStatus("Uploading for analysis…");
+    setProcessingStep(0);
+
+    // Advance through processing steps on a timer so the user sees progress
+    let step = 0;
+    processingStepRef.current = window.setInterval(() => {
+      step = Math.min(step + 1, 3);
+      setProcessingStep(step);
+    }, 12000);
 
     try {
       await api.sessions.upload(sessionId, {
@@ -350,16 +368,19 @@ export default function RecordPage() {
         videoFrames: videoFrames.length > 0 ? videoFrames : undefined,
       });
 
-      setProcessingStatus("Transcribing and analyzing your delivery…");
+      setProcessingStep(s => Math.max(s, 1));
 
       pollRef.current = window.setInterval(async () => {
         try {
           const status = await api.sessions.status(sessionId);
           if (status.processingStatus === "complete") {
             clearInterval(pollRef.current!);
+            if (processingStepRef.current) clearInterval(processingStepRef.current);
+            setProcessingStep(4);
             setStep("done");
           } else if (status.processingStatus === "error") {
             clearInterval(pollRef.current!);
+            if (processingStepRef.current) clearInterval(processingStepRef.current);
             setError(status.processingError || "Processing failed");
             setStep("recording");
             setRecordingState("paused");
@@ -367,6 +388,7 @@ export default function RecordPage() {
         } catch {}
       }, 2000);
     } catch (err) {
+      if (processingStepRef.current) clearInterval(processingStepRef.current);
       const msg = err instanceof Error ? err.message : "Failed to upload";
       setError(msg);
       setStep("recording");
@@ -384,6 +406,7 @@ export default function RecordPage() {
       }
       releaseStream();
       if (pollRef.current) clearInterval(pollRef.current);
+      if (processingStepRef.current) clearInterval(processingStepRef.current);
     };
   }, [stopTimer, releaseStream, stopLevelMonitor, stopFrameCapture]);
 
@@ -432,7 +455,7 @@ export default function RecordPage() {
                   <div className="text-left">
                     <p className="text-sm font-medium capitalize">{m}</p>
                     <p className="text-xs text-gray-400">
-                      {m === "audio" ? "6 dimensions" : "10 dimensions"}
+                      {m === "audio" ? "Voice & delivery" : "Voice & visual presence"}
                     </p>
                   </div>
                 </button>
@@ -462,11 +485,16 @@ export default function RecordPage() {
           <div>
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700">Practice prompt</label>
-              <button onClick={getNewPrompt} className="text-xs text-gray-400 hover:text-gray-600">
-                Get new prompt
-              </button>
+              {!customPrompt.trim() && (
+                <button
+                  onClick={getNewPrompt}
+                  className="text-xs font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2"
+                >
+                  Get a new prompt
+                </button>
+              )}
             </div>
-            {prompt && (
+            {!customPrompt.trim() && prompt && (
               <div className="mt-2 rounded border border-gray-200 bg-gray-50 p-4">
                 <p className="text-sm text-gray-700">{prompt.text}</p>
                 <p className="mt-2 text-xs text-gray-400">
@@ -475,18 +503,32 @@ export default function RecordPage() {
                 </p>
               </div>
             )}
-            <p className="mt-2 text-xs text-gray-400">Or write your own:</p>
-            <textarea
-              value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder="Describe what you'll be speaking about…"
-              rows={2}
-              className="mt-1 w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
-            />
+            <div className="mt-3">
+              <p className="text-xs font-medium text-gray-500 mb-1">
+                {customPrompt.trim() ? "Your topic (practice prompt hidden)" : "Or write your own:"}
+              </p>
+              <textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="Describe what you'll be speaking about…"
+                rows={2}
+                className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+              />
+              {customPrompt.trim() && (
+                <button
+                  onClick={() => setCustomPrompt("")}
+                  className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                >
+                  Clear and use practice prompt instead
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="rounded border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            Minimum recording duration: 1 minute. Your audio will be transcribed and analyzed after recording.
+            {mode === "video"
+              ? "Minimum 1 minute · maximum 10 minutes. Your audio will be transcribed and your visual presence analyzed after recording."
+              : "Minimum 1 minute · maximum 10 minutes. Your audio will be transcribed and analyzed after recording."}
           </div>
 
           <Button className="w-full gap-2" onClick={startRecording}>
@@ -580,18 +622,26 @@ export default function RecordPage() {
               <p className="mt-1 text-3xl font-bold font-mono text-gray-900">
                 {formatTime(elapsed)}
               </p>
-              {elapsed < MIN_DURATION && (
+              {elapsed < MIN_DURATION ? (
                 <p className="mt-1 text-xs text-amber-600">
                   {MIN_DURATION - elapsed}s remaining to reach minimum
+                </p>
+              ) : elapsed >= MAX_DURATION - 60 ? (
+                <p className="mt-1 text-xs text-red-500">
+                  {MAX_DURATION - elapsed}s until maximum — recording will stop automatically
+                </p>
+              ) : (
+                <p className="mt-1 text-xs text-gray-400">
+                  Max {formatTime(MAX_DURATION)} · {formatTime(MAX_DURATION - elapsed)} remaining
                 </p>
               )}
             </div>
           </div>
 
-          {(prompt?.text || customPrompt) && (
+          {(customPrompt.trim() || prompt?.text) && (
             <div className="rounded border border-gray-100 bg-gray-50 p-4">
               <p className="text-xs font-medium text-gray-400 mb-1">Your prompt</p>
-              <p className="text-sm text-gray-700">{prompt?.text || customPrompt}</p>
+              <p className="text-sm text-gray-700">{customPrompt.trim() || prompt?.text}</p>
             </div>
           )}
 
@@ -642,16 +692,54 @@ export default function RecordPage() {
         </div>
       )}
 
-      {step === "processing" && (
-        <div className="space-y-4 text-center py-12">
-          <div className="mx-auto h-12 w-12 rounded-full border-4 border-gray-200 border-t-gray-900 animate-spin" />
-          <p className="text-sm font-medium text-gray-700">{processingStatus}</p>
-          <p className="text-xs text-gray-400">
-            Your {mode === "video" ? "video" : "audio"} is being transcribed, your delivery analyzed, and coaching feedback generated.
-            This may take up to 60 seconds.
-          </p>
-        </div>
-      )}
+      {step === "processing" && (() => {
+        const steps = mode === "video"
+          ? ["Uploading recording", "Transcribing speech", "Analyzing delivery & visual presence", "Generating coaching feedback"]
+          : ["Uploading recording", "Transcribing speech", "Analyzing delivery", "Generating coaching feedback"];
+        const progress = Math.min(100, Math.round((processingStep / (steps.length - 1)) * 100));
+        return (
+          <div className="py-10 space-y-8">
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-400 mb-1">
+                <span>Analyzing…</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gray-900 transition-all duration-700 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+            <div className="space-y-3">
+              {steps.map((label, i) => {
+                const done = processingStep > i;
+                const active = processingStep === i;
+                return (
+                  <div key={label} className="flex items-center gap-3">
+                    <div className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
+                      done ? "bg-[#0F6E56] text-white" : active ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-400"
+                    }`}>
+                      {done ? (
+                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <span>{i + 1}</span>
+                      )}
+                    </div>
+                    <span className={`text-sm ${done ? "text-gray-400 line-through" : active ? "text-gray-900 font-medium" : "text-gray-400"}`}>
+                      {label}
+                      {active && <span className="ml-1 inline-block animate-pulse">…</span>}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs text-center text-gray-400">This typically takes 30–60 seconds</p>
+          </div>
+        );
+      })()}
 
       {step === "done" && sessionId && (
         <div className="space-y-4 text-center py-12">

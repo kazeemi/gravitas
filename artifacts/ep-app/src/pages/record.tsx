@@ -500,7 +500,8 @@ export default function RecordPage() {
   };
 
   const downloadBlob = (blob: Blob, label: string) => {
-    const ext = blob.type.includes("mp4") ? "mp4"
+    const ext = blob.type.includes("wav") ? "wav"
+      : blob.type.includes("mp4") ? "mp4"
       : blob.type.includes("webm") ? "webm"
       : blob.type.includes("ogg") ? "ogg"
       : blob.type.includes("mp3") ? "mp3"

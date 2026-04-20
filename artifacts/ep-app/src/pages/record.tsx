@@ -18,6 +18,63 @@ const SILENCE_THRESHOLD = 8;      // avg amplitude (0–255) below which = silen
 const SILENCE_WARN_SECS = 10;     // seconds of continuous silence before warning
 const LEVEL_CHECK_MS = 150;       // how often to sample audio level (ms)
 
+// ── WAV encoder (for converting iOS mp4 recordings to a format OpenAI accepts) ──
+
+function _wavWriteString(view: DataView, offset: number, str: string) {
+  for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+}
+
+function _encodeWav(audioBuffer: AudioBuffer): ArrayBuffer {
+  const sampleRate = audioBuffer.sampleRate;
+  const samples = audioBuffer.getChannelData(0);
+  const dataSize = samples.length * 2;
+  const buf = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buf);
+  _wavWriteString(view, 0, "RIFF");
+  view.setUint32(4, 36 + dataSize, true);
+  _wavWriteString(view, 8, "WAVE");
+  _wavWriteString(view, 12, "fmt ");
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  _wavWriteString(view, 36, "data");
+  view.setUint32(40, dataSize, true);
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+    offset += 2;
+  }
+  return buf;
+}
+
+async function convertToWavBlob(blob: Blob): Promise<Blob> {
+  try {
+    const arrayBuffer = await blob.arrayBuffer();
+    const tempCtx = new AudioContext();
+    const audioBuffer = await tempCtx.decodeAudioData(arrayBuffer);
+    await tempCtx.close();
+    const targetSampleRate = 16000;
+    const offlineCtx = new OfflineAudioContext(
+      1,
+      Math.ceil(audioBuffer.duration * targetSampleRate),
+      targetSampleRate
+    );
+    const source = offlineCtx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(offlineCtx.destination);
+    source.start(0);
+    const resampled = await offlineCtx.startRendering();
+    return new Blob([_encodeWav(resampled)], { type: "audio/wav" });
+  } catch {
+    return blob;
+  }
+}
+
 type Step = "setup" | "recording" | "review" | "processing" | "done";
 type RecordingState = "idle" | "recording" | "paused";
 
@@ -385,12 +442,18 @@ export default function RecordPage() {
     let doneCount = 0;
     const totalRecorders = vRecorder && vRecorder.state !== "inactive" ? 2 : 1;
 
-    const onBothDone = () => {
+    const onBothDone = async () => {
       doneCount += 1;
       if (doneCount < totalRecorders) return;
 
       const audioMime = recorder.mimeType || "audio/webm";
-      const blob = new Blob(audioChunksRef.current, { type: audioMime });
+      let blob = new Blob(audioChunksRef.current, { type: audioMime });
+
+      // iOS Safari records as audio/mp4 (AAC), which gpt-audio rejects.
+      // Convert to 16kHz mono WAV using Web Audio API before uploading.
+      if (audioMime.includes("mp4") || audioMime.includes("m4a")) {
+        blob = await convertToWavBlob(blob);
+      }
 
       let videoBlob: Blob | null = null;
       if (videoChunksRef.current.length > 0) {

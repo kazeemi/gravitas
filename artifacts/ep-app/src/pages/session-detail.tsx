@@ -83,6 +83,8 @@ export default function SessionDetailPage() {
     : 0;
   const hasLowEngagement = transcriptWordCount < 50 && transcriptWordCount > 0;
   const hasNoSpeech = transcriptWordCount === 0 && !!session.compositeScore;
+  // True when processing completed but no audio data was detected (iOS/mic issue)
+  const noAudioDetected = session.dimensionScores.length === 0 && !session.compositeScore;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-10">
@@ -121,7 +123,7 @@ export default function SessionDetailPage() {
               <p className="mt-2 font-medium text-gray-800">{session.promptText}</p>
             )}
           </div>
-          {score !== null && colors && (
+          {score !== null && colors && !noAudioDetected && (
             <div className="text-right flex-shrink-0 ml-4">
               <p className="text-3xl font-bold" style={{ color: colors.hex }}>
                 {score.toFixed(1)}
@@ -136,7 +138,17 @@ export default function SessionDetailPage() {
           )}
         </div>
 
-        {(session.audioQualityFlag || session.faceCoverageFlag) && (
+        {noAudioDetected && (
+          <div className="mt-4 flex items-start gap-2 rounded border border-red-200 bg-red-50 p-3">
+            <AlertTriangleIcon className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+            <div className="text-xs text-red-700">
+              <p className="font-medium">No audio was detected in this recording.</p>
+              <p className="mt-1">Your microphone was active but no speech reached the server. Please try again — speak clearly from the very start of the recording, and make sure your browser has microphone permission.</p>
+            </div>
+          </div>
+        )}
+
+        {!noAudioDetected && (session.audioQualityFlag || session.faceCoverageFlag) && (
           <div className="mt-4 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3">
             <AlertTriangleIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-amber-700">
@@ -146,7 +158,7 @@ export default function SessionDetailPage() {
           </div>
         )}
 
-        {hasSilences && (
+        {!noAudioDetected && hasSilences && (
           <div className="mt-3 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3">
             <AlertTriangleIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-amber-700">
@@ -155,7 +167,7 @@ export default function SessionDetailPage() {
           </div>
         )}
 
-        {hasNoSpeech && (
+        {!noAudioDetected && hasNoSpeech && (
           <div className="mt-3 flex items-start gap-2 rounded border border-orange-200 bg-orange-50 p-3">
             <AlertTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-orange-700">
@@ -174,7 +186,7 @@ export default function SessionDetailPage() {
         )}
       </div>
 
-      {overallFeedback && (
+      {overallFeedback && !noAudioDetected && (
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
           <h2 className="font-semibold text-gray-900 text-lg">Overall coaching summary</h2>
           {overallFeedback.strengths && (
@@ -225,14 +237,16 @@ export default function SessionDetailPage() {
         </div>
       )}
 
-      <div className="space-y-4">
-        <h2 className="font-semibold text-gray-900">Dimension feedback</h2>
-        {sortedDimensions.map((d) => (
-          <DimensionCard key={d.id} score={d} />
-        ))}
-      </div>
+      {!noAudioDetected && sortedDimensions.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="font-semibold text-gray-900">Dimension feedback</h2>
+          {sortedDimensions.map((d) => (
+            <DimensionCard key={d.id} score={d} />
+          ))}
+        </div>
+      )}
 
-      <SessionMetrics session={session} />
+      {!noAudioDetected && <SessionMetrics session={session} />}
 
       {session.transcript && (
         <div className="rounded-lg border border-gray-200 bg-white p-6">

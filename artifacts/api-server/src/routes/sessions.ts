@@ -174,6 +174,35 @@ router.post(
           console.warn("Video session but no frames received — visual dimensions will not be assessable");
         }
 
+        // If no speech was detected AND no audio delivery analysis could be
+        // produced, there is nothing to score. Save the session as complete
+        // but without any scores so the UI can show a clear "try again" message.
+        const hasAnyAudioData =
+          (transcript && transcript.trim().length > 0) ||
+          (audioDeliveryAnalysis && audioDeliveryAnalysis.trim().length > 0) ||
+          videoPresenceAnalysis != null;
+
+        if (!hasAnyAudioData) {
+          await db
+            .update(sessionsTable)
+            .set({
+              processingStatus: "complete",
+              compositeScore: null,
+              compositeTier: null,
+              audioQualityFlag: true,
+              faceCoverageFlag: false,
+              overallFeedback: null,
+              durationSeconds,
+              audioGapEvents,
+              faceLostEvents,
+              silenceEvents,
+              transcript: null,
+              scoredAt: new Date(),
+            })
+            .where(eq(sessionsTable.id, session.id));
+          return;
+        }
+
         const result = await scoreSession({
           mode: session.mode as "audio" | "video",
           durationSeconds,

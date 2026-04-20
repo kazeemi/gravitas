@@ -85,7 +85,11 @@ export const api = {
     delete: (id: string) => request(`/v1/sessions/${id}`, { method: "DELETE" }),
     upload: (id: string, data: UploadData & { audioBlob?: Blob; videoFrames?: string[] }) => {
       const form = new FormData();
-      if (data.audioBlob) form.append("audio", data.audioBlob, "recording.webm");
+      if (data.audioBlob) {
+        const t = data.audioBlob.type;
+        const ext = t.includes("wav") ? "wav" : t.includes("mp4") || t.includes("m4a") ? "mp4" : t.includes("ogg") ? "ogg" : "webm";
+        form.append("audio", data.audioBlob, `recording.${ext}`);
+      }
       if (data.durationSeconds != null) form.append("durationSeconds", String(data.durationSeconds));
       if (data.audioGapEvents != null) form.append("audioGapEvents", String(data.audioGapEvents));
       if (data.faceLostEvents != null) form.append("faceLostEvents", String(data.faceLostEvents));

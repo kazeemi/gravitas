@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "2N2qTBaJVELdZKaxEIgvv"
+uri = "file://Executive_Presence_Methodology_v3.0.txt"
+type = "text"
+title = "Executive Presence Methodology v3.0"

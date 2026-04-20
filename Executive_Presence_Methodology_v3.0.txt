@@ -1,0 +1,473 @@
+EXECUTIVE PRESENCE COACHING PLATFORM
+Scoring Methodology v3.0
+================================================================================
+
+OVERVIEW
+--------
+Every session is evaluated by AI that listens to your actual audio (and watches
+your video frames, if applicable). Scores are based entirely on observable
+signals — never inferred from context, assumed from your bio, or guessed from
+the topic you chose. The transcript is used only as a secondary reference;
+all primary scoring comes from the audio and video analysis directly.
+
+Sessions produce scores on either 6 dimensions (audio-only) or 10 dimensions
+(video). A composite score is then computed from the dimension scores.
+
+================================================================================
+SCORING TIERS
+================================================================================
+
+  Score 1–3   |  Needs Focus    — Absent, severely deficient, or actively
+               |                   harmful to your presence.
+  Score 4–5   |  Developing     — Some evidence of the skill, but significant
+               |                   inconsistency, gaps, or missed opportunities.
+  Score 6–7   |  Strong         — Solid, consistent demonstration with only
+               |                   minor gaps. Meets expectations for a
+               |                   professional speaker.
+  Score 8–9   |  Distinguished  — Noticeably above average. Few coaches would
+               |                   find fault. Impressive control and
+               |                   intentionality.
+  Score 10    |  Distinguished  — Exceptionally rare. Reserved for world-class
+               |                   delivery. Almost never awarded.
+
+================================================================================
+COMPOSITE SCORE
+================================================================================
+
+The composite score is the simple average of all dimension scores for the
+session, subject to one gating rule:
+
+GATING RULE: If any of the following "anchor" dimensions scores 1–3, the
+composite is capped at 8.0, regardless of how well other dimensions scored.
+Anchor dimensions: Vocal Clarity, Confidence Language, Structure,
+Presence & Engagement (video only).
+
+Rationale: these dimensions reflect foundational presence. A speaker cannot be
+Distinguished overall if their core vocal, structural, or physical presence is
+fundamentally weak, even if individual delivery mechanics are polished.
+
+================================================================================
+AUDIO DIMENSIONS (present in both audio and video sessions)
+================================================================================
+
+--------------------------------------------------------------------------------
+1. VOCAL CLARITY
+--------------------------------------------------------------------------------
+What is measured:
+  Articulation, diction, word-ending clarity, ease of comprehension, absence
+  of mumbling. Does every word land clearly without the listener needing to
+  strain or re-play?
+
+Data source: Audio delivery analysis — "clarity" field only.
+
+Score guide:
+  1   Almost incomprehensible. Heavy mumbling, dropped words, severely muffled
+      or slurred speech. The listener cannot follow the content.
+  2   Frequently unclear. Multiple words per sentence are missed. Dropped
+      endings are constant. Comprehension requires significant effort.
+  3   Often unclear. Intermittent mumbling, frequent dropped endings, or a
+      persistent articulation issue that degrades comprehension noticeably.
+  4   Somewhat unclear. Articulation problems appear regularly, particularly
+      under pressure or when speaking quickly. The listener catches most words
+      but must fill in gaps.
+  5   Mildly unclear. Occasional mumbling or dropped endings, typically in
+      faster passages. Generally comprehensible but with noticeable slippage.
+  6   Mostly clear. Minor articulation lapses only. Listener can follow without
+      effort, with the occasional word requiring inference.
+  7   Clear throughout. All words land. Only very subtle, infrequent softening
+      at sentence ends.
+  8   Crisp and precise. Every word is deliberate and fully formed. Articulation
+      is an asset, not a neutral.
+  9   Exceptional diction. The voice is a precision instrument. Each consonant
+      and vowel is intentional. No drop-off at speed or volume changes.
+  10  Broadcast-standard enunciation. Effortless to comprehend. A benchmark for
+      other speakers.
+
+--------------------------------------------------------------------------------
+2. PACE, RHYTHM & VOCAL VARIETY
+--------------------------------------------------------------------------------
+What is measured:
+  Speaking speed (words per minute), rhythm (steady vs. erratic delivery),
+  use of deliberate pauses, pitch variation, intonation, and whether the
+  overall vocal delivery is dynamic or monotone.
+
+Data source: Audio delivery analysis — "pace", "pitchIntonation",
+"pitchVariationScore", and "silences" fields.
+
+Note on WPM: Pace is calculated from the first spoken word to the last spoken
+word. Silence before you start or after you finish is excluded.
+Ideal pace: 120–160 words per minute. Slower can be deliberate; faster
+risks losing the listener.
+
+Score guide:
+  1   Severely dysfunctional pace. Either so fast the content is incomprehensible
+      or so slow it is unlistenable. Completely monotone. No pauses of any kind,
+      or constant uncontrolled pauses.
+  2   Pace is a significant problem. Either consistently too fast (180+ wpm with
+      no breathing room) or too slow (under 70 wpm, grinding). Minimal or no
+      pitch variation. Rhythm is erratic.
+  3   Noticeable pace issues throughout. Frequent rushes or drags. Almost no
+      intentional pauses. Pitch is mostly flat with rare variation.
+  4   Pace is inconsistent — some sections work, others rush or slow
+      uncomfortably. Pauses are rare or ill-placed. Some pitch variation but
+      not patterned.
+  5   Pace is generally acceptable but with a recurring problem (e.g., speeds up
+      under pressure, or a consistent slight drag). Some intentional pauses.
+      Pitch varies occasionally.
+  6   Solid pace control. Generally in the 120–160 wpm range. Deliberate pauses
+      appear. Pitch varies to signal structure and emphasis.
+  7   Good pace discipline. The speed serves clarity. Pauses are used
+      purposefully. Pitch variation is natural and consistent.
+  8   Excellent pace and rhythm. The pace modulates intentionally — slowing for
+      key points, moving faster through context. Pauses land where they should.
+      Vocal dynamics are a clear tool.
+  9   Master-level vocal variety. The listener is guided by pace and pitch.
+      Every shift in speed or tone is purposeful and effective. Pauses are
+      commanding.
+  10  World-class vocal control. The voice alone holds attention. Pace, rhythm,
+      and pitch work as a unified instrument of persuasion.
+
+--------------------------------------------------------------------------------
+3. VOLUME & PROJECTION
+--------------------------------------------------------------------------------
+What is measured:
+  Audibility, consistency of volume, projection energy, and whether volume
+  changes are controlled or erratic.
+
+Data source: Audio delivery analysis — "volume" field only.
+
+Score guide:
+  1   Inaudible or distressingly loud. Volume makes comprehension impossible.
+  2   Severely under-projected or so loud it creates discomfort. The listener
+      cannot easily follow.
+  3   Frequently too quiet (trailing off, whispering passages) or inconsistently
+      loud in a way that distracts. Projection is not sustained.
+  4   Volume is a noticeable issue. Often trails off at sentence ends.
+      Projection drops under pressure. Inconsistency is the norm.
+  5   Mostly audible but with a recurring dip — typically at sentence endings
+      or in longer phrases. Projection is adequate but not commanding.
+  6   Consistently audible. Projection holds through sentences. Minor drops only.
+  7   Good projection throughout. Volume is controlled and sustains authority.
+      Very occasional softening only.
+  8   Strong, confident projection. Volume is an active tool — the speaker can
+      quiet intentionally for emphasis, then project fully. No unplanned drops.
+  9   Exceptional command of volume. Every word carries. Dynamic range is
+      controlled and deliberate. The voice fills the space.
+  10  Outstanding projection. The speaker's voice commands full attention without
+      strain. A model of vocal authority.
+
+--------------------------------------------------------------------------------
+4. FILLER WORDS
+--------------------------------------------------------------------------------
+What is measured:
+  Frequency of filler words and sounds heard in the audio, including: um, uh,
+  like, you know, so, basically, literally, actually, right, I mean, kind of,
+  sort of, you see.
+
+Data source: Audio delivery analysis — "fillerWords" field only. The audio
+model's count is authoritative.
+
+Score guide:
+  1   Fillers are pervasive — more than 1 per every 20 words on average.
+      The fillers are the dominant feature of the delivery. Almost every pause
+      is filled.
+  2   Very frequent — roughly 1 per 30 words. Multiple filler types. The
+      listener notices them constantly.
+  3   Frequent — roughly 1 per 40 words, or a strong habitual filler that
+      repeats many times and dominates the listener's attention.
+  4   Noticeable — roughly 1 per 60 words. Multiple types observed. The fillers
+      are a clear pattern.
+  5   Moderate — roughly 1 per 80 words. One or two recurring types. Noticeable
+      but not dominant.
+  6   Occasional — roughly 1 per 100 words. Fillers appear but don't define the
+      delivery.
+  7   Infrequent — roughly 1 per 150 words. Only one type, appearing in moments
+      of transition or under pressure.
+  8   Rare — 1–2 total instances in a typical 60–90 second session. Nearly
+      invisible to the listener.
+  9   Near-absent — 0–1 instances. Any filler that appears was isolated and
+      does not create a pattern.
+  10  Zero fillers heard. Complete command of silence. The speaker lets pauses
+      land cleanly without filling them.
+
+--------------------------------------------------------------------------------
+5. STRUCTURE
+--------------------------------------------------------------------------------
+What is measured:
+  Whether the response has a clear, confident opening; an organized and logical
+  body; and a decisive close. Whether the prompt was directly addressed.
+  Whether the speaker wandered, rambled, or trailed off.
+
+Data source: Audio delivery analysis — "structureObservation" field only.
+This is assessed from listening, not from reading the transcript.
+
+RECITATION NOTE: If the session prompt indicates the speaker was reading or
+reciting a pre-written text (poem, speech, passage, etc.), this dimension
+evaluates how the delivery honored the source text's structure — pacing
+through stanzas, pausing at natural breaks, serving the emotional arc —
+not whether the speaker constructed original architecture.
+
+Score guide:
+  1   No discernible structure. The speaker jumps between topics without
+      connection. No opening, no close. The response does not address the
+      prompt.
+  2   Severely disorganized. One or two points appear but they are not connected
+      or sequenced. The prompt is barely addressed. No functional opening
+      or close.
+  3   Minimal structure. A vague beginning exists but the body wanders with
+      little logic. The close is absent or trails off. The prompt is addressed
+      only partially.
+  4   Some structure visible but inconsistent. A functional opening may exist
+      without a clear body plan, or the body is organized but the close is weak.
+      The speaker starts well but loses the thread.
+  5   Moderate structure. There is a recognizable opening, a somewhat organized
+      middle, and an attempt at a close. Significant gaps or wanders remain.
+      The prompt is addressed but not sharply.
+  6   Solid structure. Clear opening that addresses the prompt directly.
+      Organized body with a logical flow. A close that brings it together.
+      Minor gaps only.
+  7   Well-structured throughout. The response has architecture. Opening,
+      transitions, and close work together. Points land in a logical order.
+  8   Strong, intentional structure. The speaker has clearly planned how to
+      frame the response. The opening hooks immediately, the body flows
+      without redundancy, the close is decisive.
+  9   Exceptional structure. The response feels like it was designed, not
+      improvised. The listener always knows where they are and where they're
+      going. Every transition is earned.
+  10  Masterful architecture. The structure itself communicates authority.
+      Opening, body, and close form a seamless, persuasive whole.
+
+--------------------------------------------------------------------------------
+6. CONFIDENCE LANGUAGE
+--------------------------------------------------------------------------------
+What is measured:
+  The balance of assertive language vs. hedging language as heard in the audio.
+  Assertive: "I know", "We will", "The key point is", clear declarative
+  statements. Hedging: "I think", "maybe", "I guess", "kind of", "I believe",
+  "hopefully", "I'm not sure but".
+
+Data source: Audio delivery analysis — "confidenceLanguageObservation" field.
+Specific phrases heard are quoted and assessed.
+
+RECITATION NOTE: If the speaker was reading or reciting a pre-written text,
+this dimension evaluates only the vocal conviction and commitment with which
+the words were performed — not the word choices themselves.
+
+Score guide:
+  1   Language is actively undermining. Nearly every statement is hedged or
+      qualified. The speaker sounds unsure of every claim they make.
+  2   Pervasive hedging. Hedging phrases dominate. Any assertive language is
+      rare and overshadowed. Authority is absent.
+  3   Frequent hedging. Multiple types of hedge words heard throughout. The
+      speaker consistently softens their positions.
+  4   More hedging than assertive. Hedging patterns appear regularly.
+      Some assertive phrases exist but the overall impression is tentative.
+  5   Mixed. Hedging and assertive language appear roughly equally. Some
+      moments of authority, undermined by qualification elsewhere.
+  6   Mostly assertive. Hedges appear occasionally but the overall impression
+      is one of confidence. Declarative statements dominate.
+  7   Predominantly assertive. Hedging is rare. The speaker takes clear
+      positions. Language projects authority consistently.
+  8   Highly assertive. Clear, direct declarations throughout. Any residual
+      hedge is isolated and does not define the pattern.
+  9   Exceptional command of language authority. The speaker states positions
+      with conviction. Word choices project certainty and ownership.
+  10  World-class language of authority. Every sentence conveys mastery and
+      confidence. A model of executive communication.
+
+================================================================================
+VIDEO DIMENSIONS (video sessions only — assessed from video frames)
+================================================================================
+
+Video frames are captured every 8 seconds (first frame at 2.5 seconds), up to
+10 frames per session. All visual dimensions are assessed ONLY from what is
+directly observed in these frames. If frames are unavailable, visual dimensions
+cannot be scored.
+
+--------------------------------------------------------------------------------
+7. EYE CONTACT
+--------------------------------------------------------------------------------
+What is measured:
+  Where the speaker was looking in each frame. Frequency of direct camera
+  connection. Consistency of gaze across the session.
+
+Data source: Video frame analysis — "eyeContactObservation" field only.
+
+Score guide:
+  1   The speaker is never looking at or near the camera. Eyes are consistently
+      cast down, sideways, or away.
+  2   Camera connection is nearly absent. Rare glances toward the camera but
+      no sustained eye contact across frames.
+  3   Occasional camera connection in one or two frames. The speaker frequently
+      looks away. Consistency is absent.
+  4   Some camera connection but unreliable. Several frames show good gaze;
+      others show the speaker looking away. The listener would notice.
+  5   Moderate eye contact. The speaker connects with the camera more often
+      than not, but breaks are frequent enough to weaken the effect.
+  6   Good eye contact. Consistent camera connection in most frames. Breaks are
+      infrequent and don't disrupt the sense of connection.
+  7   Strong eye contact. The speaker maintains direct camera connection through
+      nearly all frames. Breaks are rare and brief.
+  8   Excellent eye contact. Consistent, warm, direct camera connection
+      throughout. The viewer feels spoken to.
+  9   Exceptional. The gaze is deliberate and commanding. Camera connection is
+      sustained and purposeful in every frame.
+  10  World-class eye contact. The speaker's gaze communicates full presence and
+      authority. A benchmark for video delivery.
+
+--------------------------------------------------------------------------------
+8. GESTURE & MOVEMENT
+--------------------------------------------------------------------------------
+What is measured:
+  Hand and arm gestures observed in the frames. Whether gestures are purposeful
+  and reinforce the message, absent, or distracting.
+
+Data source: Video frame analysis — "gestureObservation" field only.
+
+Score guide:
+  1   Gestures are actively harmful — erratic, distracting, or nervous
+      movements that undermine presence.
+  2   Gestures are mostly distracting. Fidgeting, self-touching, or constant
+      movement that draws attention away from the message.
+  3   Either very sparse and rigid (no expressive movement at all), or gesture
+      patterns that consistently distract.
+  4   Gestures are present but stiff or mechanical. Some purposeful movement
+      but it lacks naturalness.
+  5   Some purposeful gesturing that supports the message, with some awkward or
+      absent moments. Movement is uneven.
+  6   Good use of gesture. Movements generally support and reinforce the
+      content. Minor stiffness or missed opportunities only.
+  7   Natural, purposeful gesturing. The hands work with the message. Movements
+      feel unscripted and appropriate.
+  8   Excellent gesture work. The hands are an active communication tool.
+      Movements are expressive, timed well, and reinforce key points.
+  9   Exceptional. Gesture and movement are fully integrated with speech.
+      The physical delivery amplifies the message at every turn.
+  10  World-class physical expressiveness. Gesture and movement are seamless
+      and powerful.
+
+--------------------------------------------------------------------------------
+9. PRESENCE & ENGAGEMENT
+--------------------------------------------------------------------------------
+What is measured:
+  Physical and vocal energy together — posture, body language, visible
+  engagement, forward lean or pull-back, and the overall energy the speaker
+  projects.
+
+Data source: Video frame "presenceObservation" for physical presence, plus
+audio "energy" and "confidence" fields for vocal energy.
+
+Score guide:
+  1   No visible presence or energy. The speaker appears disengaged,
+      slumped, or disconnected.
+  2   Very low energy. Posture is collapsed or static. Vocal energy is flat.
+      The speaker does not appear to be present in the conversation.
+  3   Minimal presence. Some physical engagement but largely passive. Energy is
+      below what the context requires.
+  4   Limited presence. Either the body or voice conveys some energy, but not
+      both. The speaker is present but not commanding.
+  5   Moderate presence. Adequate engagement with the occasional moment of real
+      energy. Does not consistently hold attention through presence alone.
+  6   Solid presence. Good posture, reasonable physical engagement, and
+      consistent vocal energy. The speaker clearly cares.
+  7   Strong presence. Both physical and vocal energy work together. The speaker
+      draws attention and holds it.
+  8   Excellent presence. The speaker is fully "on." Physical and vocal energy
+      are aligned and elevated. The session has command.
+  9   Exceptional presence. Rare quality of engagement. The speaker fills the
+      frame energetically and vocally. Hard to look away.
+  10  World-class executive presence. The speaker commands attention with every
+      dimension of their delivery simultaneously.
+
+--------------------------------------------------------------------------------
+10. PROFESSIONAL APPEARANCE
+--------------------------------------------------------------------------------
+What is measured:
+  Attire, grooming, and background as visible in the video frames. Whether the
+  speaker's appearance supports or undermines the professional context.
+
+Data source: Video frame analysis — "professionalAppearanceObservation" only.
+
+Score guide:
+  1   Appearance actively undermines professional context — inappropriate
+      attire, significantly disheveled, or background is chaotic and
+      distracting.
+  2   Significant appearance concerns. Attire, grooming, or background would
+      create a strong negative impression in a professional setting.
+  3   Below professional standard. Attire or background is noticeably
+      inappropriate or unprepared for the context.
+  4   Somewhat professional but with clear gaps — e.g., casual attire in a
+      formal context, or a cluttered/distracting background.
+  5   Mostly professional with one or two issues — e.g., appropriate clothing
+      but unkempt, or acceptable attire with a suboptimal background.
+  6   Professional standard met. Attire and grooming are appropriate. Background
+      is neutral or professional.
+  7   Clearly professional. Well put together. Background is clean and
+      appropriate. Overall appearance supports credibility.
+  8   Strongly professional. Polished attire, neat grooming, and a deliberately
+      set-up, clean background. Appearance is an asset.
+  9   Exceptional presentation. Every visual element is intentional and
+      reinforces executive credibility.
+  10  Impeccable. Appearance and environment convey the highest level of
+      professional polish.
+
+================================================================================
+DATA SOURCES — STRICT SEPARATION
+================================================================================
+
+The platform enforces that each dimension is scored only from its designated
+data source. This prevents the AI from guessing or inferring:
+
+  AUDIO dimensions   →  Scored from gpt-audio's analysis of the actual
+  (all 6)               recording. Never from the transcript. Never from
+                         the video.
+
+  VISUAL dimensions  →  Scored from Claude Vision's analysis of captured
+  (video only, 4)       video frames. Never from audio. Never inferred
+                         from context or recording setup.
+
+If a data source is unavailable (e.g., no video frames were captured),
+the affected dimensions explicitly state they could not be assessed.
+
+================================================================================
+RECITATION & READING CONTEXT
+================================================================================
+
+When the session prompt indicates the speaker was reading or reciting a
+pre-written text (poem, speech, passage, excerpt, prayer, monologue, etc.),
+two dimensions are evaluated differently:
+
+  STRUCTURE:           Evaluates how the delivery honored the source text's
+                       structure through pacing, pausing, and phrasing —
+                       NOT whether the speaker constructed original
+                       architecture.
+
+  CONFIDENCE LANGUAGE: Evaluates the vocal conviction and commitment with
+                       which the words were performed — NOT the word choices
+                       themselves (which belong to the source text).
+
+================================================================================
+ACCURACY & CALIBRATION NOTES
+================================================================================
+
+- Scores 9 and 10 are rare. A 9 means the AI found almost nothing to improve.
+  A 10 is reserved for world-class delivery rarely encountered even among
+  professional speakers.
+
+- The platform is calibrated to be rigorous. A 7 is a genuinely good score.
+  A 6 means solid professional standard. Scores of 5 indicate room for
+  meaningful growth.
+
+- Composite scores between 6.0 and 7.9 are Strong overall — a real
+  accomplishment. Distinguished (8.0+) requires sustained excellence across
+  the majority of dimensions.
+
+- WPM is calculated from the first spoken word to the last spoken word.
+  Any silence before you start or after you finish is excluded.
+
+- The platform does not store your audio or video recordings. Processing
+  happens in memory and your raw recording is discarded after analysis.
+
+================================================================================
+END OF METHODOLOGY DOCUMENT v3.0
+================================================================================

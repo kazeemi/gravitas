@@ -18,7 +18,7 @@ const SILENCE_THRESHOLD = 8;      // avg amplitude (0–255) below which = silen
 const SILENCE_WARN_SECS = 10;     // seconds of continuous silence before warning
 const LEVEL_CHECK_MS = 150;       // how often to sample audio level (ms)
 
-type Step = "setup" | "recording" | "processing" | "done";
+type Step = "setup" | "recording" | "review" | "processing" | "done";
 type RecordingState = "idle" | "recording" | "paused";
 
 const MIN_DURATION = 60;
@@ -45,6 +45,12 @@ export default function RecordPage() {
   const [silenceSecs, setSilenceSecs] = useState(0);      // current silence streak in seconds
   const [processingStep, setProcessingStep] = useState(0); // 0–3 for animated steps
   const processingStepRef = useRef<number | null>(null);
+
+  // Holds the raw recording blob + metadata between "recording" and "processing"
+  // so the user can optionally download before analysis begins
+  const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
+  const [pendingDuration, setPendingDuration] = useState(0);
+  const [pendingFrames, setPendingFrames] = useState<string[]>([]);
 
   const timerRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
@@ -340,10 +346,36 @@ export default function RecordPage() {
       const mimeType = recorder.mimeType || "audio/webm";
       const blob = new Blob(audioChunksRef.current, { type: mimeType });
       releaseStream();
-      submitAudio(finalDuration, blob, capturedFrames);
+      // Go to the review step so the user can optionally download before analysis
+      setPendingBlob(blob);
+      setPendingDuration(finalDuration);
+      setPendingFrames(capturedFrames);
+      setStep("review");
     };
 
     recorder.stop();
+  };
+
+  const downloadRecording = () => {
+    if (!pendingBlob) return;
+    const ext = pendingBlob.type.includes("mp3") ? "mp3"
+      : pendingBlob.type.includes("webm") ? "webm"
+      : pendingBlob.type.includes("ogg") ? "ogg"
+      : "webm";
+    const date = new Date().toISOString().slice(0, 10);
+    const filename = `executive-presence-${mode}-${date}.${ext}`;
+    const url = URL.createObjectURL(pendingBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const proceedToAnalysis = () => {
+    if (!pendingBlob) return;
+    submitAudio(pendingDuration, pendingBlob, pendingFrames);
+    setPendingBlob(null);
   };
 
   const submitAudio = async (durationSeconds: number, audioBlob: Blob, videoFrames: string[] = []) => {
@@ -689,6 +721,40 @@ export default function RecordPage() {
               Stop & analyze
             </Button>
           </div>
+        </div>
+      )}
+
+      {step === "review" && (
+        <div className="space-y-6 py-4">
+          <div className="text-center space-y-2">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+              <CheckCircleIcon className="h-7 w-7 text-gray-700" />
+            </div>
+            <p className="text-lg font-semibold text-gray-900">Recording complete</p>
+            <p className="text-sm text-gray-500">{Math.floor(pendingDuration / 60)}:{String(pendingDuration % 60).padStart(2, "0")} recorded</p>
+          </div>
+
+          <div className="rounded border border-gray-100 bg-gray-50 p-4 space-y-3">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Keep a local copy</p>
+            <p className="text-sm text-gray-600">
+              Download your raw {mode === "video" ? "audio" : "audio"} recording before it's sent for analysis.
+              Once analysis starts, the recording is not stored on our servers.
+            </p>
+            <button
+              onClick={downloadRecording}
+              className="flex items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Download recording
+            </button>
+          </div>
+
+          <Button className="w-full gap-2" onClick={proceedToAnalysis}>
+            <PlayCircleIcon className="h-4 w-4" />
+            Analyze my recording
+          </Button>
         </div>
       )}
 

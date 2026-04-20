@@ -17,6 +17,7 @@ import {
 const SILENCE_THRESHOLD = 8;      // avg amplitude (0–255) below which = silence
 const SILENCE_WARN_SECS = 10;     // seconds of continuous silence before warning
 const LEVEL_CHECK_MS = 150;       // how often to sample audio level (ms)
+const EARLY_NO_AUDIO_SECS = 5;    // seconds before showing "mic not working" alert
 
 // ── WAV encoder (for converting iOS mp4 recordings to a format OpenAI accepts) ──
 
@@ -100,6 +101,7 @@ export default function RecordPage() {
   const [audioLevel, setAudioLevel] = useState(0);       // 0–100 live mic level
   const [silenceWarning, setSilenceWarning] = useState(false);
   const [silenceSecs, setSilenceSecs] = useState(0);      // current silence streak in seconds
+  const [earlyNoAudioWarning, setEarlyNoAudioWarning] = useState(false); // mic never picked up audio in first 5s
   const [processingStep, setProcessingStep] = useState(0); // 0–3 for animated steps
   const processingStepRef = useRef<number | null>(null);
 
@@ -123,6 +125,8 @@ export default function RecordPage() {
   const silenceMsRef = useRef(0);
   const silenceEventsRef = useRef(0);       // count of distinct 4s+ pause events
   const silenceEventCountedRef = useRef(false); // prevent double-counting within same streak
+  const everHadAudioRef = useRef(false);    // true once any real audio signal is detected
+  const earlyCheckTimeoutRef = useRef<number | null>(null); // 5s timeout for early no-audio check
   const recordingStateRef = useRef<RecordingState>("idle");
   const framesRef = useRef<string[]>([]);
   const frameIntervalRef = useRef<number | null>(null);
@@ -185,15 +189,21 @@ export default function RecordPage() {
       clearInterval(levelCheckRef.current);
       levelCheckRef.current = null;
     }
+    if (earlyCheckTimeoutRef.current) {
+      clearTimeout(earlyCheckTimeoutRef.current);
+      earlyCheckTimeoutRef.current = null;
+    }
     if (audioContextRef.current) {
       audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
     analyserRef.current = null;
     silenceMsRef.current = 0;
+    everHadAudioRef.current = false;
     setAudioLevel(0);
     setSilenceWarning(false);
     setSilenceSecs(0);
+    setEarlyNoAudioWarning(false);
   }, []);
 
   const captureFrame = useCallback((): string | null => {
@@ -241,6 +251,7 @@ export default function RecordPage() {
 
   const startLevelMonitor = useCallback((stream: MediaStream) => {
     try {
+      everHadAudioRef.current = false;
       const ctx = new AudioContext();
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
@@ -251,6 +262,13 @@ export default function RecordPage() {
       analyserRef.current = analyser;
 
       const data = new Uint8Array(analyser.frequencyBinCount);
+
+      // After EARLY_NO_AUDIO_SECS, if we've never detected real audio, show blocking alert
+      earlyCheckTimeoutRef.current = window.setTimeout(() => {
+        if (!everHadAudioRef.current && recordingStateRef.current === "recording") {
+          setEarlyNoAudioWarning(true);
+        }
+      }, EARLY_NO_AUDIO_SECS * 1000);
 
       levelCheckRef.current = window.setInterval(() => {
         if (recordingStateRef.current !== "recording") return;
@@ -273,6 +291,11 @@ export default function RecordPage() {
             silenceEventCountedRef.current = true;
           }
         } else {
+          // Real audio detected
+          if (!everHadAudioRef.current) {
+            everHadAudioRef.current = true;
+            setEarlyNoAudioWarning(false); // clear early warning if audio detected
+          }
           silenceMsRef.current = 0;
           setSilenceSecs(0);
           setSilenceWarning(false);
@@ -449,11 +472,9 @@ export default function RecordPage() {
       const audioMime = recorder.mimeType || "audio/webm";
       let blob = new Blob(audioChunksRef.current, { type: audioMime });
 
-      // iOS Safari records as audio/mp4 (AAC), which gpt-audio rejects.
-      // Convert to 16kHz mono WAV using Web Audio API before uploading.
-      if (audioMime.includes("mp4") || audioMime.includes("m4a")) {
-        blob = await convertToWavBlob(blob);
-      }
+      // gpt-audio only accepts WAV and MP3. Always convert to 16kHz mono WAV
+      // regardless of what format the browser recorded in (webm, mp4, etc.).
+      blob = await convertToWavBlob(blob);
 
       let videoBlob: Blob | null = null;
       if (videoChunksRef.current.length > 0) {
@@ -701,7 +722,42 @@ export default function RecordPage() {
       {step === "recording" && (
         <div className="space-y-6">
 
-          {silenceWarning && (
+          {earlyNoAudioWarning && (
+            <div className="rounded-lg border-2 border-red-400 bg-red-50 px-4 py-4 text-sm">
+              <div className="flex items-start gap-3">
+                <AlertTriangleIcon className="h-5 w-5 flex-shrink-0 text-red-500 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-red-800 text-base">Microphone not picking up audio</p>
+                  <p className="mt-1 text-red-700">
+                    Your mic is on but no sound is reaching the app. If you continue, the recording won't produce results.
+                  </p>
+                  <ul className="mt-2 text-xs text-red-600 space-y-0.5 list-disc list-inside">
+                    <li>Check your browser has microphone permission</li>
+                    <li>Make sure the correct mic is selected in your OS settings</li>
+                    <li>Try unplugging and replugging headphones</li>
+                  </ul>
+                  <div className="mt-3 flex items-center gap-3">
+                    <Button
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white gap-1.5"
+                      onClick={restartRecording}
+                    >
+                      <RotateCcwIcon className="h-3.5 w-3.5" />
+                      Stop & fix microphone
+                    </Button>
+                    <button
+                      className="text-xs text-red-500 underline underline-offset-2 hover:text-red-700"
+                      onClick={() => setEarlyNoAudioWarning(false)}
+                    >
+                      Continue anyway
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!earlyNoAudioWarning && silenceWarning && (
             <div className="rounded border border-red-200 bg-red-50 px-3 py-3 text-sm text-red-700 flex items-start gap-2">
               <AlertTriangleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <div>

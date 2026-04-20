@@ -337,7 +337,9 @@ export async function transcribeAudio(
   audioBuffer: Buffer
 ): Promise<{ transcript: string; speechDurationSeconds: number | null }> {
   const { buffer, format } = await ensureCompatibleFormat(audioBuffer);
-  return speechToTextWithTiming(buffer, format);
+  const result = await speechToTextWithTiming(buffer, format);
+  // speechToTextWithTiming returns { text } — map to { transcript } for callers
+  return { transcript: result.text, speechDurationSeconds: result.speechDurationSeconds };
 }
 
 async function runAIEvaluation(

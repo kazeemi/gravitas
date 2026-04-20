@@ -3,6 +3,7 @@ import multer from "multer";
 import { eq, desc, and } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { requireAuth } from "../lib/auth.js";
+import { logger } from "../lib/logger.js";
 import { sessionsTable, dimensionScoresTable } from "@workspace/db";
 import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresence, type VideoPresenceResult } from "../lib/scoring.js";
 import { ensureCompatibleFormat } from "@workspace/integrations-openai-ai-server/audio";
@@ -132,7 +133,10 @@ router.post(
         let videoPresenceAnalysis: VideoPresenceResult | null = null;
 
         if (audioBuffer && audioBuffer.length > 0) {
+          logger.info({ sessionId: session.id, rawBytes: audioBuffer.length }, "audio upload received — converting format");
+
           const { buffer: wavBuffer, format } = await ensureCompatibleFormat(audioBuffer);
+          logger.info({ sessionId: session.id, detectedFormat: format, convertedBytes: wavBuffer.length }, "audio format ready");
 
           const [transcriptResult, deliveryResult] = await Promise.allSettled([
             transcribeAudio(wavBuffer),
@@ -142,8 +146,13 @@ router.post(
           if (transcriptResult.status === "fulfilled") {
             transcript = transcriptResult.value.transcript;
             speechDurationSeconds = transcriptResult.value.speechDurationSeconds;
+            logger.info({
+              sessionId: session.id,
+              transcriptWords: transcript ? transcript.trim().split(/\s+/).filter(Boolean).length : 0,
+              speechDurationSeconds,
+            }, "transcription complete");
           } else {
-            console.error("Whisper transcription failed:", transcriptResult.reason);
+            logger.error({ sessionId: session.id, err: transcriptResult.reason }, "transcription failed");
           }
 
           if (deliveryResult.status === "fulfilled" && deliveryResult.value) {
@@ -152,9 +161,15 @@ router.post(
             pitchVariationScore = dr.pitchVariationScore;
             breathingScore = dr.breathingScore;
             breathingObservation = dr.breathingObservation;
+            logger.info({ sessionId: session.id, pitchVariationScore, breathingScore }, "delivery analysis complete");
           } else {
-            console.error("Audio delivery analysis failed:", deliveryResult.status === "rejected" ? deliveryResult.reason : "empty result");
+            logger.error({
+              sessionId: session.id,
+              err: deliveryResult.status === "rejected" ? deliveryResult.reason : "empty result",
+            }, "delivery analysis failed");
           }
+        } else {
+          logger.warn({ sessionId: session.id }, "no audio buffer received — skipping transcription");
         }
 
         // Run video presence analysis in parallel with audio analysis for video sessions

@@ -523,17 +523,15 @@ export default function RecordPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">New session</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Let's record a new session</h1>
         <p className="mt-1 text-sm text-gray-500">Record and analyze your executive presence</p>
       </div>
-
       {error && (
         <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
           <AlertCircleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
-
       {step === "setup" && (
         <div className="space-y-6">
           <div>
@@ -637,7 +635,6 @@ export default function RecordPage() {
           </Button>
         </div>
       )}
-
       {step === "recording" && (
         <div className="space-y-6">
 
@@ -791,7 +788,6 @@ export default function RecordPage() {
           </div>
         </div>
       )}
-
       {step === "review" && (
         <div className="space-y-6 py-4">
           <div className="text-center space-y-2">
@@ -839,7 +835,6 @@ export default function RecordPage() {
           </Button>
         </div>
       )}
-
       {step === "processing" && (() => {
         const steps = mode === "video"
           ? ["Uploading recording", "Transcribing speech", "Analyzing delivery & visual presence", "Generating coaching feedback"]
@@ -888,7 +883,6 @@ export default function RecordPage() {
           </div>
         );
       })()}
-
       {step === "done" && sessionId && (
         <div className="space-y-4 text-center py-12">
           <CheckCircleIcon className="mx-auto h-12 w-12 text-[#0F6E56]" />

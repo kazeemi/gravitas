@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import Layout from "@/components/layout";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
+import ForgotPasswordPage from "@/pages/forgot-password";
 import OnboardingPage from "@/pages/onboarding";
 import DashboardPage from "@/pages/dashboard";
 import RecordPage from "@/pages/record";
@@ -55,6 +56,9 @@ function AppRouter() {
       </Route>
       <Route path="/signup">
         {user ? <Redirect to="/dashboard" /> : <SignupPage />}
+      </Route>
+      <Route path="/forgot-password">
+        {user ? <Redirect to="/dashboard" /> : <ForgotPasswordPage />}
       </Route>
       <Route path="/onboarding">
         {!user ? <Redirect to="/login" /> : <OnboardingPage />}

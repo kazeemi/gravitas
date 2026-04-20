@@ -33,24 +33,10 @@ const GOAL_OPTIONS = [
   "Develop a more commanding physical presence",
 ];
 
-const COMMUNICATION_CONTEXTS = [
-  { value: "internal", label: "Internal meetings" },
-  { value: "external", label: "External / client-facing" },
-  { value: "presentations", label: "Presentations & keynotes" },
-  { value: "mixed", label: "Mixed contexts" },
-];
-
-const RECORDING_CONTEXTS = [
-  { value: "seated", label: "Seated (desk / conference room)" },
-  { value: "standing", label: "Standing (podium / standing desk)" },
-];
-
 export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [roleTitle, setRoleTitle] = useState("");
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
-  const [communicationContext, setCommunicationContext] = useState("");
-  const [defaultRecordingContext, setDefaultRecordingContext] = useState("seated");
   const [loading, setLoading] = useState(false);
   const { refreshUser } = useAuth();
   const [, setLocation] = useLocation();
@@ -66,9 +52,7 @@ export default function OnboardingPage() {
     try {
       await api.users.completeOnboarding({
         roleTitle,
-        communicationContext,
         goal: selectedGoals.join("; "),
-        defaultRecordingContext,
       });
       await refreshUser();
       setLocation("/dashboard");
@@ -86,7 +70,7 @@ export default function OnboardingPage() {
           <h1 className="text-2xl font-bold text-gray-900">Welcome to Executive Presence</h1>
           <p className="mt-2 text-sm text-gray-500">Let's personalize your experience</p>
           <div className="mt-4 flex justify-center gap-2">
-            {[1, 2, 3].map(i => (
+            {[1, 2].map(i => (
               <div
                 key={i}
                 className={`h-1.5 w-8 rounded-full transition-colors ${i <= step ? "bg-gray-900" : "bg-gray-200"}`}
@@ -168,71 +152,11 @@ export default function OnboardingPage() {
               <Button variant="outline" className="flex-1" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button className="flex-1" onClick={() => setStep(3)} disabled={selectedGoals.length === 0}>
-                Continue
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-lg font-semibold">Your communication context</h2>
-              <p className="text-sm text-gray-500 mt-1">Where do you primarily present or speak?</p>
-            </div>
-            <div className="space-y-2">
-              {COMMUNICATION_CONTEXTS.map(ctx => (
-                <label
-                  key={ctx.value}
-                  className={`flex items-center gap-3 rounded border p-3 cursor-pointer transition-colors ${
-                    communicationContext === ctx.value
-                      ? "border-gray-900 bg-gray-50"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="communicationContext"
-                    value={ctx.value}
-                    checked={communicationContext === ctx.value}
-                    onChange={() => setCommunicationContext(ctx.value)}
-                    className="sr-only"
-                  />
-                  <span
-                    className={`h-4 w-4 rounded-full border-2 flex-shrink-0 ${
-                      communicationContext === ctx.value
-                        ? "border-gray-900 bg-gray-900"
-                        : "border-gray-300"
-                    }`}
-                  />
-                  <span className="text-sm">{ctx.label}</span>
-                </label>
-              ))}
-            </div>
-            <div className="pt-2">
-              <p className="text-sm font-medium text-gray-700 mb-2">Default recording position</p>
-              <div className="flex gap-2">
-                {RECORDING_CONTEXTS.map(ctx => (
-                  <button
-                    key={ctx.value}
-                    onClick={() => setDefaultRecordingContext(ctx.value)}
-                    className={`flex-1 rounded border py-2 text-sm transition-colors ${
-                      defaultRecordingContext === ctx.value
-                        ? "border-gray-900 bg-gray-900 text-white"
-                        : "border-gray-200"
-                    }`}
-                  >
-                    {ctx.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setStep(2)}>
-                Back
-              </Button>
-              <Button className="flex-1" onClick={handleFinish} disabled={loading}>
+              <Button
+                className="flex-1"
+                onClick={handleFinish}
+                disabled={selectedGoals.length === 0 || loading}
+              >
                 {loading ? "Saving..." : "Get started"}
               </Button>
             </div>

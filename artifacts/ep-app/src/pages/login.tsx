@@ -185,7 +185,12 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-500">
+        <p className="mt-3 text-center text-sm">
+          <button onClick={() => setLocation("/forgot-password")} className="text-gray-500 hover:text-gray-700 underline">
+            Forgot password?
+          </button>
+        </p>
+        <p className="mt-3 text-center text-sm text-gray-500">
           Don't have an account?{" "}
           <button onClick={() => setLocation("/signup")} className="font-medium text-gray-900 underline">
             Sign up

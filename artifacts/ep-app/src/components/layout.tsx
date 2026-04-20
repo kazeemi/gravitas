@@ -19,9 +19,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <nav className="hidden md:flex w-56 flex-col border-r border-gray-200 bg-white px-3 py-6">
         <div className="mb-8 px-3">
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-gray-900" style={{ fontFamily: "Inter, sans-serif" }}>
-              Executive Presence
-            </h1>
+            <h1 className="text-base font-bold text-gray-900" style={{ fontFamily: "Inter, sans-serif" }}>Executive Presence 
+            AI Coach</h1>
             <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
               Beta
             </span>
@@ -55,7 +54,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           Sign out
         </button>
       </nav>
-
       <div className="flex flex-1 flex-col">
         <header className="flex md:hidden items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
           <div className="flex items-center gap-2">

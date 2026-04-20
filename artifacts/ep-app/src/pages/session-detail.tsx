@@ -82,7 +82,6 @@ export default function SessionDetailPage() {
     ? session.transcript.trim().split(/\s+/).filter(Boolean).length
     : 0;
   const hasLowEngagement = transcriptWordCount < 50 && transcriptWordCount > 0;
-  const hasNoSpeech = transcriptWordCount === 0 && !!session.compositeScore;
   // True when processing completed but no audio data was detected (iOS/mic issue)
   const noAudioDetected = session.dimensionScores.length === 0 && !session.compositeScore;
 
@@ -167,15 +166,6 @@ export default function SessionDetailPage() {
           </div>
         )}
 
-        {!noAudioDetected && hasNoSpeech && (
-          <div className="mt-3 flex items-start gap-2 rounded border border-orange-200 bg-orange-50 p-3">
-            <AlertTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-orange-700">
-              No speech was detected in this recording. Feedback is based on audio signals only and may not be meaningful. Try recording again and speak clearly from the start.
-            </p>
-          </div>
-        )}
-
         {hasLowEngagement && (
           <div className="mt-3 flex items-start gap-2 rounded border border-orange-200 bg-orange-50 p-3">
             <AlertTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
@@ -248,21 +238,32 @@ export default function SessionDetailPage() {
 
       {!noAudioDetected && <SessionMetrics session={session} />}
 
-      {session.transcript && (
+      {!noAudioDetected && (
         <div className="rounded-lg border border-gray-200 bg-white p-6">
-          <button
-            onClick={() => setShowTranscript(!showTranscript)}
-            className="flex items-center justify-between w-full text-left"
-          >
-            <h2 className="font-semibold text-gray-900">Session transcript</h2>
-            <span className="text-xs text-gray-400">{showTranscript ? "Hide" : "Show"}</span>
-          </button>
-          {showTranscript && (
-            <div className="mt-4 rounded border border-gray-100 bg-gray-50 p-4">
-              <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {session.transcript}
+          {session.transcript ? (
+            <>
+              <button
+                onClick={() => setShowTranscript(!showTranscript)}
+                className="flex items-center justify-between w-full text-left"
+              >
+                <h2 className="font-semibold text-gray-900">Session transcript</h2>
+                <span className="text-xs text-gray-400">{showTranscript ? "Hide" : "Show"}</span>
+              </button>
+              {showTranscript && (
+                <div className="mt-4 rounded border border-gray-100 bg-gray-50 p-4">
+                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {session.transcript}
+                  </p>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h2 className="font-semibold text-gray-900 mb-2">Session transcript</h2>
+              <p className="text-sm text-gray-400">
+                No transcript was generated for this session. Feedback is based on audio signal analysis only. For a transcript, try recording again in a quiet environment and speak clearly throughout.
               </p>
-            </div>
+            </>
           )}
         </div>
       )}

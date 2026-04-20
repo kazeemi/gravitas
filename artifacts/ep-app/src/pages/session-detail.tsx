@@ -77,6 +77,13 @@ export default function SessionDetailPage() {
 
   const hasSilences = (session.silenceEvents ?? 0) > 0;
 
+  // Flag sessions where the speaker said very little or didn't address the prompt
+  const transcriptWordCount = session.transcript
+    ? session.transcript.trim().split(/\s+/).filter(Boolean).length
+    : 0;
+  const hasLowEngagement = transcriptWordCount < 50 && transcriptWordCount > 0;
+  const hasNoSpeech = transcriptWordCount === 0 && !!session.compositeScore;
+
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-10">
       <div className="flex items-center gap-3">
@@ -143,7 +150,25 @@ export default function SessionDetailPage() {
           <div className="mt-3 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3">
             <AlertTriangleIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-amber-700">
-              {session.silenceEvents} long pause{session.silenceEvents !== 1 ? "s" : ""} detected during your recording (pauses over 4 seconds). This can disrupt your listeners' engagement and affect your pacing score.
+              {session.silenceEvents} long pause{session.silenceEvents !== 1 ? "s" : ""} detected (pauses over 4 seconds). This can disrupt listener engagement and affects your pacing score.
+            </p>
+          </div>
+        )}
+
+        {hasNoSpeech && (
+          <div className="mt-3 flex items-start gap-2 rounded border border-orange-200 bg-orange-50 p-3">
+            <AlertTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-orange-700">
+              No speech was detected in this recording. Feedback is based on audio signals only and may not be meaningful. Try recording again and speak clearly from the start.
+            </p>
+          </div>
+        )}
+
+        {hasLowEngagement && (
+          <div className="mt-3 flex items-start gap-2 rounded border border-orange-200 bg-orange-50 p-3">
+            <AlertTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-orange-700">
+              <span className="font-medium">Limited response detected</span> — only ~{transcriptWordCount} words were transcribed. This feedback is based on a recording that did not fully address the prompt. Scores on Structure and Confidence Language may not be representative. Try recording a fuller response next time.
             </p>
           </div>
         )}

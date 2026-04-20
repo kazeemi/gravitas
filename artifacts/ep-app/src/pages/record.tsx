@@ -51,6 +51,7 @@ export default function RecordPage() {
   const [pendingBlob, setPendingBlob] = useState<Blob | null>(null);
   const [pendingDuration, setPendingDuration] = useState(0);
   const [pendingFrames, setPendingFrames] = useState<string[]>([]);
+  const [pendingSilenceEvents, setPendingSilenceEvents] = useState(0);
 
   const timerRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
@@ -63,10 +64,15 @@ export default function RecordPage() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const levelCheckRef = useRef<number | null>(null);
   const silenceMsRef = useRef(0);
+  const silenceEventsRef = useRef(0);       // count of distinct 4s+ pause events
+  const silenceEventCountedRef = useRef(false); // prevent double-counting within same streak
   const recordingStateRef = useRef<RecordingState>("idle");
   const framesRef = useRef<string[]>([]);
   const frameIntervalRef = useRef<number | null>(null);
   const firstFrameTimeoutRef = useRef<number | null>(null);
+  const videoChunksRef = useRef<Blob[]>([]);
+  const videoRecorderRef = useRef<MediaRecorder | null>(null);
+  const [pendingVideoBlob, setPendingVideoBlob] = useState<Blob | null>(null);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -204,10 +210,16 @@ export default function RecordPage() {
           if (silenceMsRef.current >= SILENCE_WARN_SECS * 1000) {
             setSilenceWarning(true);
           }
+          // Count each distinct 4s+ pause as one silence event
+          if (silenceMsRef.current >= 4000 && !silenceEventCountedRef.current) {
+            silenceEventsRef.current += 1;
+            silenceEventCountedRef.current = true;
+          }
         } else {
           silenceMsRef.current = 0;
           setSilenceSecs(0);
           setSilenceWarning(false);
+          silenceEventCountedRef.current = false; // ready to count next distinct pause
         }
       }, LEVEL_CHECK_MS);
     } catch {
@@ -233,11 +245,14 @@ export default function RecordPage() {
       setSessionId(session.id);
 
       audioChunksRef.current = [];
+      videoChunksRef.current = [];
+      silenceEventsRef.current = 0;
+      silenceEventCountedRef.current = false;
 
-      // For video mode: capture audio-only for the upload blob.
-      // The live camera preview is driven by srcObject on the <video> element — no recording needed.
-      // This keeps the upload small and fast regardless of video length.
-      const recordingStream = mode === "video"
+      // For analysis: always record audio-only — keeps upload size small.
+      // For video mode: also run a second recorder on the full AV stream so the
+      // user can optionally download the video with audio from the review screen.
+      const audioOnlyStream = mode === "video"
         ? new MediaStream(stream.getAudioTracks())
         : stream;
 
@@ -247,16 +262,32 @@ export default function RecordPage() {
         ? "audio/webm"
         : "";
 
-      const recorder = new MediaRecorder(recordingStream, mimeType ? { mimeType } : {});
+      const recorder = new MediaRecorder(audioOnlyStream, mimeType ? { mimeType } : {});
       mediaRecorderRef.current = recorder;
-
       recorder.ondataavailable = (e) => {
-        if (e.data && e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
       };
-
       recorder.start(1000);
+
+      // Second recorder for video download (only in video mode)
+      if (mode === "video") {
+        const videoMime = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+          ? "video/webm;codecs=vp8,opus"
+          : MediaRecorder.isTypeSupported("video/webm")
+          ? "video/webm"
+          : "";
+        try {
+          const vRecorder = new MediaRecorder(stream, videoMime ? { mimeType: videoMime } : {});
+          videoRecorderRef.current = vRecorder;
+          vRecorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) videoChunksRef.current.push(e.data);
+          };
+          vRecorder.start(1000);
+        } catch {
+          videoRecorderRef.current = null;
+        }
+      }
+
       startLevelMonitor(stream);
       if (mode === "video") startFrameCapture();
 
@@ -306,6 +337,11 @@ export default function RecordPage() {
     }
     mediaRecorderRef.current = null;
     audioChunksRef.current = [];
+    if (videoRecorderRef.current && videoRecorderRef.current.state !== "inactive") {
+      videoRecorderRef.current.stop();
+    }
+    videoRecorderRef.current = null;
+    videoChunksRef.current = [];
     releaseStream();
 
     if (sessionId) {
@@ -336,35 +372,58 @@ export default function RecordPage() {
     stopFrameCapture();
     const capturedFrames = mode === "video" ? [...framesRef.current] : [];
 
+    const capturedSilenceEvents = silenceEventsRef.current;
     const recorder = mediaRecorderRef.current;
+    const vRecorder = videoRecorderRef.current;
+
     if (!recorder || recorder.state === "inactive") {
-      submitAudio(finalDuration, new Blob([]), capturedFrames);
+      submitAudio(finalDuration, new Blob([]), capturedFrames, capturedSilenceEvents);
       return;
     }
 
-    recorder.onstop = () => {
-      const mimeType = recorder.mimeType || "audio/webm";
-      const blob = new Blob(audioChunksRef.current, { type: mimeType });
+    // Stop both recorders; use a counter to wait for both onstop callbacks
+    let doneCount = 0;
+    const totalRecorders = vRecorder && vRecorder.state !== "inactive" ? 2 : 1;
+
+    const onBothDone = () => {
+      doneCount += 1;
+      if (doneCount < totalRecorders) return;
+
+      const audioMime = recorder.mimeType || "audio/webm";
+      const blob = new Blob(audioChunksRef.current, { type: audioMime });
+
+      let videoBlob: Blob | null = null;
+      if (videoChunksRef.current.length > 0) {
+        const videoMime = vRecorder?.mimeType || "video/webm";
+        videoBlob = new Blob(videoChunksRef.current, { type: videoMime });
+      }
+
       releaseStream();
-      // Go to the review step so the user can optionally download before analysis
       setPendingBlob(blob);
+      setPendingVideoBlob(videoBlob);
       setPendingDuration(finalDuration);
       setPendingFrames(capturedFrames);
+      setPendingSilenceEvents(capturedSilenceEvents);
       setStep("review");
     };
 
+    recorder.onstop = onBothDone;
+    if (vRecorder && vRecorder.state !== "inactive") {
+      vRecorder.onstop = onBothDone;
+      vRecorder.stop();
+    }
     recorder.stop();
   };
 
-  const downloadRecording = () => {
-    if (!pendingBlob) return;
-    const ext = pendingBlob.type.includes("mp3") ? "mp3"
-      : pendingBlob.type.includes("webm") ? "webm"
-      : pendingBlob.type.includes("ogg") ? "ogg"
+  const downloadBlob = (blob: Blob, label: string) => {
+    const ext = blob.type.includes("mp4") ? "mp4"
+      : blob.type.includes("webm") ? "webm"
+      : blob.type.includes("ogg") ? "ogg"
+      : blob.type.includes("mp3") ? "mp3"
       : "webm";
     const date = new Date().toISOString().slice(0, 10);
-    const filename = `executive-presence-${mode}-${date}.${ext}`;
-    const url = URL.createObjectURL(pendingBlob);
+    const filename = `executive-presence-${label}-${date}.${ext}`;
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = filename;
@@ -372,13 +431,22 @@ export default function RecordPage() {
     URL.revokeObjectURL(url);
   };
 
-  const proceedToAnalysis = () => {
-    if (!pendingBlob) return;
-    submitAudio(pendingDuration, pendingBlob, pendingFrames);
-    setPendingBlob(null);
+  const downloadRecording = () => {
+    if (pendingBlob) downloadBlob(pendingBlob, "audio");
   };
 
-  const submitAudio = async (durationSeconds: number, audioBlob: Blob, videoFrames: string[] = []) => {
+  const downloadVideoRecording = () => {
+    if (pendingVideoBlob) downloadBlob(pendingVideoBlob, "video");
+  };
+
+  const proceedToAnalysis = () => {
+    if (!pendingBlob) return;
+    submitAudio(pendingDuration, pendingBlob, pendingFrames, pendingSilenceEvents);
+    setPendingBlob(null);
+    setPendingVideoBlob(null);
+  };
+
+  const submitAudio = async (durationSeconds: number, audioBlob: Blob, videoFrames: string[] = [], silenceEvents = 0) => {
     if (!sessionId) return;
     setStep("processing");
     setProcessingStep(0);
@@ -395,7 +463,7 @@ export default function RecordPage() {
         durationSeconds,
         audioGapEvents: 0,
         faceLostEvents: 0,
-        silenceEvents: 0,
+        silenceEvents,
         audioBlob: audioBlob.size > 0 ? audioBlob : undefined,
         videoFrames: videoFrames.length > 0 ? videoFrames : undefined,
       });
@@ -737,18 +805,32 @@ export default function RecordPage() {
           <div className="rounded border border-gray-100 bg-gray-50 p-4 space-y-3">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Keep a local copy</p>
             <p className="text-sm text-gray-600">
-              Download your raw {mode === "video" ? "audio" : "audio"} recording before it's sent for analysis.
-              Once analysis starts, the recording is not stored on our servers.
+              {mode === "video"
+                ? "Download your audio or video recording before analysis. These recordings are not stored on our servers."
+                : "Download your audio recording before analysis. This recording is not stored on our servers."}
             </p>
-            <button
-              onClick={downloadRecording}
-              className="flex items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Download recording
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={downloadRecording}
+                className="flex items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download audio
+              </button>
+              {mode === "video" && pendingVideoBlob && (
+                <button
+                  onClick={downloadVideoRecording}
+                  className="flex items-center gap-2 rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download video
+                </button>
+              )}
+            </div>
           </div>
 
           <Button className="w-full gap-2" onClick={proceedToAnalysis}>

@@ -94,10 +94,15 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "Inter, sans-serif" }}>
-            Executive Presence
-          </h1>
-          <p className="mt-2 text-sm text-gray-500">Create your account</p>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "Inter, sans-serif" }}>
+              Executive Presence
+            </h1>
+            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+              Beta
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">Create your account</p>
         </div>
 
         {error && (

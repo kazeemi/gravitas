@@ -1,6 +1,6 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { ensureCompatibleFormat, speechToText, speechToTextWithTiming } from "@workspace/integrations-openai-ai-server/audio";
+import { ensureCompatibleFormat, speechToText, speechToTextWithTiming, type CompatibleFormat } from "@workspace/integrations-openai-ai-server/audio";
 
 export type DimensionKey =
   | "vocal_clarity"
@@ -154,7 +154,7 @@ interface AIEvalResult {
  */
 export async function analyzeAudioDelivery(
   audioBuffer: Buffer,
-  format: "wav" | "mp3",
+  format: CompatibleFormat,
   promptText?: string
 ): Promise<AudioDeliveryResult> {
   const audioBase64 = audioBuffer.toString("base64");

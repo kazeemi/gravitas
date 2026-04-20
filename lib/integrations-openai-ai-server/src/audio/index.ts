@@ -4,6 +4,7 @@ export {
   convertToWav,
   ensureCompatibleFormat,
   type AudioFormat,
+  type CompatibleFormat,
   voiceChat,
   voiceChatStream,
   textToSpeech,

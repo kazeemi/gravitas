@@ -134,6 +134,7 @@ router.post(
         let rmsMetrics: RmsMetrics | null = null;
         let f0Metrics: F0Metrics | null = null;
         let pauseMetrics = null;
+        let wpmWindows = null;
 
         if (audioBuffer && audioBuffer.length > 0) {
           logger.info({ sessionId: session.id, rawBytes: audioBuffer.length }, "audio upload received — converting format");
@@ -161,6 +162,7 @@ router.post(
             transcript = transcriptResult.value.transcript;
             speechDurationSeconds = transcriptResult.value.speechDurationSeconds;
             pauseMetrics = transcriptResult.value.pauseMetrics;
+            wpmWindows = transcriptResult.value.wpmWindows;
             logger.info({
               sessionId: session.id,
               transcriptWords: transcript ? transcript.trim().split(/\s+/).filter(Boolean).length : 0,
@@ -250,6 +252,7 @@ router.post(
           rmsMetrics,
           f0Metrics,
           pauseMetrics,
+          wpmWindows,
           recordingContext: session.recordingContext || "seated",
           promptText: session.promptText || undefined,
         });

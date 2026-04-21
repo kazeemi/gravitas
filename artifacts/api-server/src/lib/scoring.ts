@@ -8,6 +8,7 @@ import {
   type RmsMetrics,
   type F0Metrics,
   type PauseMetrics,
+  type WpmWindow,
 } from "@workspace/integrations-openai-ai-server/audio";
 
 export type DimensionKey =
@@ -123,9 +124,10 @@ export interface ScoringInput {
   rmsMetrics?: RmsMetrics | null;
   f0Metrics?: F0Metrics | null;
   pauseMetrics?: PauseMetrics | null;
+  wpmWindows?: WpmWindow[] | null;
 }
 
-export type { RmsMetrics, F0Metrics, PauseMetrics };
+export type { RmsMetrics, F0Metrics, PauseMetrics, WpmWindow };
 
 export interface DimensionResult {
   dimensionKey: DimensionKey;
@@ -348,13 +350,14 @@ Return your analysis as a JSON object with these exact keys:
  */
 export async function transcribeAudio(
   audioBuffer: Buffer
-): Promise<{ transcript: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null }> {
+): Promise<{ transcript: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null; wpmWindows: WpmWindow[] | null }> {
   const { buffer, format } = await ensureCompatibleFormat(audioBuffer);
   const result = await speechToTextWithTiming(buffer, format);
   return {
     transcript: result.text,
     speechDurationSeconds: result.speechDurationSeconds,
     pauseMetrics: result.pauseMetrics,
+    wpmWindows: result.wpmWindows,
   };
 }
 
@@ -479,7 +482,8 @@ SUPPORTING METRICS:
 - Recording context: ${input.recordingContext || "seated"}${input.rmsMetrics != null ? `
 - Volume (RMS): mean ${input.rmsMetrics.meanRmsDb} dBFS, std ${input.rmsMetrics.rmsStdDb} dBFS (reference: conversational speech ≈ −18 to −12 dBFS; high std = dynamic, low std = flat)` : ""}${input.f0Metrics != null && input.f0Metrics.voicedFrameCount > 0 ? `
 - Pitch (F0): min ${input.f0Metrics.f0MinHz} Hz, max ${input.f0Metrics.f0MaxHz} Hz, std ${input.f0Metrics.f0StdHz} Hz (voiced frames: ${input.f0Metrics.voicedFrameCount}; higher std = more pitch variation; typical speech range 85–255 Hz)` : ""}${input.pauseMetrics != null ? `
-- Pause analysis: ${input.pauseMetrics.pauseCount} pause(s) ≥ 0.5s detected, avg duration ${input.pauseMetrics.avgPauseDurationSeconds}s${input.pauseMetrics.pauses.length > 0 ? ` (${input.pauseMetrics.pauses.filter(p => p.isSentenceBoundary).length} at sentence/clause boundaries, ${input.pauseMetrics.pauses.filter(p => !p.isSentenceBoundary).length} mid-sentence)` : ""}` : ""}
+- Pause analysis: ${input.pauseMetrics.pauseCount} pause(s) ≥ 0.5s detected, avg duration ${input.pauseMetrics.avgPauseDurationSeconds}s${input.pauseMetrics.pauses.length > 0 ? ` (${input.pauseMetrics.pauses.filter(p => p.isSentenceBoundary).length} at sentence/clause boundaries, ${input.pauseMetrics.pauses.filter(p => !p.isSentenceBoundary).length} mid-sentence)` : ""}` : ""}${input.wpmWindows && input.wpmWindows.length > 0 ? `
+- Pace over time (30-second windows): ${input.wpmWindows.map(w => `[${w.windowStartSeconds}s–${w.windowEndSeconds}s: ${w.wpm} wpm]`).join(", ")}` : ""}
 
 DIMENSIONS TO EVALUATE:
 ${dimensionList}

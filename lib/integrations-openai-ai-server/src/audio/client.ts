@@ -475,7 +475,7 @@ export async function speechToText(
 export async function speechToTextWithTiming(
   audioBuffer: Buffer,
   format: CompatibleFormat = "wav"
-): Promise<{ text: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null }> {
+): Promise<{ text: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null; wpmWindows: WpmWindow[] | null }> {
   const file = await toFile(audioBuffer, `audio.${format}`);
   try {
     const response = await openai.audio.transcriptions.create({
@@ -503,8 +503,9 @@ export async function speechToTextWithTiming(
     }
 
     const pauseMetrics = computePauseMetrics(words);
+    const wpmWindows = words.length > 0 ? computeWpmWindows(words) : null;
 
-    return { text, speechDurationSeconds, pauseMetrics };
+    return { text, speechDurationSeconds, pauseMetrics, wpmWindows };
   } catch {
     // Fallback: plain transcription without timing
     const file2 = await toFile(audioBuffer, `audio.${format}`);
@@ -512,8 +513,51 @@ export async function speechToTextWithTiming(
       file: file2,
       model: "gpt-4o-mini-transcribe",
     });
-    return { text: response.text, speechDurationSeconds: null, pauseMetrics: null };
+    return { text: response.text, speechDurationSeconds: null, pauseMetrics: null, wpmWindows: null };
   }
+}
+
+// ─── Windowed WPM ─────────────────────────────────────────────────────────────
+
+export interface WpmWindow {
+  /** Start of the window relative to the first spoken word (seconds). */
+  windowStartSeconds: number;
+  /** End of the window (seconds). */
+  windowEndSeconds: number;
+  /** Words spoken whose start timestamp falls inside this window. */
+  wordCount: number;
+  /** WPM for this window (wordCount / windowDuration * 60). */
+  wpm: number;
+}
+
+/**
+ * Slice word-level timestamps into fixed-width windows and compute WPM per window.
+ * Words are bucketed by their `start` time, relative to the first word's start.
+ * Windows that contain zero words are omitted.
+ */
+export function computeWpmWindows(
+  words: Array<{ word: string; start: number; end: number }>,
+  windowSeconds = 30
+): WpmWindow[] {
+  if (words.length === 0) return [];
+
+  const origin = words[0].start;
+  const relStart = (w: { start: number }) => w.start - origin;
+
+  const buckets = new Map<number, number>();
+  for (const w of words) {
+    const bucket = Math.floor(relStart(w) / windowSeconds);
+    buckets.set(bucket, (buckets.get(bucket) ?? 0) + 1);
+  }
+
+  return Array.from(buckets.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([bucket, wordCount]) => {
+      const windowStartSeconds = bucket * windowSeconds;
+      const windowEndSeconds = windowStartSeconds + windowSeconds;
+      const wpm = Math.round((wordCount / windowSeconds) * 60);
+      return { windowStartSeconds, windowEndSeconds, wordCount, wpm };
+    });
 }
 
 // ─── Pause Analysis ───────────────────────────────────────────────────────────

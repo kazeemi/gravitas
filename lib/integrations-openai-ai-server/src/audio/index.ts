@@ -18,4 +18,6 @@ export {
   type F0Metrics,
   type PauseMetrics,
   type PauseEvent,
+  type WpmWindow,
+  computeWpmWindows,
 } from "./client";

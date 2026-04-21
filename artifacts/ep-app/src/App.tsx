@@ -49,16 +49,16 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/">
-        {user ? <Redirect to="/dashboard" /> : <Redirect to="/login" />}
+        {user ? <Redirect to="/record" /> : <Redirect to="/login" />}
       </Route>
       <Route path="/login">
-        {user ? <Redirect to="/dashboard" /> : <LoginPage />}
+        {user ? <Redirect to="/record" /> : <LoginPage />}
       </Route>
       <Route path="/signup">
-        {user ? <Redirect to="/dashboard" /> : <SignupPage />}
+        {user ? <Redirect to="/record" /> : <SignupPage />}
       </Route>
       <Route path="/forgot-password">
-        {user ? <Redirect to="/dashboard" /> : <ForgotPasswordPage />}
+        {user ? <Redirect to="/record" /> : <ForgotPasswordPage />}
       </Route>
       <Route path="/onboarding">
         {!user ? <Redirect to="/login" /> : <OnboardingPage />}

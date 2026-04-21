@@ -1,11 +1,10 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { LayoutDashboardIcon, MicIcon, ClockIcon, TrendingUpIcon, SettingsIcon, LogOutIcon } from "lucide-react";
+import { LayoutDashboardIcon, MicIcon, TrendingUpIcon, SettingsIcon, LogOutIcon } from "lucide-react";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
   { path: "/record", label: "Record", icon: MicIcon },
-  { path: "/history", label: "History", icon: ClockIcon },
   { path: "/progress", label: "Progress", icon: TrendingUpIcon },
   { path: "/settings", label: "Settings", icon: SettingsIcon },
 ];

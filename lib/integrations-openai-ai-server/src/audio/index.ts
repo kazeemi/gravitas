@@ -12,4 +12,10 @@ export {
   speechToText,
   speechToTextWithTiming,
   speechToTextStream,
+  computeRmsMetrics,
+  computeF0Metrics,
+  type RmsMetrics,
+  type F0Metrics,
+  type PauseMetrics,
+  type PauseEvent,
 } from "./client";

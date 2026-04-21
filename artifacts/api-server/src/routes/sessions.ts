@@ -6,7 +6,7 @@ import { requireAuth } from "../lib/auth.js";
 import { logger } from "../lib/logger.js";
 import { sessionsTable, dimensionScoresTable } from "@workspace/db";
 import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresence, type VideoPresenceResult } from "../lib/scoring.js";
-import { ensureCompatibleFormat } from "@workspace/integrations-openai-ai-server/audio";
+import { ensureCompatibleFormat, computeRmsMetrics, computeF0Metrics, type RmsMetrics, type F0Metrics } from "@workspace/integrations-openai-ai-server/audio";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -131,12 +131,26 @@ router.post(
         let breathingScore: number | null = null;
         let breathingObservation: string | null = null;
         let videoPresenceAnalysis: VideoPresenceResult | null = null;
+        let rmsMetrics: RmsMetrics | null = null;
+        let f0Metrics: F0Metrics | null = null;
+        let pauseMetrics = null;
 
         if (audioBuffer && audioBuffer.length > 0) {
           logger.info({ sessionId: session.id, rawBytes: audioBuffer.length }, "audio upload received — converting format");
 
           const { buffer: wavBuffer, format } = await ensureCompatibleFormat(audioBuffer);
           logger.info({ sessionId: session.id, detectedFormat: format, convertedBytes: wavBuffer.length }, "audio format ready");
+
+          // Compute signal-processing metrics synchronously from the PCM buffer
+          if (format === "wav") {
+            try {
+              rmsMetrics = computeRmsMetrics(wavBuffer);
+              f0Metrics = computeF0Metrics(wavBuffer);
+              logger.info({ sessionId: session.id, rmsMetrics, f0Metrics }, "acoustic metrics computed");
+            } catch (err) {
+              logger.warn({ sessionId: session.id, err }, "acoustic metric computation failed — continuing without them");
+            }
+          }
 
           const [transcriptResult, deliveryResult] = await Promise.allSettled([
             transcribeAudio(wavBuffer),
@@ -146,10 +160,12 @@ router.post(
           if (transcriptResult.status === "fulfilled") {
             transcript = transcriptResult.value.transcript;
             speechDurationSeconds = transcriptResult.value.speechDurationSeconds;
+            pauseMetrics = transcriptResult.value.pauseMetrics;
             logger.info({
               sessionId: session.id,
               transcriptWords: transcript ? transcript.trim().split(/\s+/).filter(Boolean).length : 0,
               speechDurationSeconds,
+              pauseCount: pauseMetrics?.pauseCount ?? null,
             }, "transcription complete");
           } else {
             logger.error({ sessionId: session.id, err: transcriptResult.reason }, "transcription failed");
@@ -231,6 +247,9 @@ router.post(
           pitchVariationScore,
           breathingScore,
           breathingObservation,
+          rmsMetrics,
+          f0Metrics,
+          pauseMetrics,
           recordingContext: session.recordingContext || "seated",
           promptText: session.promptText || undefined,
         });

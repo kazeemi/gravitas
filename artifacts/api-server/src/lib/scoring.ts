@@ -1,6 +1,14 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { openai } from "@workspace/integrations-openai-ai-server";
-import { ensureCompatibleFormat, speechToText, speechToTextWithTiming, type CompatibleFormat } from "@workspace/integrations-openai-ai-server/audio";
+import {
+  ensureCompatibleFormat,
+  speechToText,
+  speechToTextWithTiming,
+  type CompatibleFormat,
+  type RmsMetrics,
+  type F0Metrics,
+  type PauseMetrics,
+} from "@workspace/integrations-openai-ai-server/audio";
 
 export type DimensionKey =
   | "vocal_clarity"
@@ -100,7 +108,7 @@ export interface VideoPresenceResult {
 export interface ScoringInput {
   mode: "audio" | "video";
   durationSeconds: number;
-  speechDurationSeconds?: number | null; // first-word to last-word span, excludes leading/trailing silence
+  speechDurationSeconds?: number | null;
   audioGapEvents: number;
   faceLostEvents: number;
   silenceEvents: number;
@@ -112,7 +120,12 @@ export interface ScoringInput {
   videoPresenceAnalysis?: VideoPresenceResult | null;
   recordingContext?: string;
   promptText?: string;
+  rmsMetrics?: RmsMetrics | null;
+  f0Metrics?: F0Metrics | null;
+  pauseMetrics?: PauseMetrics | null;
 }
+
+export type { RmsMetrics, F0Metrics, PauseMetrics };
 
 export interface DimensionResult {
   dimensionKey: DimensionKey;
@@ -330,16 +343,19 @@ Return your analysis as a JSON object with these exact keys:
 
 /**
  * Transcribes audio using OpenAI Whisper (gpt-4o-mini-transcribe).
- * Returns the transcript and the actual speech duration (first word → last word),
- * which excludes any silence at the beginning or end of the recording.
+ * Returns the transcript, active speech duration (first word → last word),
+ * and structured pause metrics derived from word-level timestamps.
  */
 export async function transcribeAudio(
   audioBuffer: Buffer
-): Promise<{ transcript: string; speechDurationSeconds: number | null }> {
+): Promise<{ transcript: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null }> {
   const { buffer, format } = await ensureCompatibleFormat(audioBuffer);
   const result = await speechToTextWithTiming(buffer, format);
-  // speechToTextWithTiming returns { text } — map to { transcript } for callers
-  return { transcript: result.text, speechDurationSeconds: result.speechDurationSeconds };
+  return {
+    transcript: result.text,
+    speechDurationSeconds: result.speechDurationSeconds,
+    pauseMetrics: result.pauseMetrics,
+  };
 }
 
 async function runAIEvaluation(
@@ -460,7 +476,10 @@ SUPPORTING METRICS:
 - Calculated speaking pace: ${wordsPerMinute} wpm based on active speech duration (ideal: 120-160 wpm)
 - Silence/pause events detected: ${input.silenceEvents}
 - Mode: ${input.mode}
-- Recording context: ${input.recordingContext || "seated"}
+- Recording context: ${input.recordingContext || "seated"}${input.rmsMetrics != null ? `
+- Volume (RMS): mean ${input.rmsMetrics.meanRmsDb} dBFS, std ${input.rmsMetrics.rmsStdDb} dBFS (reference: conversational speech ≈ −18 to −12 dBFS; high std = dynamic, low std = flat)` : ""}${input.f0Metrics != null && input.f0Metrics.voicedFrameCount > 0 ? `
+- Pitch (F0): min ${input.f0Metrics.f0MinHz} Hz, max ${input.f0Metrics.f0MaxHz} Hz, std ${input.f0Metrics.f0StdHz} Hz (voiced frames: ${input.f0Metrics.voicedFrameCount}; higher std = more pitch variation; typical speech range 85–255 Hz)` : ""}${input.pauseMetrics != null ? `
+- Pause analysis: ${input.pauseMetrics.pauseCount} pause(s) ≥ 0.5s detected, avg duration ${input.pauseMetrics.avgPauseDurationSeconds}s${input.pauseMetrics.pauses.length > 0 ? ` (${input.pauseMetrics.pauses.filter(p => p.isSentenceBoundary).length} at sentence/clause boundaries, ${input.pauseMetrics.pauses.filter(p => !p.isSentenceBoundary).length} mid-sentence)` : ""}` : ""}
 
 DIMENSIONS TO EVALUATE:
 ${dimensionList}
@@ -559,8 +578,24 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       aiRawScore: aiDim.score,
     };
 
-    if (key === "pace_rhythm" && input.pitchVariationScore != null) {
-      rawMetrics.pitchVariationScore = input.pitchVariationScore;
+    if (key === "pace_rhythm") {
+      if (input.pitchVariationScore != null) rawMetrics.pitchVariationScore = input.pitchVariationScore;
+      if (input.f0Metrics != null && input.f0Metrics.voicedFrameCount > 0) {
+        rawMetrics.f0MinHz = input.f0Metrics.f0MinHz;
+        rawMetrics.f0MaxHz = input.f0Metrics.f0MaxHz;
+        rawMetrics.f0StdHz = input.f0Metrics.f0StdHz;
+        rawMetrics.voicedFrameCount = input.f0Metrics.voicedFrameCount;
+      }
+      if (input.pauseMetrics != null) {
+        rawMetrics.pauseCount = input.pauseMetrics.pauseCount;
+        rawMetrics.avgPauseDurationSeconds = input.pauseMetrics.avgPauseDurationSeconds;
+        rawMetrics.sentenceBoundaryPauses = input.pauseMetrics.pauses.filter(p => p.isSentenceBoundary).length;
+        rawMetrics.midSentencePauses = input.pauseMetrics.pauses.filter(p => !p.isSentenceBoundary).length;
+      }
+    }
+    if (key === "volume_projection" && input.rmsMetrics != null) {
+      rawMetrics.meanRmsDb = input.rmsMetrics.meanRmsDb;
+      rawMetrics.rmsStdDb = input.rmsMetrics.rmsStdDb;
     }
     if (key === "vocal_clarity") {
       if (input.breathingScore != null) rawMetrics.breathingScore = input.breathingScore;

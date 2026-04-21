@@ -131,6 +131,219 @@ export async function ensureCompatibleFormat(
   }
 }
 
+// ─── Acoustic Metric Types ───────────────────────────────────────────────────
+
+export interface RmsMetrics {
+  meanRmsDb: number;
+  rmsStdDb: number;
+}
+
+export interface F0Metrics {
+  f0MinHz: number;
+  f0MaxHz: number;
+  f0StdHz: number;
+  voicedFrameCount: number;
+}
+
+export interface PauseEvent {
+  startSeconds: number;
+  durationSeconds: number;
+  isSentenceBoundary: boolean;
+}
+
+export interface PauseMetrics {
+  pauseCount: number;
+  avgPauseDurationSeconds: number;
+  pauses: PauseEvent[];
+}
+
+// ─── WAV PCM helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Read 16-bit signed PCM samples from a WAV buffer.
+ * The standard PCM WAV header produced by ffmpeg (-acodec pcm_s16le) is 44 bytes.
+ * We skip the header by scanning for the "data" chunk marker.
+ */
+function readPcmSamples(wavBuffer: Buffer): Int16Array {
+  let dataOffset = 44;
+  for (let i = 12; i < Math.min(wavBuffer.length - 8, 200); i++) {
+    if (
+      wavBuffer[i] === 0x64 && wavBuffer[i + 1] === 0x61 &&
+      wavBuffer[i + 2] === 0x74 && wavBuffer[i + 3] === 0x61
+    ) {
+      dataOffset = i + 8;
+      break;
+    }
+  }
+  const pcmBytes = wavBuffer.slice(dataOffset);
+  const sampleCount = Math.floor(pcmBytes.length / 2);
+  const samples = new Int16Array(sampleCount);
+  for (let i = 0; i < sampleCount; i++) {
+    samples[i] = pcmBytes.readInt16LE(i * 2);
+  }
+  return samples;
+}
+
+// ─── RMS Amplitude Metrics ───────────────────────────────────────────────────
+
+/**
+ * Compute mean RMS amplitude (dBFS) and RMS standard deviation (dBFS) from
+ * a normalised 16kHz mono PCM WAV buffer. Frames shorter than 20 ms or with
+ * zero energy are skipped. dBFS is referenced to full-scale (±32768).
+ */
+export function computeRmsMetrics(wavBuffer: Buffer): RmsMetrics {
+  const SAMPLE_RATE = 16000;
+  const FRAME_SAMPLES = Math.round(SAMPLE_RATE * 0.02);
+  const MIN_RMS_LINEAR = 1e-6;
+
+  const samples = readPcmSamples(wavBuffer);
+  const frameCount = Math.floor(samples.length / FRAME_SAMPLES);
+  const frameDbValues: number[] = [];
+
+  for (let f = 0; f < frameCount; f++) {
+    const start = f * FRAME_SAMPLES;
+    let sumSq = 0;
+    for (let i = start; i < start + FRAME_SAMPLES; i++) {
+      const s = samples[i] / 32768;
+      sumSq += s * s;
+    }
+    const rmsLinear = Math.sqrt(sumSq / FRAME_SAMPLES);
+    if (rmsLinear < MIN_RMS_LINEAR) continue;
+    const rmsDb = 20 * Math.log10(rmsLinear);
+    frameDbValues.push(rmsDb);
+  }
+
+  if (frameDbValues.length === 0) {
+    return { meanRmsDb: -60, rmsStdDb: 0 };
+  }
+
+  const mean = frameDbValues.reduce((a, b) => a + b, 0) / frameDbValues.length;
+  const variance = frameDbValues.reduce((a, b) => a + (b - mean) ** 2, 0) / frameDbValues.length;
+  const std = Math.sqrt(variance);
+
+  return {
+    meanRmsDb: Math.round(mean * 10) / 10,
+    rmsStdDb: Math.round(std * 10) / 10,
+  };
+}
+
+// ─── F0 (Fundamental Frequency) Metrics ─────────────────────────────────────
+
+/**
+ * YIN pitch detection algorithm (de Cheveigné & Kawahara, 2002).
+ * Returns the fundamental frequency in Hz for a mono float32 audio frame,
+ * or null if no confident pitch is detected.
+ * @param frame    Float32Array of audio samples normalised to [-1, 1]
+ * @param sampleRate  Samples per second (e.g. 16000)
+ * @param threshold   YIN threshold (0.10–0.20 typical; lower = stricter)
+ */
+function yinPitchHz(
+  frame: Float32Array,
+  sampleRate: number,
+  threshold = 0.15
+): number | null {
+  const N = frame.length;
+  const half = N >> 1;
+
+  // Step 1 — difference function
+  const diff = new Float32Array(half);
+  for (let tau = 1; tau < half; tau++) {
+    let sum = 0;
+    for (let j = 0; j < half; j++) {
+      const d = frame[j] - frame[j + tau];
+      sum += d * d;
+    }
+    diff[tau] = sum;
+  }
+
+  // Step 2 — cumulative mean normalised difference function (CMNDF)
+  const cmndf = new Float32Array(half);
+  cmndf[0] = 1;
+  let runningSum = 0;
+  for (let tau = 1; tau < half; tau++) {
+    runningSum += diff[tau];
+    cmndf[tau] = runningSum === 0 ? 0 : diff[tau] * tau / runningSum;
+  }
+
+  // Step 3 — find first local minimum below threshold
+  let tau = 2;
+  while (tau < half - 1) {
+    if (cmndf[tau] < threshold) {
+      while (tau + 1 < half && cmndf[tau + 1] < cmndf[tau]) tau++;
+      break;
+    }
+    tau++;
+  }
+
+  if (tau >= half - 1 || cmndf[tau] >= threshold) return null;
+
+  // Step 4 — parabolic interpolation for sub-sample precision
+  const x0 = tau > 1 ? tau - 1 : tau;
+  const x2 = tau + 1 < half ? tau + 1 : tau;
+  let betterTau: number;
+  if (x0 === tau) {
+    betterTau = cmndf[tau] <= cmndf[x2] ? tau : x2;
+  } else if (x2 === tau) {
+    betterTau = cmndf[tau] <= cmndf[x0] ? tau : x0;
+  } else {
+    const s0 = cmndf[x0];
+    const s1 = cmndf[tau];
+    const s2 = cmndf[x2];
+    betterTau = tau + (s2 - s0) / (2 * (2 * s1 - s2 - s0));
+  }
+
+  return sampleRate / betterTau;
+}
+
+/**
+ * Compute F0 min, max, and standard deviation in Hz across voiced segments.
+ * Uses the YIN algorithm (pure TypeScript) on 16kHz mono 16-bit PCM WAV.
+ * Only frames with detected pitch in the 60–500 Hz speech range are included.
+ */
+export function computeF0Metrics(wavBuffer: Buffer): F0Metrics {
+  const SAMPLE_RATE = 16000;
+  const FRAME_SAMPLES = 1024;
+  const HOP_SAMPLES = 512;
+  const MIN_PITCH_HZ = 60;
+  const MAX_PITCH_HZ = 500;
+
+  const samples = readPcmSamples(wavBuffer);
+
+  const float32 = new Float32Array(samples.length);
+  for (let i = 0; i < samples.length; i++) {
+    float32[i] = samples[i] / 32768;
+  }
+
+  const voicedPitches: number[] = [];
+
+  for (let start = 0; start + FRAME_SAMPLES <= float32.length; start += HOP_SAMPLES) {
+    const frame = float32.subarray(start, start + FRAME_SAMPLES);
+    const pitch = yinPitchHz(frame as Float32Array, SAMPLE_RATE);
+    if (pitch !== null && pitch >= MIN_PITCH_HZ && pitch <= MAX_PITCH_HZ) {
+      voicedPitches.push(pitch);
+    }
+  }
+
+  if (voicedPitches.length === 0) {
+    return { f0MinHz: 0, f0MaxHz: 0, f0StdHz: 0, voicedFrameCount: 0 };
+  }
+
+  const min = Math.min(...voicedPitches);
+  const max = Math.max(...voicedPitches);
+  const mean = voicedPitches.reduce((a, b) => a + b, 0) / voicedPitches.length;
+  const variance = voicedPitches.reduce((a, b) => a + (b - mean) ** 2, 0) / voicedPitches.length;
+  const std = Math.sqrt(variance);
+
+  return {
+    f0MinHz: Math.round(min * 10) / 10,
+    f0MaxHz: Math.round(max * 10) / 10,
+    f0StdHz: Math.round(std * 10) / 10,
+    voicedFrameCount: voicedPitches.length,
+  };
+}
+
+// ─── Voice Chat: audio-in, audio-out using gpt-audio. ────────────────────────
+
 /** Voice Chat: audio-in, audio-out using gpt-audio. */
 export async function voiceChat(
   audioBuffer: Buffer,
@@ -253,39 +466,45 @@ export async function speechToText(
 }
 
 /**
- * Speech-to-Text with segment timestamps so the caller can derive actual
- * speech duration (first-word start → last-word end), stripping any silence
- * at the beginning or end of the recording.
+ * Speech-to-Text with segment + word timestamps.
+ * Returns:
+ * - text: full transcript
+ * - speechDurationSeconds: first-word start → last-word end (strips leading/trailing silence)
+ * - pauseMetrics: structured pause analysis derived from word-level gaps
  */
 export async function speechToTextWithTiming(
   audioBuffer: Buffer,
   format: CompatibleFormat = "wav"
-): Promise<{ text: string; speechDurationSeconds: number | null }> {
+): Promise<{ text: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null }> {
   const file = await toFile(audioBuffer, `audio.${format}`);
   try {
     const response = await openai.audio.transcriptions.create({
       file,
       model: "gpt-4o-mini-transcribe",
       response_format: "verbose_json",
-      timestamp_granularities: ["segment"],
+      timestamp_granularities: ["segment", "word"],
     } as Parameters<typeof openai.audio.transcriptions.create>[0]);
 
     const r = response as unknown as {
       text: string;
       segments?: Array<{ start: number; end: number }>;
+      words?: Array<{ word: string; start: number; end: number }>;
     };
 
     const text = r.text ?? "";
     const segments = r.segments ?? [];
+    const words = r.words ?? [];
 
+    let speechDurationSeconds: number | null = null;
     if (segments.length > 0) {
       const speechStart = segments[0].start;
       const speechEnd = segments[segments.length - 1].end;
-      const speechDurationSeconds = Math.max(1, speechEnd - speechStart);
-      return { text, speechDurationSeconds };
+      speechDurationSeconds = Math.max(1, speechEnd - speechStart);
     }
 
-    return { text, speechDurationSeconds: null };
+    const pauseMetrics = computePauseMetrics(words);
+
+    return { text, speechDurationSeconds, pauseMetrics };
   } catch {
     // Fallback: plain transcription without timing
     const file2 = await toFile(audioBuffer, `audio.${format}`);
@@ -293,8 +512,50 @@ export async function speechToTextWithTiming(
       file: file2,
       model: "gpt-4o-mini-transcribe",
     });
-    return { text: response.text, speechDurationSeconds: null };
+    return { text: response.text, speechDurationSeconds: null, pauseMetrics: null };
   }
+}
+
+// ─── Pause Analysis ───────────────────────────────────────────────────────────
+
+const SENTENCE_BOUNDARY_RE = /[.?!,;:]$/;
+const MIN_PAUSE_SECONDS = 0.5;
+
+/**
+ * Derive structured pause metrics from Whisper word-level timestamps.
+ * A pause is any gap between consecutive words >= 0.5 s.
+ * Sentence-boundary: the word preceding the gap ends with . ? ! , ; :
+ */
+function computePauseMetrics(
+  words: Array<{ word: string; start: number; end: number }>
+): PauseMetrics {
+  if (words.length < 2) {
+    return { pauseCount: 0, avgPauseDurationSeconds: 0, pauses: [] };
+  }
+
+  const pauses: PauseEvent[] = [];
+
+  for (let i = 0; i < words.length - 1; i++) {
+    const gap = words[i + 1].start - words[i].end;
+    if (gap >= MIN_PAUSE_SECONDS) {
+      pauses.push({
+        startSeconds: Math.round(words[i].end * 100) / 100,
+        durationSeconds: Math.round(gap * 100) / 100,
+        isSentenceBoundary: SENTENCE_BOUNDARY_RE.test(words[i].word.trim()),
+      });
+    }
+  }
+
+  const avg =
+    pauses.length > 0
+      ? Math.round((pauses.reduce((s, p) => s + p.durationSeconds, 0) / pauses.length) * 100) / 100
+      : 0;
+
+  return {
+    pauseCount: pauses.length,
+    avgPauseDurationSeconds: avg,
+    pauses,
+  };
 }
 
 /** Streaming Speech-to-Text. */

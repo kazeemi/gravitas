@@ -14,13 +14,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <nav className="hidden md:flex w-56 flex-col border-r border-gray-200 bg-white px-3 py-6">
+    <div className="flex min-h-screen bg-background">
+      <nav className="hidden md:flex w-56 flex-col border-r border-border bg-sidebar px-3 py-6">
         <div className="mb-8 px-3">
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-bold text-gray-900" style={{ fontFamily: "Inter, sans-serif" }}>Executive Presence 
-            AI Coach</h1>
-            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            <h1
+              className="text-base font-semibold text-foreground"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            >
+              Executive Presence AI Coach
+            </h1>
+            <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
               Beta
             </span>
           </div>
@@ -35,11 +39,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 onClick={() => setLocation(item.path)}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                   active
-                    ? "bg-gray-100 font-medium text-gray-900"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                    ? "bg-accent font-medium text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className={`h-4 w-4 ${active ? "text-primary" : ""}`} />
                 {item.label}
               </button>
             );
@@ -47,28 +51,33 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
         <button
           onClick={logout}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-400 hover:bg-gray-50 hover:text-gray-600 transition-colors"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors"
         >
           <LogOutIcon className="h-4 w-4" />
           Sign out
         </button>
       </nav>
       <div className="flex flex-1 flex-col">
-        <header className="flex md:hidden items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
+        <header className="flex md:hidden items-center justify-between border-b border-border bg-sidebar px-4 py-3">
           <div className="flex items-center gap-2">
-            <h1 className="text-sm font-bold text-gray-900">Executive Presence</h1>
-            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            <h1
+              className="text-sm font-semibold text-foreground"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            >
+              Executive Presence
+            </h1>
+            <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
               Beta
             </span>
           </div>
-          <button onClick={logout} className="text-xs text-gray-400">Sign out</button>
+          <button onClick={logout} className="text-xs text-muted-foreground">Sign out</button>
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
           {children}
         </main>
 
-        <nav className="flex md:hidden items-center justify-around border-t border-gray-200 bg-white px-2 py-2">
+        <nav className="flex md:hidden items-center justify-around border-t border-border bg-sidebar px-2 py-2">
           {navItems.slice(0, 4).map(item => {
             const Icon = item.icon;
             const active = location.startsWith(item.path);
@@ -77,7 +86,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 key={item.path}
                 onClick={() => setLocation(item.path)}
                 className={`flex flex-col items-center gap-0.5 rounded px-2 py-1 text-xs transition-colors ${
-                  active ? "text-gray-900" : "text-gray-400"
+                  active ? "text-primary" : "text-muted-foreground"
                 }`}
               >
                 <Icon className="h-5 w-5" />

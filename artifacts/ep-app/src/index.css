@@ -78,71 +78,103 @@
   --elevate-1: rgba(0,0,0, .03);
   --elevate-2: rgba(0,0,0, .08);
 
-  --background: red; /*replace with H S L */
+  /* Gravitas Brand — Light Mode */
+  /* Warm Cream #FBF7F2 */
+  --background: 33 54% 97%;
 
-  --foreground: red; /*replace with H S L */
+  /* Midnight #0F1B2D */
+  --foreground: 216 50% 12%;
 
-  --border: red; /*replace with H S L */
+  /* Smoke #EDE8E2 */
+  --border: 33 23% 91%;
 
-  --card: red; /*replace with H S L */
+  /* White */
+  --card: 0 0% 100%;
 
-  --card-foreground: red; /*replace with H S L */
+  /* Midnight */
+  --card-foreground: 216 50% 12%;
 
-  --card-border: red; /*replace with H S L */
+  /* Smoke */
+  --card-border: 33 23% 91%;
 
-  --sidebar: red; /*replace with H S L */
+  /* White */
+  --sidebar: 0 0% 100%;
 
-  --sidebar-foreground: red; /*replace with H S L */
+  /* Midnight */
+  --sidebar-foreground: 216 50% 12%;
 
-  --sidebar-border: red; /*replace with H S L */
+  /* Smoke */
+  --sidebar-border: 33 23% 91%;
 
-  --sidebar-primary: red; /*replace with H S L */
+  /* Amber #F0953E */
+  --sidebar-primary: 29 86% 59%;
 
-  --sidebar-primary-foreground: red; /*replace with H S L */
+  /* White */
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: red; /*replace with H S L */
+  /* Warm Cream */
+  --sidebar-accent: 33 54% 97%;
 
-  --sidebar-accent-foreground: red; /*replace with H S L */
+  /* Midnight */
+  --sidebar-accent-foreground: 216 50% 12%;
 
-  --sidebar-ring: red; /*replace with H S L */
+  /* Amber */
+  --sidebar-ring: 29 86% 59%;
 
-  --popover: red; /*replace with H S L */
+  /* White */
+  --popover: 0 0% 100%;
 
-  --popover-foreground: red; /*replace with H S L */
+  /* Midnight */
+  --popover-foreground: 216 50% 12%;
 
-  --popover-border: red; /*replace with H S L */
+  /* Smoke */
+  --popover-border: 33 23% 91%;
 
-  --primary: red; /*replace with H S L */
+  /* Amber #F0953E */
+  --primary: 29 86% 59%;
 
-  --primary-foreground: red; /*replace with H S L */
+  /* White */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: red; /*replace with H S L */
+  /* Smoke */
+  --secondary: 33 23% 91%;
 
-  --secondary-foreground: red; /*replace with H S L */
+  /* Midnight */
+  --secondary-foreground: 216 50% 12%;
 
-  --muted: red; /*replace with H S L */
+  /* Slightly elevated warm cream */
+  --muted: 33 30% 93%;
 
-  --muted-foreground: red; /*replace with H S L */
+  /* Muted mid-tone */
+  --muted-foreground: 216 15% 50%;
 
-  --accent: red; /*replace with H S L */
+  /* Smoke */
+  --accent: 33 23% 91%;
 
-  --accent-foreground: red; /*replace with H S L */
+  /* Midnight */
+  --accent-foreground: 216 50% 12%;
 
-  --destructive: red; /*replace with H S L */
+  /* Standard destructive red */
+  --destructive: 0 72% 51%;
 
-  --destructive-foreground: red; /*replace with H S L */
+  --destructive-foreground: 0 0% 100%;
 
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
+  --input: 33 23% 91%;
+  --ring: 29 86% 59%;
+  /* Amber */
+  --chart-1: 29 86% 59%;
+  /* Terracotta #C84A18 */
+  --chart-2: 17 79% 44%;
+  /* Gold #D4A843 */
+  --chart-3: 42 63% 55%;
+  /* Midnight */
+  --chart-4: 216 50% 12%;
+  /* Smoke */
+  --chart-5: 33 23% 91%;
 
   --app-font-sans: 'Inter', sans-serif;
-  --app-font-serif: Georgia, serif;
-  --app-font-mono: Menlo, monospace;
+  --app-font-serif: 'Cormorant Garamond', Georgia, serif;
+  --app-font-mono: 'DM Mono', Menlo, monospace;
   --radius: .5rem; /* 8px */
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00); /*replace with H S L */
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00); /*replace with H S L */
@@ -196,68 +228,94 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: red; /*replace with H S L */
+  /* Gravitas Brand — Dark Mode */
+  /* Midnight #0F1B2D */
+  --background: 216 50% 12%;
 
-  --foreground: red; /*replace with H S L */
+  /* Warm Cream #FBF7F2 */
+  --foreground: 33 54% 97%;
 
-  --border: red; /*replace with H S L */
+  /* Dark border */
+  --border: 216 30% 20%;
 
-  --card: red; /*replace with H S L */
+  /* Slightly lighter than bg */
+  --card: 216 40% 16%;
 
-  --card-foreground: red; /*replace with H S L */
+  /* Warm Cream */
+  --card-foreground: 33 54% 97%;
 
-  --card-border: red; /*replace with H S L */
+  /* Dark border */
+  --card-border: 216 30% 20%;
 
-  --sidebar: red; /*replace with H S L */
+  /* Darker than bg */
+  --sidebar: 216 45% 10%;
 
-  --sidebar-foreground: red; /*replace with H S L */
+  /* Warm Cream */
+  --sidebar-foreground: 33 54% 97%;
 
-  --sidebar-border: red; /*replace with H S L */
+  /* Dark border */
+  --sidebar-border: 216 30% 18%;
 
-  --sidebar-primary: red; /*replace with H S L */
+  /* Amber #F0953E */
+  --sidebar-primary: 29 86% 59%;
 
-  --sidebar-primary-foreground: red; /*replace with H S L */
+  /* White */
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: red; /*replace with H S L */
+  /* Subtle dark surface */
+  --sidebar-accent: 216 30% 20%;
 
-  --sidebar-accent-foreground: red; /*replace with H S L */
+  /* Warm Cream */
+  --sidebar-accent-foreground: 33 54% 97%;
 
-  --sidebar-ring: red; /*replace with H S L */
+  /* Amber */
+  --sidebar-ring: 29 86% 59%;
 
-  --popover: red; /*replace with H S L */
+  /* Card level */
+  --popover: 216 40% 16%;
 
-  --popover-foreground: red; /*replace with H S L */
+  /* Warm Cream */
+  --popover-foreground: 33 54% 97%;
 
-  --popover-border: red; /*replace with H S L */
+  /* Dark border */
+  --popover-border: 216 30% 20%;
 
-  --primary: red; /*replace with H S L */
+  /* Amber #F0953E */
+  --primary: 29 86% 59%;
 
-  --primary-foreground: red; /*replace with H S L */
+  /* White */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: red; /*replace with H S L */
+  /* Dark surface */
+  --secondary: 216 30% 20%;
 
-  --secondary-foreground: red; /*replace with H S L */
+  /* Warm Cream */
+  --secondary-foreground: 33 54% 97%;
 
-  --muted: red; /*replace with H S L */
+  /* Slightly elevated dark */
+  --muted: 216 25% 18%;
 
-  --muted-foreground: red; /*replace with H S L */
+  /* Muted mid-tone */
+  --muted-foreground: 216 15% 60%;
 
-  --accent: red; /*replace with H S L */
+  /* Dark surface */
+  --accent: 216 30% 20%;
 
-  --accent-foreground: red; /*replace with H S L */
+  /* Warm Cream */
+  --accent-foreground: 33 54% 97%;
 
-  --destructive: red; /*replace with H S L */
+  --destructive: 0 72% 51%;
 
-  --destructive-foreground: red; /*replace with H S L */
+  --destructive-foreground: 0 0% 100%;
 
   /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
+  --input: 216 30% 22%;
+  --ring: 29 86% 59%;
+  --chart-1: 29 86% 59%;
+  --chart-2: 17 79% 44%;
+  --chart-3: 42 63% 55%;
+  --chart-4: 33 54% 97%;
+  --chart-5: 216 30% 30%;
 
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);

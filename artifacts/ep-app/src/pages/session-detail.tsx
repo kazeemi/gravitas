@@ -583,17 +583,15 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
         {metrics.map((m) => {
           const c = STATUS_COLORS[m.status];
           return (
-            <div key={m.label} className="flex items-start justify-between gap-4 py-3 first:pt-0 last:pb-0">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-800">{m.label}</p>
-                {m.note && (
-                  <p className="mt-0.5 text-xs text-gray-400">{m.note}</p>
-                )}
+            <div key={m.label} className="py-3 first:pt-0 last:pb-0 space-y-0.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm font-medium text-gray-800 shrink-0">{m.label}</p>
+                <p className={`text-sm font-semibold ${c.text} text-right min-w-0 break-words`}>{m.value}</p>
               </div>
-              <div className="flex-shrink-0 text-right space-y-0.5">
-                <p className={`text-sm font-semibold ${c.text}`}>{m.value}</p>
-                <p className="text-xs text-gray-400">Benchmark: {m.benchmark}</p>
-              </div>
+              <p className="text-xs text-gray-400">Benchmark: {m.benchmark}</p>
+              {m.note && (
+                <p className="text-xs text-gray-400">{m.note}</p>
+              )}
             </div>
           );
         })}

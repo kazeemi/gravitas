@@ -133,6 +133,7 @@ export default function RecordPage() {
   const firstFrameTimeoutRef = useRef<number | null>(null);
   const videoChunksRef = useRef<Blob[]>([]);
   const videoRecorderRef = useRef<MediaRecorder | null>(null);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [pendingVideoBlob, setPendingVideoBlob] = useState<Blob | null>(null);
   const [, setLocation] = useLocation();
 
@@ -371,6 +372,15 @@ export default function RecordPage() {
       startLevelMonitor(stream);
       if (mode === "video") startFrameCapture();
 
+      // Keep screen awake during recording (no-op if API unavailable)
+      if ("wakeLock" in navigator) {
+        try {
+          wakeLockRef.current = await navigator.wakeLock.request("screen");
+        } catch {
+          // Wake lock not granted — continue without it
+        }
+      }
+
       setStep("recording");
       setRecordingState("recording");
       setElapsed(0);
@@ -411,6 +421,7 @@ export default function RecordPage() {
     stopTimer();
     stopLevelMonitor();
     stopFrameCapture();
+    releaseWakeLock();
     framesRef.current = [];
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
@@ -435,6 +446,13 @@ export default function RecordPage() {
     setError("");
   };
 
+  const releaseWakeLock = () => {
+    if (wakeLockRef.current) {
+      wakeLockRef.current.release().catch(() => {});
+      wakeLockRef.current = null;
+    }
+  };
+
   const stopRecording = () => {
     const finalDuration = elapsedRef.current;
 
@@ -450,6 +468,7 @@ export default function RecordPage() {
     stopTimer();
     stopLevelMonitor();
     stopFrameCapture();
+    releaseWakeLock();
     const capturedFrames = mode === "video" ? [...framesRef.current] : [];
 
     const capturedSilenceEvents = silenceEventsRef.current;

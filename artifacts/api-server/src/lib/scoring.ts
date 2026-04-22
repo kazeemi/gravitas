@@ -582,6 +582,10 @@ If the speaker's prompt indicates they are reading or reciting a pre-written lit
 - CONCISENESS: Do NOT penalise for length or phrasing that belongs to the source text.
 
 FEEDBACK STANDARDS — ALL MUST BE MET:
+0. SECOND PERSON — STRICTLY ENFORCED: ALL feedback must be written directly to the speaker using "you" and "your". NEVER use third person ("the speaker", "he", "she", "they", "their"). Write as if speaking directly to the person.
+   WRONG: "The speaker's pace was too fast."
+   RIGHT: "Your pace was too fast."
+
 1. EVIDENCE-BASED: Reference specific measured values. Never generic statements.
    WRONG: "You spoke too fast."
    RIGHT: "Your pace averaged ${wordsPerMinute} words per minute. For this ${context.label} context, ideal is ${context.idealWpmMin}–${context.idealWpmMax} words per minute."

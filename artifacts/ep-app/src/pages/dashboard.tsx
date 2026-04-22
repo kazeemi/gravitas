@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api, type SessionSummary, type ChartSession } from "@/lib/api";
-import { getTierColors, PILLARS, DIMENSION_LABELS } from "@/lib/tier-colors";
+import { getTierColors, PILLARS, DIMENSION_LABELS, TIER_COLORS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
   MicIcon,
@@ -246,6 +246,29 @@ function ProgressChart({
           <p className="mt-1 text-center text-xs text-gray-400">
             Click any point to open that session
           </p>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3 border-t border-gray-100 pt-4">
+            {(
+              [
+                ["Needs Focus", "1.0–3.9"],
+                ["Developing", "4.0–6.4"],
+                ["Strong", "6.5–8.4"],
+                ["Distinguished", "8.5–10.0"],
+              ] as const
+            ).map(([tier, range]) => {
+              const c = TIER_COLORS[tier];
+              return (
+                <div key={tier} className="flex items-center gap-1.5">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <span className="text-xs text-gray-600 font-medium">{tier}</span>
+                  <span className="text-xs text-gray-400">{range}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

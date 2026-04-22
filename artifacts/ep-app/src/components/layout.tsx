@@ -16,12 +16,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-background">
       <nav className="hidden md:flex w-56 flex-col border-r border-border bg-sidebar px-3 py-6">
         <div className="mb-8 px-3">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 items-center">
             <div className="flex items-center gap-2">
               <img
                 src="/Logo.png"
                 alt="Gravitas logo mark"
-                className="h-8 w-auto"
+                className="h-6 w-auto"
               />
               <span
                 className="text-3xl font-semibold tracking-tight text-foreground"

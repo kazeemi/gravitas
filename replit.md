@@ -2,7 +2,7 @@
 
 ## Overview
 
-AI coaching platform that analyzes speakers across 6 (audio) or 10 (video) dimensions, scores them per the EP Methodology v3.0, assigns tiers (Emerging/Developing/Strong/Distinguished), and generates per-dimension coaching feedback using Claude AI.
+AI coaching platform that analyzes speakers across 11 (audio) or 15 (video) dimensions, scores them per the Gravitas Scoring Methodology v4.0, assigns tiers (Needs Focus / Developing / Strong / Distinguished), and generates per-dimension coaching feedback using Claude AI and gpt-audio.
 
 ## Architecture
 
@@ -34,21 +34,32 @@ lib/
 - **Frontend**: React 19, Vite, Tailwind CSS v4, shadcn/ui components
 - **Charts**: Recharts (radar chart, line chart for progress)
 
-## Key Methodology Rules (PRD §8)
+## Scoring Methodology v4.0
 
-- 6 audio dimensions: vocal_clarity, pace_rhythm, volume_projection, filler_words, structure, confidence_language
-- 10 video dimensions: above + presence_engagement, eye_contact, gesture_movement, professional_appearance
-- Tiers: Needs Focus (1-3), Developing (4-5), Strong (6-7), Distinguished (8-10)
-- Distinguished composite capped at 8.0 if any gating dimension (vocal_clarity, confidence_language, structure, presence_engagement) scores 1-3
-- No raw audio/video is ever persisted — scoring uses heuristic metrics + optional transcript
+15 dimensions across 4 pillars:
+- Pillar 1 — Voice Quality (20% video / 25% audio): Articulation, Projection, Vocal Tone, Vocal Steadiness
+- Pillar 2 — Vocal Delivery (25% / 30%): Intonation, Pace, Pausing, Breath Control
+- Pillar 3 — Thought Clarity (35% / 45%): Confidence Language, Structure, Conciseness
+- Pillar 4 — Physical Delivery (20%, video only): Eye Contact, Facial Expression, Gestures, Posture
 
-## Design Tokens (PRD §10.1)
+Tier thresholds (v4.0): Needs Focus 1.0–3.9 | Developing 4.0–6.4 | Strong 6.5–8.4 | Distinguished 8.5–10.0
 
-- Needs Focus: #E24B4A (red)
-- Developing: #BA7517 (amber)
-- Strong: #0F6E56 (teal)
-- Distinguished: #534AB7 (purple)
-- Font: Inter
+Gating rules:
+- Rule 1: If any anchor dimension (Structure, Vocal Tone, Intonation, + Eye Contact for video) scores ≤3, composite is capped at 6.4
+- Rule 2: Distinguished gate — all anchors must be ≥7 AND ≥10/15 (video) or ≥8/11 (audio) dims must be ≥7
+
+Context classification: 5 categories from prompt text, each with its own ideal WPM range
+
+Sessions scored under v4.0 are tagged `methodologyVersion: "4.0"`. Legacy sessions (v3.0) are shown with a version notice.
+
+## Gravitas Brand Tokens
+
+- Background: Warm Cream #FBF7F2
+- Text: Midnight #0F1B2D
+- CTA: Amber #F0953E
+- Accent: Terracotta #C84A18
+- Tier colors: Needs Focus #EDE8E2 | Developing #F0953E | Strong #C84A18 | Distinguished #0F1B2D
+- Fonts: Cormorant Garamond (display), Inter (body), DM Mono (data)
 
 ## Key Commands
 

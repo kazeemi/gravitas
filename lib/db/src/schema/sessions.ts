@@ -16,7 +16,7 @@ export const sessionsTable = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id").notNull().references(() => usersTable.id),
   mode: varchar("mode", { length: 10 }).notNull(),
-  methodologyVersion: varchar("methodology_version", { length: 10 }).notNull().default("3.0"),
+  methodologyVersion: varchar("methodology_version", { length: 10 }).notNull().default("4.0"),
   promptText: text("prompt_text"),
   promptType: varchar("prompt_type", { length: 50 }),
   recordingContext: varchar("recording_context", { length: 20 }).default("seated"),

@@ -37,9 +37,11 @@ export default function ProgressPage() {
   const tierBands = [
     { y: 1, label: "Needs Focus", color: "#78736A" },
     { y: 4, label: "Developing", color: "#F0953E" },
-    { y: 6, label: "Strong", color: "#C84A18" },
-    { y: 8, label: "Distinguished", color: "#0F1B2D" },
+    { y: 6.5, label: "Strong", color: "#C84A18" },
+    { y: 8.5, label: "Distinguished", color: "#0F1B2D" },
   ];
+
+  const hasMixedVersions = sessions.some(s => (s as SessionSummary & { methodologyVersion?: string }).methodologyVersion !== "4.0");
 
   return (
     <div className="space-y-8">
@@ -124,6 +126,13 @@ export default function ProgressPage() {
         </div>
       )}
 
+      {sessions.length > 0 && hasMixedVersions && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-xs text-amber-800">
+            <span className="font-medium">Mixed methodology versions:</span> These sessions were scored using different methodology versions. They show your development over time but cannot be compared as exact like-for-like numbers.
+          </p>
+        </div>
+      )}
       {sessions.length > 0 && <TierLegend />}
     </div>
   );
@@ -131,10 +140,10 @@ export default function ProgressPage() {
 
 function TierLegend() {
   const tiers = [
-    { name: "Needs Focus", range: "1–3", dotColor: "#EDE8E2", textColor: "#78736A" },
-    { name: "Developing", range: "4–5", dotColor: "#F0953E", textColor: "#F0953E" },
-    { name: "Strong", range: "6–7", dotColor: "#C84A18", textColor: "#C84A18" },
-    { name: "Distinguished", range: "8–10", dotColor: "#0F1B2D", textColor: "#0F1B2D" },
+    { name: "Needs Focus", range: "1.0–3.9", dotColor: "#EDE8E2", textColor: "#78736A" },
+    { name: "Developing", range: "4.0–6.4", dotColor: "#F0953E", textColor: "#F0953E" },
+    { name: "Strong", range: "6.5–8.4", dotColor: "#C84A18", textColor: "#C84A18" },
+    { name: "Distinguished", range: "8.5–10", dotColor: "#0F1B2D", textColor: "#0F1B2D" },
   ];
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">

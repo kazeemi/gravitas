@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { api, type SessionDetail, type DimensionScore } from "@/lib/api";
-import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, DIMENSION_DESCRIPTIONS } from "@/lib/tier-colors";
+import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, DIMENSION_DESCRIPTIONS, PILLARS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeftIcon,
@@ -11,6 +11,7 @@ import {
   TrendingUpIcon,
   TrendingDownIcon,
   ZapIcon,
+  InfoIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -18,6 +19,7 @@ interface OverallFeedback {
   strengths?: string;
   improvements?: string;
   nextStep?: string;
+  gatingNote?: string;
 }
 
 function parseOverallFeedback(raw: string | null): OverallFeedback | null {
@@ -68,6 +70,8 @@ export default function SessionDetailPage() {
   const colors = session.compositeTier ? getTierColors(session.compositeTier) : null;
   const score = session.compositeScore ? parseFloat(session.compositeScore) : null;
   const overallFeedback = parseOverallFeedback(session.overallFeedback ?? null);
+  const methodologyVersion = (session as SessionDetail & { methodologyVersion?: string }).methodologyVersion;
+  const isLegacySession = methodologyVersion && methodologyVersion !== "4.0";
 
   const sortedDimensions = [...session.dimensionScores].sort((a, b) => {
     const ai = DIMENSION_DISPLAY_ORDER.indexOf(a.dimensionKey);
@@ -75,15 +79,19 @@ export default function SessionDetailPage() {
     return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
   });
 
-  const hasSilences = (session.silenceEvents ?? 0) > 0;
+  // Group dimensions by pillar
+  const dimensionsByPillar = PILLARS.map(pillar => ({
+    pillar,
+    dimensions: sortedDimensions.filter(d => pillar.dimensions.includes(d.dimensionKey)),
+  })).filter(g => g.dimensions.length > 0);
 
-  // Flag sessions where the speaker said very little or didn't address the prompt
+  const hasSilences = (session.silenceEvents ?? 0) > 0;
   const transcriptWordCount = session.transcript
     ? session.transcript.trim().split(/\s+/).filter(Boolean).length
     : 0;
   const hasLowEngagement = transcriptWordCount < 50 && transcriptWordCount > 0;
-  // True when processing completed but no audio data was detected (iOS/mic issue)
   const noAudioDetected = session.dimensionScores.length === 0 && !session.compositeScore;
+  const gatingNote = overallFeedback?.gatingNote;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-10">
@@ -97,6 +105,7 @@ export default function SessionDetailPage() {
         </button>
       </div>
 
+      {/* Session header card */}
       <div className="rounded-lg border border-gray-200 bg-white p-6">
         <div className="flex items-start justify-between">
           <div>
@@ -115,6 +124,12 @@ export default function SessionDetailPage() {
                   <span>
                     {Math.floor(session.durationSeconds / 60)}m {session.durationSeconds % 60}s
                   </span>
+                </>
+              )}
+              {methodologyVersion && (
+                <>
+                  <span>·</span>
+                  <span className="text-xs bg-gray-100 rounded px-1.5 py-0.5 font-mono">v{methodologyVersion}</span>
                 </>
               )}
             </div>
@@ -137,6 +152,7 @@ export default function SessionDetailPage() {
           )}
         </div>
 
+        {/* Notices */}
         {noAudioDetected && (
           <div className="mt-4 flex items-start gap-2 rounded border border-red-200 bg-red-50 p-3">
             <AlertTriangleIcon className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
@@ -144,6 +160,22 @@ export default function SessionDetailPage() {
               <p className="font-medium">No audio was detected in this recording.</p>
               <p className="mt-1">Your microphone was active but no speech reached the server. Please try again — speak clearly from the very start of the recording, and make sure your browser has microphone permission.</p>
             </div>
+          </div>
+        )}
+
+        {isLegacySession && !noAudioDetected && (
+          <div className="mt-4 flex items-start gap-2 rounded border border-gray-200 bg-gray-50 p-3">
+            <InfoIcon className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-gray-600">
+              <span className="font-medium">Scored under methodology v{methodologyVersion}.</span> This session used an earlier scoring model with different dimensions and tier thresholds. Scores are not directly comparable to sessions scored under v4.0.
+            </p>
+          </div>
+        )}
+
+        {gatingNote && !noAudioDetected && (
+          <div className="mt-4 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3">
+            <InfoIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-amber-800">{gatingNote}</p>
           </div>
         )}
 
@@ -170,12 +202,13 @@ export default function SessionDetailPage() {
           <div className="mt-3 flex items-start gap-2 rounded border border-orange-200 bg-orange-50 p-3">
             <AlertTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-orange-700">
-              <span className="font-medium">Limited response detected</span> — only ~{transcriptWordCount} words were transcribed. This feedback is based on a recording that did not fully address the prompt. Scores on Structure and Confidence Language may not be representative. Try recording a fuller response next time.
+              <span className="font-medium">Limited response detected</span> — only ~{transcriptWordCount} words were transcribed. Scores on Structure, Conciseness, and Confidence Language may not be representative. Try recording a fuller response next time.
             </p>
           </div>
         )}
       </div>
 
+      {/* Overall coaching summary */}
       {overallFeedback && !noAudioDetected && (
         <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
           <h2 className="font-semibold text-gray-900 text-lg">Overall coaching summary</h2>
@@ -227,12 +260,38 @@ export default function SessionDetailPage() {
         </div>
       )}
 
+      {/* Dimension feedback — grouped by pillar */}
       {!noAudioDetected && sortedDimensions.length > 0 && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <h2 className="font-semibold text-gray-900">Dimension feedback</h2>
-          {sortedDimensions.map((d) => (
-            <DimensionCard key={d.id} score={d} />
+          {dimensionsByPillar.map(({ pillar, dimensions }) => (
+            <div key={pillar.name} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  {pillar.name}
+                </h3>
+                <div className="flex-1 h-px bg-gray-100" />
+              </div>
+              {dimensions.map((d) => (
+                <DimensionCard key={d.id} score={d} />
+              ))}
+            </div>
           ))}
+          {/* Legacy sessions: any dimensions not in the pillar groupings */}
+          {(() => {
+            const allPillarDims = PILLARS.flatMap(p => p.dimensions);
+            const ungrouped = sortedDimensions.filter(d => !allPillarDims.includes(d.dimensionKey));
+            if (ungrouped.length === 0) return null;
+            return (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">Other</h3>
+                  <div className="flex-1 h-px bg-gray-100" />
+                </div>
+                {ungrouped.map(d => <DimensionCard key={d.id} score={d} />)}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -318,30 +377,68 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
     ? Math.round((new Set(words.map(w => w.toLowerCase().replace(/[^a-z]/g, ""))).size / wordCount) * 100)
     : null;
 
-  const paceRhythm = session.dimensionScores?.find(d => d.dimensionKey === "pace_rhythm");
-  const vocalClarity = session.dimensionScores?.find(d => d.dimensionKey === "vocal_clarity");
+  // v4.0: look up acoustic metrics from the new dimension keys
+  const intonationDim = session.dimensionScores?.find(d => d.dimensionKey === "intonation");
+  const breathDim = session.dimensionScores?.find(d => d.dimensionKey === "breath_control");
+  const paceDim = session.dimensionScores?.find(d => d.dimensionKey === "pace");
 
-  const pitchVariationScore: number | null = paceRhythm?.rawMetrics
-    ? (typeof (paceRhythm.rawMetrics as Record<string, unknown>).pitchVariationScore === "number"
-      ? (paceRhythm.rawMetrics as Record<string, unknown>).pitchVariationScore as number
+  // Also check legacy key names for backward compat with v3 sessions
+  const legacyPaceRhythm = session.dimensionScores?.find(d => d.dimensionKey === "pace_rhythm");
+  const legacyVocalClarity = session.dimensionScores?.find(d => d.dimensionKey === "vocal_clarity");
+
+  const pitchSource = intonationDim ?? legacyPaceRhythm;
+  const breathSource = breathDim ?? legacyVocalClarity;
+
+  const pitchVariationScore: number | null = pitchSource?.rawMetrics
+    ? (typeof (pitchSource.rawMetrics as Record<string, unknown>).pitchVariationScore === "number"
+      ? (pitchSource.rawMetrics as Record<string, unknown>).pitchVariationScore as number
       : null)
     : null;
 
-  const breathingScore: number | null = vocalClarity?.rawMetrics
-    ? (typeof (vocalClarity.rawMetrics as Record<string, unknown>).breathingScore === "number"
-      ? (vocalClarity.rawMetrics as Record<string, unknown>).breathingScore as number
+  const breathingScore: number | null = breathSource?.rawMetrics
+    ? (typeof (breathSource.rawMetrics as Record<string, unknown>).breathingScore === "number"
+      ? (breathSource.rawMetrics as Record<string, unknown>).breathingScore as number
       : null)
     : null;
 
-  const breathingObservation: string | null = vocalClarity?.rawMetrics
-    ? (typeof (vocalClarity.rawMetrics as Record<string, unknown>).breathingObservation === "string"
-      ? (vocalClarity.rawMetrics as Record<string, unknown>).breathingObservation as string
+  const breathingObservation: string | null = breathSource?.rawMetrics
+    ? (typeof (breathSource.rawMetrics as Record<string, unknown>).breathingObservation === "string"
+      ? (breathSource.rawMetrics as Record<string, unknown>).breathingObservation as string
+      : null)
+    : null;
+
+  // Context classification from pace raw metrics (v4.0+)
+  const contextCategory: number | null = paceDim?.rawMetrics
+    ? (typeof (paceDim.rawMetrics as Record<string, unknown>).contextCategory === "number"
+      ? (paceDim.rawMetrics as Record<string, unknown>).contextCategory as number
+      : null)
+    : null;
+  const contextLabel: string | null = paceDim?.rawMetrics
+    ? (typeof (paceDim.rawMetrics as Record<string, unknown>).contextLabel === "string"
+      ? (paceDim.rawMetrics as Record<string, unknown>).contextLabel as string
+      : null)
+    : null;
+  const idealWpmMin: number | null = paceDim?.rawMetrics
+    ? (typeof (paceDim.rawMetrics as Record<string, unknown>).idealWpmMin === "number"
+      ? (paceDim.rawMetrics as Record<string, unknown>).idealWpmMin as number
+      : null)
+    : null;
+  const idealWpmMax: number | null = paceDim?.rawMetrics
+    ? (typeof (paceDim.rawMetrics as Record<string, unknown>).idealWpmMax === "number"
+      ? (paceDim.rawMetrics as Record<string, unknown>).idealWpmMax as number
       : null)
     : null;
 
   type Status = "good" | "warn" | "poor";
 
   function wpmStatus(v: number): Status {
+    if (idealWpmMin !== null && idealWpmMax !== null) {
+      if (v >= idealWpmMin && v <= idealWpmMax) return "good";
+      const deviation = v < idealWpmMin ? idealWpmMin - v : v - idealWpmMax;
+      if (deviation <= 20) return "warn";
+      return "poor";
+    }
+    // Fallback: generic range
     if (v >= 120 && v <= 160) return "good";
     if ((v >= 100 && v < 120) || (v > 160 && v <= 185)) return "warn";
     return "poor";
@@ -407,18 +504,27 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
   }
 
   if (wpm !== null) {
+    const benchmarkLabel = idealWpmMin !== null && idealWpmMax !== null
+      ? `${idealWpmMin}–${idealWpmMax} WPM${contextLabel ? ` (${contextLabel})` : ""}`
+      : "120–160 WPM";
     metrics.push({
       label: "Speaking pace",
       value: `${wpm} WPM`,
-      benchmark: "120–160 WPM",
+      benchmark: benchmarkLabel,
       status: wpmStatus(wpm),
-      note: wpm < 120 ? "Too slow — may lose listener attention" : wpm > 160 ? "Too fast — may reduce comprehension" : "Within ideal range",
+      note: idealWpmMin !== null && idealWpmMax !== null
+        ? (wpm < idealWpmMin
+            ? `Below ideal for this context — try increasing your pace`
+            : wpm > idealWpmMax
+            ? `Above ideal for this context — consider slowing down on key points`
+            : "Within the ideal range for this context")
+        : (wpm < 120 ? "Too slow — may lose listener attention" : wpm > 160 ? "Too fast — may reduce comprehension" : "Within ideal range"),
     });
   }
 
   if (pitchVariationScore !== null) {
     metrics.push({
-      label: "Tonal variety",
+      label: "Pitch variation",
       value: `${pitchVariationScore}/5 — ${PITCH_LABELS[pitchVariationScore] ?? ""}`,
       benchmark: "4–5 (natural expressive variation)",
       status: score5Status(pitchVariationScore),
@@ -515,8 +621,11 @@ function DimensionCard({ score }: { score: DimensionScore }) {
             {score.score}
           </span>
           <span
-            className="rounded px-2 py-0.5 text-xs font-medium text-white"
-            style={{ backgroundColor: colors.hex }}
+            className="rounded px-2 py-0.5 text-xs font-medium"
+            style={{
+              backgroundColor: colors.hex,
+              color: score.tier === "Needs Focus" ? "#78736A" : "#fff",
+            }}
           >
             {score.tier}
           </span>

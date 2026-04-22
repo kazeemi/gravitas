@@ -13,7 +13,7 @@ import { sessionsTable } from "./sessions";
 export const dimensionScoresTable = pgTable("dimension_scores", {
   id: uuid("id").primaryKey().defaultRandom(),
   sessionId: uuid("session_id").notNull().references(() => sessionsTable.id, { onDelete: "cascade" }),
-  dimensionKey: varchar("dimension_key", { length: 30 }).notNull(),
+  dimensionKey: varchar("dimension_key", { length: 50 }).notNull(),
   score: integer("score").notNull(),
   tier: varchar("tier", { length: 15 }).notNull(),
   rawMetrics: jsonb("raw_metrics"),

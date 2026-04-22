@@ -140,6 +140,14 @@ function MetricDropdown({
   );
 }
 
+function scoreToTierColor(score: number | null): string {
+  if (score == null) return TIER_COLORS["Developing"].hex;
+  if (score >= 8.5) return TIER_COLORS["Distinguished"].hex;
+  if (score >= 6.5) return TIER_COLORS["Strong"].hex;
+  if (score >= 4.0) return TIER_COLORS["Developing"].hex;
+  return TIER_COLORS["Needs Focus"].hex;
+}
+
 // ─── Progress chart ────────────────────────────────────────────────────────────
 
 function ProgressChart({
@@ -218,13 +226,14 @@ function ProgressChart({
                 fill="url(#scoreGrad)"
                 dot={(props) => {
                   const { cx, cy, payload } = props;
+                  const color = scoreToTierColor(payload.score);
                   return (
                     <Dot
                       key={payload.id}
                       cx={cx}
                       cy={cy}
                       r={5}
-                      fill="#F0953E"
+                      fill={color}
                       stroke="#fff"
                       strokeWidth={2}
                       style={{ cursor: "pointer" }}
@@ -232,13 +241,21 @@ function ProgressChart({
                     />
                   );
                 }}
-                activeDot={{
-                  r: 7,
-                  fill: "#F0953E",
-                  stroke: "#fff",
-                  strokeWidth: 2,
-                  style: { cursor: "pointer" },
-                  onClick: (_e: unknown, data: unknown) => handleDotClick(data as { payload?: { id?: string } }),
+                activeDot={(props: { cx?: number; cy?: number; payload?: { id?: string; score?: number } }) => {
+                  const { cx, cy, payload } = props;
+                  const color = scoreToTierColor(payload?.score ?? null);
+                  return (
+                    <Dot
+                      cx={cx}
+                      cy={cy}
+                      r={7}
+                      fill={color}
+                      stroke="#fff"
+                      strokeWidth={2}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleDotClick({ payload })}
+                    />
+                  );
                 }}
               />
             </AreaChart>

@@ -90,18 +90,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-1">
-            <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: "Inter, sans-serif" }}>
-              Executive Presence
-            </h1>
-            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+            <img src="/gravitas-logo-light.png" alt="Gravitas" className="h-8 w-auto" />
+            <span
+              className="text-2xl font-semibold text-foreground"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+            >
+              Gravitas
+            </span>
+            <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
               Beta
             </span>
           </div>
-          <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
+          <p className="mt-1 text-sm text-muted-foreground">Executive Presence AI Coach</p>
+          <p className="text-xs text-muted-foreground">Sign in to your account</p>
         </div>
 
         {error && (

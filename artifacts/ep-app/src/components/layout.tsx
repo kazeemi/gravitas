@@ -17,16 +17,28 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-background">
       <nav className="hidden md:flex w-56 flex-col border-r border-border bg-sidebar px-3 py-6">
         <div className="mb-8 px-3">
-          <div className="flex items-center gap-2">
-            <h1
-              className="text-base font-semibold text-foreground"
-              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-            >Gravitas: 
-
-            Executive Presence AI Coach</h1>
-            <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
-              Beta
-            </span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <img
+                src="/gravitas-logo-light.png"
+                alt="Gravitas logo mark"
+                className="h-7 w-auto"
+              />
+              <span
+                className="text-xl font-semibold tracking-tight text-foreground"
+                style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+              >
+                Gravitas
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground leading-tight">
+                Executive Presence AI Coach
+              </p>
+              <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
+                Beta
+              </span>
+            </div>
           </div>
         </div>
         <div className="flex flex-1 flex-col gap-1">
@@ -60,12 +72,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div className="flex flex-1 flex-col">
         <header className="flex md:hidden items-center justify-between border-b border-border bg-sidebar px-4 py-3">
           <div className="flex items-center gap-2">
-            <h1
+            <img
+              src="/gravitas-logo-light.png"
+              alt="Gravitas logo mark"
+              className="h-5 w-auto"
+            />
+            <span
               className="text-sm font-semibold text-foreground"
               style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
-              Executive Presence
-            </h1>
+              Gravitas
+            </span>
             <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
               Beta
             </span>

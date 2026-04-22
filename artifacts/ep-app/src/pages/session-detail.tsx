@@ -413,12 +413,6 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
       : null)
     : null;
 
-  const breathingObservation: string | null = breathSource?.rawMetrics
-    ? (typeof (breathSource.rawMetrics as Record<string, unknown>).breathingObservation === "string"
-      ? (breathSource.rawMetrics as Record<string, unknown>).breathingObservation as string
-      : null)
-    : null;
-
   // Context classification from pace raw metrics (v4.0+)
   const contextCategory: number | null = paceDim?.rawMetrics
     ? (typeof (paceDim.rawMetrics as Record<string, unknown>).contextCategory === "number"
@@ -549,7 +543,6 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
       value: `${breathingScore}/5 — ${BREATH_LABELS[breathingScore] ?? ""}`,
       benchmark: "4–5 (controlled, relaxed breath support)",
       status: score5Status(breathingScore),
-      note: breathingObservation ?? undefined,
     });
   }
 

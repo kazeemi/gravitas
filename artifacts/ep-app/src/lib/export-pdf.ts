@@ -320,7 +320,6 @@ function buildMetricsRows(session: SessionDetail): MetricRow[] {
   const rm = (d: typeof paceDim) => d?.rawMetrics as Record<string, unknown> | undefined;
   const pitchVariationScore = typeof rm(pitchSource)?.pitchVariationScore === "number" ? rm(pitchSource)!.pitchVariationScore as number : null;
   const breathingScore = typeof rm(breathSource)?.breathingScore === "number" ? rm(breathSource)!.breathingScore as number : null;
-  const breathingObservation = typeof rm(breathSource)?.breathingObservation === "string" ? rm(breathSource)!.breathingObservation as string : null;
   const idealWpmMin = typeof rm(paceDim)?.idealWpmMin === "number" ? rm(paceDim)!.idealWpmMin as number : null;
   const idealWpmMax = typeof rm(paceDim)?.idealWpmMax === "number" ? rm(paceDim)!.idealWpmMax as number : null;
   const contextLabel = typeof rm(paceDim)?.contextLabel === "string" ? rm(paceDim)!.contextLabel as string : null;
@@ -362,7 +361,7 @@ function buildMetricsRows(session: SessionDetail): MetricRow[] {
     rows.push({ label: "Pitch variation", value: `${pitchVariationScore}/5 — ${PITCH_LABELS[pitchVariationScore] ?? ""}`, benchmark: "4–5 (natural expressive variation)", statusColor: pitchVariationScore >= 4 ? GOOD_COLOR : pitchVariationScore === 3 ? WARN_COLOR : POOR_COLOR });
   }
   if (breathingScore !== null) {
-    rows.push({ label: "Breath control", value: `${breathingScore}/5 — ${BREATH_LABELS[breathingScore] ?? ""}`, benchmark: "4–5 (controlled, relaxed breath support)", statusColor: breathingScore >= 4 ? GOOD_COLOR : breathingScore === 3 ? WARN_COLOR : POOR_COLOR, note: breathingObservation ?? undefined });
+    rows.push({ label: "Breath control", value: `${breathingScore}/5 — ${BREATH_LABELS[breathingScore] ?? ""}`, benchmark: "4–5 (controlled, relaxed breath support)", statusColor: breathingScore >= 4 ? GOOD_COLOR : breathingScore === 3 ? WARN_COLOR : POOR_COLOR });
   }
   if (fillerRate !== null) {
     rows.push({ label: "Filler word rate", value: fillerCount === 0 ? "None detected" : `${fillerRate}/min (${fillerCount} total)`, benchmark: "< 1 per minute", statusColor: fillerRate < 1 ? GOOD_COLOR : fillerRate < 3 ? WARN_COLOR : POOR_COLOR });

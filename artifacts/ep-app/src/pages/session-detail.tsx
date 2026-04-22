@@ -611,9 +611,9 @@ function DimensionCard({ score }: { score: DimensionScore }) {
     <div className="rounded-lg border border-gray-200 bg-white p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="font-medium text-gray-900">{label}</h3>
+          <h3 className="font-semibold text-base text-[#0F1B2D]">{label}</h3>
           {description && (
-            <p className="mt-0.5 text-xs text-gray-400 leading-snug">{description}</p>
+            <p className="mt-0.5 text-sm text-gray-600 leading-snug">{description}</p>
           )}
         </div>
         <div className="flex flex-shrink-0 items-center gap-2">
@@ -624,7 +624,7 @@ function DimensionCard({ score }: { score: DimensionScore }) {
             className="rounded px-2 py-0.5 text-xs font-medium"
             style={{
               backgroundColor: colors.hex,
-              color: score.tier === "Needs Focus" ? "#78736A" : "#fff",
+              color: "#fff",
             }}
           >
             {score.tier}

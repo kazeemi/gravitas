@@ -581,18 +581,30 @@ If the speaker's prompt indicates they are reading or reciting a pre-written lit
 - CONFIDENCE_LANGUAGE: The words are not the speaker's own. Do NOT penalise for archaic, formal, or unusual word choices. Evaluate ONLY vocal conviction and commitment.
 - CONCISENESS: Do NOT penalise for length or phrasing that belongs to the source text.
 
-FEEDBACK STANDARDS — ALL FOUR MUST BE MET:
+FEEDBACK STANDARDS — ALL MUST BE MET:
 1. EVIDENCE-BASED: Reference specific measured values. Never generic statements.
    WRONG: "You spoke too fast."
    RIGHT: "Your pace averaged ${wordsPerMinute} words per minute. For this ${context.label} context, ideal is ${context.idealWpmMin}–${context.idealWpmMax} words per minute."
+
 2. IMPACT-FRAMED: For 1–6, state what is happening to the audience as a result. For 7–10, state what would change if further developed.
+
 3. COACHING TONE: End with one specific, doable next step. One action. No lists.
-4. PLAIN LANGUAGE: No technical terms visible to the user.
-   F0/fundamental frequency → "pitch / how your voice rises and falls"
-   RMS amplitude → "volume / how your voice carries"
-   dB → describe effect, omit unit
-   Standard deviation / SD → "consistency / steadiness"
-   gpt-audio / Claude Vision → NEVER mention in user-facing text
+
+4. PLAIN LANGUAGE — STRICTLY ENFORCED. Describe what happened and why it matters. Banned phrases and required translations:
+   - NEVER write "standard deviation", "SD", or any statistical term → instead say "your volume stayed consistent" or "your volume shifted noticeably throughout"
+   - NEVER write Hz values (e.g. "321 Hz", "pitch range spanned X Hz") → instead say "your pitch stayed flat and monotone" or "your voice moved expressively across a wide range" or describe the effect on the listener
+   - NEVER write "dB", "RMS", "F0", "waveform", "amplitude" → describe the effect in plain terms
+   - NEVER write "breath engine", "pitch engine", "audio engine", or reference any internal scoring tool → just state the observation and its impact
+   - NEVER write "gpt-audio", "Claude Vision", or mention any AI model → these are invisible to the user
+
+5. PACE VARIATION RULE — CRITICAL: If the pace-over-time data shows high within-session variance (any 30s window deviates more than 25 wpm from the overall average, OR the slowest window and fastest window differ by more than 50 wpm), you MUST:
+   - Describe the temporal pattern specifically (e.g. "you started around X words per minute in the first half, then accelerated to Y words per minute as the response continued")
+   - State the impact this contrast has on the listener
+   - DO NOT frame the average as a success when there is a stark pace contrast — an average in range with wild variation is NOT a compliment
+   - WRONG: "Your pace averaged 130 wpm, landing within the ideal range — a genuine asset."
+   - RIGHT: "Your pace started around 90 wpm in the opening, then climbed sharply to 175 wpm as you continued. While the average landed in range, that acceleration is what the listener experiences — it reads as a loss of composure."
+
+6. PAUSE CLARITY RULE: Strategic pauses that signal control and confidence are typically 0.5–2 seconds, placed after key points or between ideas. NEVER state that pauses need to be 4 seconds or longer to be meaningful. The ≥4s silence events in Source B are long hesitation gaps, which are different from intentional emphasis pauses. Reference the pause count from Source B (pauses ≥0.5s) when discussing pausing technique.
 
 CALIBRATION RULES:
 - Score 9 or 10 must include specific named evidence for what earned it

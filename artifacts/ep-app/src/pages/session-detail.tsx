@@ -12,8 +12,11 @@ import {
   TrendingDownIcon,
   ZapIcon,
   InfoIcon,
+  DownloadIcon,
 } from "lucide-react";
 import { format } from "date-fns";
+import { useAuth } from "@/lib/auth-context";
+import { downloadSessionPdf } from "@/lib/export-pdf";
 
 interface OverallFeedback {
   strengths?: string;
@@ -38,6 +41,7 @@ export default function SessionDetailPage() {
   const [error, setError] = useState("");
   const [showTranscript, setShowTranscript] = useState(false);
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     if (!id) return;
@@ -95,13 +99,21 @@ export default function SessionDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-10">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between">
         <button
           onClick={() => setLocation("/dashboard")}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
         >
           <ChevronLeftIcon className="h-4 w-4" />
           Back to Dashboard
+        </button>
+        <button
+          onClick={() => downloadSessionPdf(session, user?.name ?? null)}
+          title="Download PDF report"
+          className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+        >
+          <DownloadIcon className="h-3.5 w-3.5" />
+          Export PDF
         </button>
       </div>
 

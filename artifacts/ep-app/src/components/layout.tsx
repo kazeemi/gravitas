@@ -31,9 +31,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-xs text-muted-foreground leading-tight">
-                Executive Presence AI Coach
-              </p>
+              <p className="text-xs text-muted-foreground leading-tight font-bold">Executive Presence <br>
+              AI Coach</p>
               <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
                 Beta
               </span>

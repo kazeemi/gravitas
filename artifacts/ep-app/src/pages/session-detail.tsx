@@ -60,8 +60,8 @@ export default function SessionDetailPage() {
     return (
       <div className="py-20 text-center">
         <p className="text-sm text-gray-500">{error || "Session not found"}</p>
-        <Button className="mt-4" variant="outline" onClick={() => setLocation("/history")}>
-          Back to history
+        <Button className="mt-4" variant="outline" onClick={() => setLocation("/dashboard")}>
+          Back to Dashboard
         </Button>
       </div>
     );
@@ -97,11 +97,11 @@ export default function SessionDetailPage() {
     <div className="max-w-3xl mx-auto space-y-6 pb-10">
       <div className="flex items-center gap-3">
         <button
-          onClick={() => setLocation("/history")}
+          onClick={() => setLocation("/dashboard")}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
         >
           <ChevronLeftIcon className="h-4 w-4" />
-          History
+          Back to Dashboard
         </button>
       </div>
 

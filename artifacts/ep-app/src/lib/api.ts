@@ -113,6 +113,7 @@ export const api = {
     status: (id: string) =>
       request<{ id: string; processingStatus: string; processingError?: string }>(`/v1/sessions/${id}/status`),
     progress: () => request<{ sessions: SessionSummary[] }>("/v1/sessions/progress"),
+    chart: () => request<{ sessions: ChartSession[] }>("/v1/sessions/chart"),
     testAudio: () => request("/v1/sessions/test-audio", { method: "POST" }),
     testVideo: () => request("/v1/sessions/test-video", { method: "POST" }),
   },
@@ -171,6 +172,16 @@ export interface UploadData {
   videoDownloaded?: boolean;
   durationSeconds?: number;
   transcript?: string;
+}
+
+export interface ChartSession {
+  id: string;
+  createdAt: string;
+  compositeScore: string | null;
+  compositeTier: string | null;
+  promptText: string | null;
+  mode: string;
+  dimensions: Record<string, number>;
 }
 
 export interface Prompt {

@@ -1,21 +1,275 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { api, type SessionSummary } from "@/lib/api";
-import { getTierColors, TIER_COLORS } from "@/lib/tier-colors";
+import { api, type SessionSummary, type ChartSession } from "@/lib/api";
+import { getTierColors, PILLARS, DIMENSION_LABELS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
-import { MicIcon, VideoIcon, TrendingUpIcon, PlusIcon, ChevronRightIcon } from "lucide-react";
+import {
+  MicIcon,
+  VideoIcon,
+  TrendingUpIcon,
+  PlusIcon,
+  ChevronRightIcon,
+  ChevronDownIcon,
+} from "lucide-react";
 import { format } from "date-fns";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  Dot,
+} from "recharts";
+
+// ─── Metric options ────────────────────────────────────────────────────────────
+
+type MetricOption =
+  | { kind: "composite" }
+  | { kind: "pillar"; pillarName: string; dims: string[] }
+  | { kind: "dimension"; dimKey: string };
+
+function getMetricLabel(m: MetricOption): string {
+  if (m.kind === "composite") return "Composite Score";
+  if (m.kind === "pillar") return m.pillarName;
+  return DIMENSION_LABELS[m.dimKey] || m.dimKey;
+}
+
+function getScore(session: ChartSession, metric: MetricOption): number | null {
+  if (metric.kind === "composite") {
+    const v = parseFloat(session.compositeScore || "");
+    return isNaN(v) ? null : v;
+  }
+  if (metric.kind === "pillar") {
+    const scores = metric.dims
+      .map(k => session.dimensions[k])
+      .filter((v): v is number => v != null);
+    if (scores.length === 0) return null;
+    return parseFloat((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2));
+  }
+  const v = session.dimensions[metric.dimKey];
+  return v != null ? v : null;
+}
+
+// ─── Custom tooltip ────────────────────────────────────────────────────────────
+
+function ChartTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: { payload: { label: string; score: number | null; tier: string | null } }[];
+}) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  if (d.score == null) return null;
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-md text-sm">
+      <p className="font-medium text-[#0F1B2D]">{d.score.toFixed(1)} / 10</p>
+      {d.tier && <p className="text-xs text-gray-500">{d.tier}</p>}
+      <p className="mt-1 text-xs text-gray-400 max-w-[160px] truncate">{d.label}</p>
+    </div>
+  );
+}
+
+// ─── Metric dropdown ───────────────────────────────────────────────────────────
+
+function MetricDropdown({
+  value,
+  onChange,
+}: {
+  value: MetricOption;
+  onChange: (m: MetricOption) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const handleSelect = (m: MetricOption) => {
+    onChange(m);
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:border-gray-400 transition-colors"
+      >
+        {getMetricLabel(value)}
+        <ChevronDownIcon className="h-3.5 w-3.5 text-gray-400" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-20 mt-1 w-56 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+            <button
+              onClick={() => handleSelect({ kind: "composite" })}
+              className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 ${value.kind === "composite" ? "font-semibold text-[#0F1B2D]" : "text-gray-700"}`}
+            >
+              Composite Score
+            </button>
+
+            <div className="my-1 border-t border-gray-100" />
+
+            {PILLARS.map(pillar => (
+              <div key={pillar.name}>
+                <button
+                  onClick={() => handleSelect({ kind: "pillar", pillarName: pillar.name, dims: pillar.dimensions })}
+                  className={`w-full px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-wide hover:bg-gray-50 ${value.kind === "pillar" && (value as { kind: "pillar"; pillarName: string }).pillarName === pillar.name ? "text-[#0F1B2D]" : "text-gray-500"}`}
+                >
+                  {pillar.name}
+                </button>
+                {pillar.dimensions.map(dimKey => (
+                  <button
+                    key={dimKey}
+                    onClick={() => handleSelect({ kind: "dimension", dimKey })}
+                    className={`w-full px-5 py-1.5 text-left text-sm hover:bg-gray-50 ${value.kind === "dimension" && (value as { kind: "dimension"; dimKey: string }).dimKey === dimKey ? "font-medium text-[#0F1B2D]" : "text-gray-600"}`}
+                  >
+                    {DIMENSION_LABELS[dimKey] || dimKey}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ─── Progress chart ────────────────────────────────────────────────────────────
+
+function ProgressChart({
+  chartSessions,
+  onSessionClick,
+}: {
+  chartSessions: ChartSession[];
+  onSessionClick: (id: string) => void;
+}) {
+  const [metric, setMetric] = useState<MetricOption>({ kind: "composite" });
+
+  const chartData = [...chartSessions]
+    .reverse()
+    .map((s, i) => ({
+      index: i,
+      id: s.id,
+      label: s.promptText || `${s.mode} session`,
+      date: format(new Date(s.createdAt), "MMM d"),
+      score: getScore(s, metric),
+      tier: s.compositeTier,
+    }))
+    .filter(d => d.score != null);
+
+  const handleDotClick = useCallback(
+    (data: { payload?: { id?: string } }) => {
+      if (data?.payload?.id) onSessionClick(data.payload.id);
+    },
+    [onSessionClick]
+  );
+
+  const isEmpty = chartData.length === 0;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white">
+      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+        <h2 className="font-semibold text-gray-900">Progress over time</h2>
+        <MetricDropdown value={metric} onChange={setMetric} />
+      </div>
+
+      {isEmpty ? (
+        <div className="px-6 py-10 text-center text-sm text-gray-400">
+          No data yet for this metric — complete a session to begin tracking.
+        </div>
+      ) : (
+        <div className="px-2 py-4">
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 16, left: -16, bottom: 0 }}>
+              <defs>
+                <linearGradient id="scoreGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#F0953E" stopOpacity={0.18} />
+                  <stop offset="95%" stopColor="#F0953E" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                domain={[0, 10]}
+                ticks={[0, 2, 4, 6, 8, 10]}
+                tick={{ fontSize: 11, fill: "#9CA3AF" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <Tooltip content={<ChartTooltip />} />
+              <ReferenceLine y={6.5} stroke="#C84A18" strokeDasharray="4 2" strokeWidth={1} label={{ value: "Strong", position: "right", fontSize: 10, fill: "#C84A18" }} />
+              <ReferenceLine y={8.5} stroke="#0F1B2D" strokeDasharray="4 2" strokeWidth={1} label={{ value: "Distinguished", position: "right", fontSize: 10, fill: "#0F1B2D" }} />
+              <Area
+                type="monotone"
+                dataKey="score"
+                stroke="#F0953E"
+                strokeWidth={2}
+                fill="url(#scoreGrad)"
+                dot={(props) => {
+                  const { cx, cy, payload } = props;
+                  return (
+                    <Dot
+                      key={payload.id}
+                      cx={cx}
+                      cy={cy}
+                      r={5}
+                      fill="#F0953E"
+                      stroke="#fff"
+                      strokeWidth={2}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => handleDotClick({ payload })}
+                    />
+                  );
+                }}
+                activeDot={{
+                  r: 7,
+                  fill: "#F0953E",
+                  stroke: "#fff",
+                  strokeWidth: 2,
+                  style: { cursor: "pointer" },
+                  onClick: (_e: unknown, data: unknown) => handleDotClick(data as { payload?: { id?: string } }),
+                }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+          <p className="mt-1 text-center text-xs text-gray-400">
+            Click any point to open that session
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
+  const [chartSessions, setChartSessions] = useState<ChartSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    api.sessions.list()
-      .then(({ sessions }) => setSessions(sessions))
+    Promise.all([
+      api.sessions.list().then(({ sessions }) => sessions),
+      api.sessions.chart().then(({ sessions }) => sessions).catch(() => [] as ChartSession[]),
+    ])
+      .then(([list, chart]) => {
+        setSessions(list);
+        setChartSessions(chart);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -65,6 +319,13 @@ export default function DashboardPage() {
         />
       </div>
 
+      {!loading && chartSessions.length > 0 && (
+        <ProgressChart
+          chartSessions={chartSessions}
+          onSessionClick={id => setLocation(`/sessions/${id}`)}
+        />
+      )}
+
       <div className="rounded-lg border border-gray-200 bg-white">
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
           <h2 className="font-semibold text-gray-900">Recent sessions</h2>
@@ -98,19 +359,21 @@ export default function DashboardPage() {
         <ActionCard
           icon={<MicIcon className="h-5 w-5" />}
           title="Audio session"
-          description="Record and analyze your vocal delivery across 6 dimensions"
+          description="Record and analyze your vocal delivery"
           onClick={() => setLocation("/record?mode=audio")}
         />
         <ActionCard
           icon={<VideoIcon className="h-5 w-5" />}
           title="Video session"
-          description="Full 10-dimension analysis including body language and eye contact"
+          description="Full 15-dimension analysis including body language and eye contact"
           onClick={() => setLocation("/record?mode=video")}
         />
       </div>
     </div>
   );
 }
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
 
 function StatCard({
   label,

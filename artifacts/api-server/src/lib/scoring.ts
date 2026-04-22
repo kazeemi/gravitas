@@ -596,6 +596,7 @@ FEEDBACK STANDARDS — ALL MUST BE MET:
    - NEVER write "dB", "RMS", "F0", "waveform", "amplitude" → describe the effect in plain terms
    - NEVER write "breath engine", "pitch engine", "audio engine", or reference any internal scoring tool → just state the observation and its impact
    - NEVER write "gpt-audio", "Claude Vision", or mention any AI model → these are invisible to the user
+   - NEVER write "4 seconds or longer", "≥4s", or any specific second threshold when describing pauses to the user → say "extended silence", "long pauses", or "silence mid-speech" instead
 
 5. PACE VARIATION RULE — CRITICAL: If the pace-over-time data shows high within-session variance (any 30s window deviates more than 25 wpm from the overall average, OR the slowest window and fastest window differ by more than 50 wpm), you MUST:
    - Describe the temporal pattern specifically (e.g. "you started around X words per minute in the first half, then accelerated to Y words per minute as the response continued")

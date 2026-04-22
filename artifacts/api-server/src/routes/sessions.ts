@@ -1,6 +1,6 @@
 import { Router } from "express";
 import multer from "multer";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { requireAuth } from "../lib/auth.js";
 import { logger } from "../lib/logger.js";
@@ -49,6 +49,41 @@ router.get("/v1/sessions/progress", requireAuth, async (req, res) => {
     .orderBy(desc(sessionsTable.createdAt))
     .limit(20);
   return res.json({ sessions });
+});
+
+router.get("/v1/sessions/chart", requireAuth, async (req, res) => {
+  const sessions = await db
+    .select()
+    .from(sessionsTable)
+    .where(and(eq(sessionsTable.userId, req.user!.userId), eq(sessionsTable.processingStatus, "complete")))
+    .orderBy(desc(sessionsTable.createdAt))
+    .limit(50);
+
+  if (sessions.length === 0) return res.json({ sessions: [] });
+
+  const sessionIds = sessions.map(s => s.id);
+  const allDimensions = await db
+    .select()
+    .from(dimensionScoresTable)
+    .where(inArray(dimensionScoresTable.sessionId, sessionIds));
+
+  const dimsBySession = new Map<string, Record<string, number>>();
+  for (const dim of allDimensions) {
+    if (!dimsBySession.has(dim.sessionId)) dimsBySession.set(dim.sessionId, {});
+    dimsBySession.get(dim.sessionId)![dim.dimensionKey] = dim.score;
+  }
+
+  return res.json({
+    sessions: sessions.map(s => ({
+      id: s.id,
+      createdAt: s.createdAt,
+      compositeScore: s.compositeScore,
+      compositeTier: s.compositeTier,
+      promptText: s.promptText,
+      mode: s.mode,
+      dimensions: dimsBySession.get(s.id) || {},
+    })),
+  });
 });
 
 router.get("/v1/sessions/:id", requireAuth, async (req, res) => {

@@ -382,9 +382,9 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
   };
 
   const STATUS_COLORS: Record<Status, { text: string }> = {
-    good: { text: "text-[#0F6E56]" },
-    warn: { text: "text-[#BA7517]" },
-    poor: { text: "text-[#E24B4A]" },
+    good: { text: "text-[#C84A18]" },
+    warn: { text: "text-[#F0953E]" },
+    poor: { text: "text-[#78736A]" },
   };
 
   const metrics: {

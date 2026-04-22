@@ -35,10 +35,10 @@ export default function ProgressPage() {
   }));
 
   const tierBands = [
-    { y: 1, label: "Needs Focus", color: "#E24B4A" },
-    { y: 4, label: "Developing", color: "#BA7517" },
-    { y: 6, label: "Strong", color: "#0F6E56" },
-    { y: 8, label: "Distinguished", color: "#534AB7" },
+    { y: 1, label: "Needs Focus", color: "#78736A" },
+    { y: 4, label: "Developing", color: "#F0953E" },
+    { y: 6, label: "Strong", color: "#C84A18" },
+    { y: 8, label: "Distinguished", color: "#0F1B2D" },
   ];
 
   return (
@@ -131,10 +131,10 @@ export default function ProgressPage() {
 
 function TierLegend() {
   const tiers = [
-    { name: "Needs Focus", range: "1–3", hex: "#E24B4A" },
-    { name: "Developing", range: "4–5", hex: "#BA7517" },
-    { name: "Strong", range: "6–7", hex: "#0F6E56" },
-    { name: "Distinguished", range: "8–10", hex: "#534AB7" },
+    { name: "Needs Focus", range: "1–3", dotColor: "#EDE8E2", textColor: "#78736A" },
+    { name: "Developing", range: "4–5", dotColor: "#F0953E", textColor: "#F0953E" },
+    { name: "Strong", range: "6–7", dotColor: "#C84A18", textColor: "#C84A18" },
+    { name: "Distinguished", range: "8–10", dotColor: "#0F1B2D", textColor: "#0F1B2D" },
   ];
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-5">
@@ -143,11 +143,11 @@ function TierLegend() {
         {tiers.map(t => (
           <div key={t.name} className="flex items-center gap-2">
             <span
-              className="h-3 w-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: t.hex }}
+              className="h-3 w-3 rounded-full flex-shrink-0 border"
+              style={{ backgroundColor: t.dotColor, borderColor: t.textColor }}
             />
             <div>
-              <p className="text-sm font-medium" style={{ color: t.hex }}>{t.name}</p>
+              <p className="text-sm font-medium" style={{ color: t.textColor }}>{t.name}</p>
               <p className="text-xs text-gray-400">{t.range}/10</p>
             </div>
           </div>

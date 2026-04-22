@@ -79,7 +79,7 @@ export default function SettingsPage() {
             <Button type="submit" disabled={saving}>
               {saving ? "Saving…" : "Save changes"}
             </Button>
-            {saved && <span className="text-sm text-[#0F6E56]">Saved!</span>}
+            {saved && <span className="text-sm text-[#C84A18]">Saved!</span>}
           </div>
         </form>
       </section>

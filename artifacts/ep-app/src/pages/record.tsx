@@ -803,7 +803,7 @@ export default function RecordPage() {
                 <MicIcon
                   className={`h-10 w-10 ${
                     recordingState === "recording"
-                      ? silenceWarning ? "text-red-600" : "text-[#E24B4A]"
+                      ? silenceWarning ? "text-[#C84A18]" : "text-[#F0953E]"
                       : "text-gray-400"
                   }`}
                 />
@@ -821,7 +821,7 @@ export default function RecordPage() {
                         ? "bg-red-400"
                         : audioLevel < 40
                         ? "bg-amber-400"
-                        : "bg-[#0F6E56]"
+                        : "bg-[#C84A18]"
                     }`}
                     style={{ width: `${Math.max(2, audioLevel)}%` }}
                   />
@@ -981,7 +981,7 @@ export default function RecordPage() {
                 return (
                   <div key={label} className="flex items-center gap-3">
                     <div className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-                      done ? "bg-[#0F6E56] text-white" : active ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-400"
+                      done ? "bg-[#C84A18] text-white" : active ? "bg-[#0F1B2D] text-white" : "bg-gray-100 text-gray-400"
                     }`}>
                       {done ? (
                         <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -1005,7 +1005,7 @@ export default function RecordPage() {
       })()}
       {step === "done" && sessionId && (
         <div className="space-y-4 text-center py-12">
-          <CheckCircleIcon className="mx-auto h-12 w-12 text-[#0F6E56]" />
+          <CheckCircleIcon className="mx-auto h-12 w-12 text-[#C84A18]" />
           <p className="text-lg font-semibold text-gray-900">Analysis complete!</p>
           <p className="text-sm text-gray-500">Your personalized coaching feedback is ready.</p>
           <Button onClick={() => setLocation(`/sessions/${sessionId}`)}>View results</Button>

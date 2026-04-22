@@ -1,0 +1,2082 @@
+================================================================================
+EXECUTIVE PRESENCE COACHING PLATFORM
+SCORING METHODOLOGY v4.0
+================================================================================
+This document is the single source of truth for all scoring logic, dimension
+definitions, signal sources, coaching feedback standards, composite
+calculation, and gating rules. Every decision the scoring engine makes must
+trace back to this document. Any ambiguity is resolved by returning to these
+definitions — never by inference or assumption.
+
+================================================================================
+SECTION 1 — CRITICAL IMPLEMENTATION RULES
+================================================================================
+
+1.1 SIGNAL SOURCES — NON-NEGOTIABLE
+--------------------------------------------------------------------------------
+Every dimension is scored from one designated source only. Using a different
+source — even as a supplement — is a scoring error.
+
+SOURCE A: gpt-audio acoustic analysis
+  Used for: Articulation, Projection, Vocal Tone, Vocal Steadiness,
+            Intonation, Breath Control, Confidence Language (vocal
+            delivery of phrases), Filler Words (sub-signal)
+
+SOURCE B: Audio waveform numeric signals
+  Used for: Pace (WPM overall, WPM per window, rush events),
+            Pausing (pause count, duration, placement),
+            Intonation (F0 min, F0 max, F0 SD),
+            Projection (RMS amplitude mean and SD),
+            Vocal Steadiness (F0 SD, RMS SD)
+
+SOURCE C: gpt-4o-mini-transcribe transcript
+  Used for: Structure, Conciseness, Confidence Language (phrase
+            identification), Context classification (prompt text only —
+            never the session transcript)
+
+SOURCE D: Claude Vision video frame analysis
+  Used for: Eye Contact, Facial Expression, Gestures, Posture
+
+THE TRANSCRIPT MUST NEVER BE USED FOR:
+  Articulation, Projection, Vocal Tone, Vocal Steadiness, Intonation,
+  Pace, Pausing, Breath Control. These are audio signal dimensions.
+  Reading the transcript to infer how the speaker sounded is a
+  scoring error that will produce inconsistent results.
+
+VIDEO FRAMES MUST NEVER BE USED FOR:
+  Any audio dimension. Observing that a speaker looks nervous does
+  not score Vocal Steadiness. Observing hand movements does not
+  score Breath Control.
+
+FILLER WORD CAVEAT:
+  Filler words are detected by gpt-audio from the acoustic signal.
+  This is reliable for clearly-spoken fillers. Soft or swallowed
+  filler sounds may occasionally be missed. The count is a reliable
+  estimate, not an exact integer. Score anchors are written in ranges
+  to account for this margin. The transcript-derived regex count is
+  calculated by the system but must be discarded. The gpt-audio count
+  is authoritative.
+
+1.2 FEEDBACK STANDARDS — ALL FOUR MUST BE MET
+--------------------------------------------------------------------------------
+Every dimension coaching output must meet all four standards.
+If any standard is not met, the feedback must be regenerated.
+
+STANDARD 1 — EVIDENCE BASED:
+  Reference a specific measured value from this session.
+  Never use generic observations.
+  WRONG: "You spoke too fast."
+  RIGHT: "Your pace averaged 182 words per minute. For a difficult
+  conversation context, the ideal range is 110–135 words per minute."
+
+STANDARD 2 — IMPACT FRAMED:
+  For scores 1–6: state what is happening to the audience right now
+  as a result of this signal.
+  "At 182 words per minute in a sensitive conversation, your audience
+  is processing your speed rather than your message. The gravity this
+  moment calls for is not coming through in your delivery."
+
+  For scores 7–10: state what would change if the speaker develops
+  this further.
+  "You are already controlling your pace well at 138 words per minute.
+  If you add deliberate deceleration on every key recommendation —
+  not just the headline — your audience will feel the weight of each
+  point individually, not just the main one."
+
+STANDARD 3 — COACHING TONE:
+  End with one specific, doable next step. Not a list. One action.
+  Sized for a single practice session. Encouraging without being
+  hollow — no positive statement without evidence to support it.
+  WRONG: "Great work on your pace — keep it up!"
+  RIGHT: "Your pace control is a genuine strength at 138 words per
+  minute. Before your next session, record 90 seconds on a complex
+  topic and consciously slow below 120 words per minute on every
+  sentence containing a recommendation. Listen back and notice how
+  the weight of each point changes."
+
+STANDARD 4 — PLAIN LANGUAGE:
+  No technical terms visible to the user.
+
+  F0 / fundamental frequency  →  pitch / how your voice rises and falls
+  Hz                          →  describe the effect, omit the unit
+  RMS amplitude               →  volume / how your voice carries
+  dB                          →  describe the effect, omit the unit
+  Standard deviation / SD     →  consistency / variation / steadiness
+  WPM                         →  words per minute (spell out first use)
+  Filler words per minute     →  how often filler words appear
+  ASR confidence              →  clarity / how clearly each word landed
+  Mid-clause pause            →  pausing mid-thought
+  Boundary pause              →  pausing between ideas
+  F0 SD                       →  pitch consistency
+  RMS SD                      →  volume consistency
+  gpt-audio / Claude Vision   →  never mentioned in user-facing text
+
+================================================================================
+SECTION 2 — SESSION REQUIREMENTS
+================================================================================
+
+MINIMUM ACTIVE SPEECH: 60 seconds (silence excluded from calculation)
+MAXIMUM SESSION LENGTH: 10 minutes
+BELOW MINIMUM: Return "Insufficient data — please record at least 60
+  seconds of speech." No dimension scores. No composite. No feedback.
+
+AUDIO QUALITY FLAG:
+  If overall ASR confidence falls below 70%, attach to all audio results:
+  "Audio quality was lower than ideal. Scores may be less precise.
+  Try recording in a quieter environment with your microphone closer."
+  Score with available data. Do not withhold scores.
+
+VIDEO QUALITY THRESHOLD:
+  Face must be detectable for at least 80% of recording duration.
+  Below 80%: switch to audio-only mode automatically.
+  Notify user: "Your face was not clearly visible for enough of this
+  recording to score your Physical Delivery dimensions. These have been
+  marked as unavailable. Ensure your face is fully in frame throughout
+  your next session."
+  Do not attempt to score video dimensions on insufficient frame data.
+
+================================================================================
+SECTION 3 — CONTEXT CLASSIFICATION
+================================================================================
+
+Before scoring any dimension, the AI reads the prompt text and classifies
+the session into one of five communication context categories. This
+classification determines the ideal WPM range for the Pace dimension and
+is referenced explicitly in coaching feedback so the user understands
+which standard was applied to their session.
+
+Classification uses the prompt text only — never the session transcript.
+
+If classification is ambiguous: default to Category 5 (Conversational).
+State in feedback: "This prompt was classified as conversational. If you
+were practising a different context, resubmit with a more specific prompt
+and the scoring standard will adjust accordingly."
+
+CATEGORY 1: HIGH ENERGY / VISION / INSPIRATION
+  Examples: vision statements, motivational address, rallying a team,
+            announcing a bold strategic direction, inspiring action
+  Ideal WPM: 145–175
+
+CATEGORY 2: FORMAL PRESENTATION / SENIOR STAKEHOLDER
+  Examples: board presentation, investor pitch, executive update,
+            C-suite briefing, formal report-out to leadership
+  Ideal WPM: 120–145
+
+CATEGORY 3: ANALYTICAL / TECHNICAL / COMPLEX
+  Examples: technical explanation, data walkthrough, strategic analysis,
+            detailed recommendation with supporting rationale,
+            complex problem framing
+  Ideal WPM: 115–145
+
+CATEGORY 4: DIFFICULT CONVERSATION / SENSITIVE
+  Examples: delivering feedback, managing conflict, sharing difficult
+            news, sensitive personnel conversations, apologies,
+            addressing underperformance
+  Ideal WPM: 110–135
+
+CATEGORY 5: CONVERSATIONAL / IMPROMPTU / INTERVIEW
+  Examples: everyday professional exchange, impromptu questions,
+            interview answers, corridor conversations, informal updates,
+            competency questions
+  Ideal WPM: 130–160
+
+================================================================================
+SECTION 4 — SCORING TIERS
+================================================================================
+
+  Score 1–3   |  Needs Work      — Signals are absent, severely deficient,
+               |                    or actively undermining presence. The
+               |                    audience is distracted, confused, or
+               |                    unconvinced by the delivery itself,
+               |                    independent of the content.
+
+  Score 4–6   |  Developing      — Foundation is present but inconsistently
+               |                    applied. The skill exists but has not
+               |                    become habitual or reliable under pressure.
+
+  Score 7–8   |  Strong          — Consistent, controlled, credible delivery.
+               |                    The dimension is working in the speaker's
+               |                    favour the majority of the time. This is
+               |                    a genuinely good score. A 7 is solid
+               |                    professional standard.
+
+  Score 9–10  |  Distinguished   — Masterful and intentional. The listener
+               |                    notices it positively. Score 9 means the
+               |                    AI found almost nothing to improve.
+               |                    Score 10 is reserved for world-class
+               |                    delivery — exceptionally rare, awarded
+               |                    only when no meaningful gap exists.
+
+================================================================================
+SECTION 5 — THE FIFTEEN DIMENSIONS
+================================================================================
+
+PILLAR 1: VOICE QUALITY (Dimensions 1–4) — Audio source
+  The raw instrument. The intrinsic qualities of the voice that determine
+  whether it commands attention and is easy to listen to, independent of
+  what is said or how it is delivered.
+
+PILLAR 2: VOCAL DELIVERY (Dimensions 5–8) — Audio source
+  How the voice is used. The deliberate control of speed, rhythm,
+  emphasis, silence, and breath to guide the listener and make the
+  message land with maximum impact.
+
+PILLAR 3: THOUGHT CLARITY (Dimensions 9–11) — Transcript source
+  How thinking is organised and expressed. Whether communication is
+  confident, structured, and precise, or meanders, hedges, and leaves
+  the listener doing the work.
+
+PILLAR 4: PHYSICAL DELIVERY (Dimensions 12–15) — Video source
+  What the audience sees. The visual signals that confirm or contradict
+  everything the voice is saying. Scored in video sessions only.
+
+--------------------------------------------------------------------------------
+DIMENSION 1 — ARTICULATION
+Pillar: Voice Quality | Weight: 4% (audio-only: 5%) | Source: gpt-audio
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+How clearly and precisely words are formed in the audio signal. Whether
+every word lands fully — including consonants, vowels, and word endings —
+or whether sounds are dropped, slurred, or muffled. Scored from audio
+analysis only. Never from reading the transcript.
+
+INPUT SIGNALS:
+  - gpt-audio word-level clarity assessment
+  - Existing articulation dimension score from audio engine as reference
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Audio reveals almost incomprehensible delivery. Heavy mumbling, severely
+dropped word endings, slurred speech throughout. A listener cannot follow
+without replaying. Articulation is the dominant obstacle in the recording.
+
+Score 2 — Needs Work:
+Multiple words per sentence are unclear. Dropped endings are constant.
+Comprehension requires significant effort. The speaker's meaning is
+frequently lost at the word level.
+
+Score 3 — Needs Work:
+Intermittent but frequent mumbling audible in the signal. Word endings
+dropped regularly. At least one unclear passage per minute. Comprehension
+is possible but the listener must actively compensate.
+
+Score 4 — Developing:
+Articulation problems appear regularly, particularly at higher pace or
+under pressure. The listener catches most words but must fill gaps.
+Word endings inconsistently present — some sentences clear, others not.
+
+Score 5 — Developing:
+Occasional mumbling or dropped endings, typically in faster passages.
+Generally comprehensible but a listener would remark on slippage if asked.
+One or two unclear words per minute on average.
+
+Score 6 — Developing:
+Minor articulation lapses only. Listener can follow without sustained
+effort. Occasional softening at sentence ends in faster passages but
+these are exceptions, not the pattern.
+
+Score 7 — Strong:
+All words land clearly. Only very subtle, infrequent softening at sentence
+ends that does not impede comprehension. The listener never has to work
+to follow the speaker.
+
+Score 8 — Strong:
+Crisp, precise articulation throughout. Every word is deliberate and
+fully formed. Consonants clean. Vowels open. Word endings consistent.
+Articulation is an asset, not merely neutral.
+
+Score 9 — Distinguished:
+Exceptional diction. Each consonant and vowel is intentional. No
+drop-off at speed or volume changes. The voice is a precision instrument
+at every moment of the recording.
+
+Score 10 — Distinguished:
+Broadcast-standard enunciation. No listener would identify a single
+unclear word at any point. A benchmark for other speakers.
+Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: Identify specific passages where clarity breaks down.
+  Impact: "When words are unclear, your audience shifts attention from
+  your message to decoding your speech. You lose them at the word level
+  before they can engage with your ideas."
+Scores 4–6: Name the specific pattern — dropped endings, mumbling under
+  pressure, or speed-related slippage. "Your articulation is generally
+  solid but drops noticeably when your pace increases. Your audience
+  notices the inconsistency even if they cannot name it."
+Scores 7–8: Confirm what is working. Identify the one remaining
+  opportunity. "Your articulation is clear and consistent. The next
+  level is maintaining the same precision when your energy rises."
+Scores 9–10: Name what makes it distinctive and its impact on the
+  audience's experience of listening to this speaker.
+
+--------------------------------------------------------------------------------
+DIMENSION 2 — PROJECTION
+Pillar: Voice Quality | Weight: 6% (audio-only: 7%)
+Source: gpt-audio + RMS amplitude signals
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+Whether the voice carries with consistent authority from the beginning
+to the end of each phrase. Projection is not simply being loud — it is
+the sustained energy that keeps the voice audible, present, and
+commanding throughout every sentence. Scored from audio waveform
+analysis of RMS amplitude values.
+
+INPUT SIGNALS:
+  - Average RMS amplitude in dB across the session
+  - RMS amplitude standard deviation across the session (volume consistency)
+  - Phrase-ending amplitude analysis (does volume drop at phrase endings?)
+  - gpt-audio volume assessment as qualitative corroboration
+
+QUANTITATIVE REFERENCE:
+
+  RMS amplitude SD:
+    Needs Work:    SD > 12 dB — severe inconsistency, frequent drops
+    Developing:    SD 8–12 dB — moderate inconsistency
+    Strong:        SD 4–8 dB — controlled with intentional variation
+    Distinguished: SD < 4 dB with deliberate dynamic range use
+
+  Phrase-ending amplitude drop:
+    Needs Work:    > 50% amplitude drop at phrase endings consistently
+    Developing:    30–50% drop at phrase endings frequently
+    Strong:        < 20% drop — phrases well-supported throughout
+    Distinguished: < 10% drop — phrases fully supported to the last word
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Audio waveform shows severely insufficient or erratic amplitude. Either
+inaudible passages are frequent, or volume spikes create discomfort.
+Comprehension is impossible in multiple sections. RMS SD > 14 dB.
+
+Score 2 — Needs Work:
+Severely under-projected. Multiple phrases fade to near-inaudibility.
+Phrase-ending drops exceed 50% consistently. RMS SD > 12 dB. The
+listener strains throughout.
+
+Score 3 — Needs Work:
+Frequently too quiet — trailing off in at least 30% of sentences.
+Projection drops under pressure or in complex passages. RMS SD 10–12 dB.
+Listener must compensate for consistent volume loss.
+
+Score 4 — Developing:
+Volume a noticeable issue. Often trails at sentence endings. Projection
+drops when content becomes complex or emotional. RMS SD 8–10 dB.
+Phrase-ending drops of 30–50% appear regularly.
+
+Score 5 — Developing:
+Mostly audible but with recurring dip at sentence endings or in longer
+phrases. Adequate but not commanding. RMS SD 8–9 dB. Listener can
+follow but projection does not sustain authority throughout.
+
+Score 6 — Developing:
+Consistently audible. Projection holds through sentences with minor
+drops. RMS SD 6–8 dB. Phrase endings mostly supported. Functional
+but no deliberate dynamic range in evidence.
+
+Score 7 — Strong:
+Good projection throughout. Volume controlled and sustaining authority.
+RMS SD 4–6 dB. Very occasional softening only. The voice carries
+without the listener needing to compensate at any point.
+
+Score 8 — Strong:
+Strong, confident projection. Volume used as an active tool — speaker
+quiets intentionally for emphasis, then projects fully. RMS SD 4–6 dB
+with evidence of deliberate dynamic range. No unplanned drops.
+Phrase endings fully supported.
+
+Score 9 — Distinguished:
+Exceptional command of volume. Every word carries. RMS SD < 4 dB with
+controlled, purposeful dynamic range use. Phrase-ending drop < 10%.
+The speaker's voice fills the space without strain at every moment.
+
+Score 10 — Distinguished:
+Outstanding projection and dynamic control. Every phrase is fully
+supported. Volume modulation is sophisticated and deliberate throughout.
+A model of vocal authority. Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: Reference specific RMS values and phrase-ending drop pattern.
+  Impact: "When your voice drops at the end of sentences, you lose the
+  authority of the point you just made. Your audience hears the
+  uncertainty in the fade, even if your words were confident."
+Scores 4–6: Identify the specific pattern — trailing at phrase endings,
+  dropping under pressure, or overall low amplitude.
+  Impact: "A voice that doesn't carry its full authority throughout
+  each sentence signals effort to the listener. They work to hear you
+  rather than simply receiving what you're saying."
+Scores 7–8: Confirm the strength. Identify the one opportunity.
+Scores 9–10: Name what makes it exceptional and its impact.
+
+--------------------------------------------------------------------------------
+DIMENSION 3 — VOCAL TONE
+Pillar: Voice Quality | Weight: 8% (audio-only: 9%) | Source: gpt-audio
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+The richness, warmth, and resonance of the voice as an instrument. Vocal
+tone is what makes a voice compelling to listen to independently of what
+it is saying or how fast it speaks. A voice with strong tone commands
+attention and conveys credibility before the words are processed. Thin,
+nasal, strained, or breathy tone undermines authority regardless of
+content or delivery skill. Scored from gpt-audio acoustic analysis only.
+
+INPUT SIGNALS:
+  - gpt-audio tonal quality assessment
+  - Presence of breathiness, nasality, strain, or resonance in the signal
+  - Consistency of tonal quality across the session
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Tone is severely problematic — heavily strained, extremely breathy,
+or so thin that authority is absent entirely. The quality of the voice
+itself creates negative perception before any content is processed.
+
+Score 2 — Needs Work:
+Very thin, nasal, or strained throughout. Significant breathiness
+or pressed quality that makes the voice uncomfortable to listen to
+over a sustained period. Tonal quality is a primary obstacle.
+
+Score 3 — Needs Work:
+Consistently thin or breathy tone without moments of resonance.
+The voice lacks the warmth and weight that commands attention.
+Listeners notice the tonal deficiency even if they cannot name it.
+
+Score 4 — Developing:
+Tone is adequate but unremarkable. Occasional moments of resonance
+undermined by frequent thinning, breathiness, or nasal quality.
+The voice does not work against the speaker but does not work for them.
+
+Score 5 — Developing:
+Tone is generally acceptable with recurring thinning under pressure
+or in sustained passages. Some warmth present but inconsistent.
+The voice carries the message without enhancing it.
+
+Score 6 — Developing:
+Solid tonal quality for most of the session. Minor inconsistencies
+in resonance. The voice is pleasant to listen to without being
+distinctly compelling. No significant tonal obstacles.
+
+Score 7 — Strong:
+Good, warm tonal quality that supports authority and engagement.
+Resonance is consistent. Only very minor inconsistencies. The voice
+is an asset to the speaker's credibility.
+
+Score 8 — Strong:
+Rich, resonant tone throughout. The voice conveys warmth, authority,
+and confidence acoustically before the words are processed. Listeners
+would describe the voice as compelling. Consistent across the session.
+
+Score 9 — Distinguished:
+Exceptional vocal resonance. The voice commands attention
+independently of content or delivery. Warmth and authority are
+both present simultaneously throughout. A voice that is genuinely
+pleasurable and authoritative to listen to.
+
+Score 10 — Distinguished:
+World-class vocal tone. The voice itself is a primary presence signal.
+Rich, resonant, warm, and authoritative in every moment of the
+recording. Exceptionally rare — a voice that would be remarked upon
+by any listener.
+
+COACHING FEEDBACK:
+Scores 1–3: Name the specific tonal quality observed — thin, strained,
+  breathy, or nasal. Impact: "Tone quality is the first thing your
+  audience registers before your words land. A thin or strained voice
+  signals effort or anxiety, which creates doubt about your confidence
+  before you have made a single point."
+Scores 4–6: "Your voice carries the message but does not yet amplify
+  it. Developing more resonance would make your words land with more
+  weight without changing a single thing you say."
+Scores 7–10: Confirm strength and specific quality. Higher scores:
+  "Your vocal tone is a genuine presence asset — it creates authority
+  before your content does."
+
+--------------------------------------------------------------------------------
+DIMENSION 4 — VOCAL STEADINESS
+Pillar: Voice Quality | Weight: 2% (audio-only: 3%)
+Source: gpt-audio + F0 SD + RMS SD signals
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+The absence of anxiety signals in the voice — audible tremor, irregular
+pitch fluctuation, or tension-driven strain that signals the nervous
+system under pressure. A steady voice signals composure. Unsteadiness
+signals anxiety regardless of what the words say. This dimension measures
+the observable audio signal only — it does not attempt to diagnose inner
+state.
+
+INPUT SIGNALS:
+  - F0 standard deviation across the session (pitch consistency)
+  - RMS amplitude standard deviation (volume consistency)
+  - gpt-audio assessment of audible tremor and vocal tension
+  - Note: Jitter (cycle-to-cycle F0 variation) is not currently available
+    from the audio engine. F0 SD serves as the available proxy.
+
+QUANTITATIVE REFERENCE:
+
+  F0 SD as proxy for pitch stability:
+    Needs Work:    F0 SD > 35 Hz combined with audible tremor
+    Developing:    F0 SD 20–35 Hz with occasional unsteadiness
+    Strong:        F0 SD < 20 Hz, voice steady throughout
+    Distinguished: F0 SD < 12 Hz, voice is a model of composure
+
+  Note: F0 SD reflects both intentional pitch variation (Intonation,
+  Dimension 5) and uncontrolled fluctuation (Vocal Steadiness). When
+  F0 SD is high, cross-reference with gpt-audio assessment to determine
+  whether variation is expressive (scores well in Intonation) or
+  anxious (scores poorly in Vocal Steadiness). These are distinct signals
+  scored in different dimensions.
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Audible tremor is continuous throughout the recording. The voice
+shakes in a way the listener cannot ignore. Pitch fluctuation is
+erratic and clearly anxiety-driven. The speaker sounds distressed.
+
+Score 2 — Needs Work:
+Frequent audible tremor throughout. Multiple passages where the
+voice shakes noticeably. Significant uncontrolled pitch fluctuation.
+Anxiety signal is dominant and persistent.
+
+Score 3 — Needs Work:
+Intermittent but recurring audible tremor — noticeable in at least
+30% of the recording. Unsteadiness appears consistently under any
+moment of pressure or complexity.
+
+Score 4 — Developing:
+Occasional unsteadiness audible in the signal. Tremor or pitch
+instability appears in higher-pressure passages. Generally controlled
+but with enough instances to be noticeable to the listener.
+
+Score 5 — Developing:
+Mostly steady with one or two moments of audible unsteadiness.
+The voice is generally under control but the listener would notice
+the lapses if asked to listen specifically for them.
+
+Score 6 — Developing:
+Generally steady throughout with very occasional minor wavering that
+does not create a pattern. The voice conveys reasonable composure.
+Minor instability only at peak pressure moments.
+
+Score 7 — Strong:
+Steady and controlled throughout the recording. No audible tremor.
+Pitch is consistent and deliberate. The voice conveys composure.
+F0 SD is in the controlled range for the content type.
+
+Score 8 — Strong:
+Noticeably steady. The voice is an active signal of composure —
+not just the absence of anxiety but the presence of settledness.
+F0 SD low and consistent. No moments of wavering under pressure.
+
+Score 9 — Distinguished:
+Exceptional steadiness. The voice sounds equally settled at the
+beginning, middle, and end — and equally at moments of low and
+high stakes content. F0 SD < 12 Hz. A listener would describe
+this speaker as completely composed.
+
+Score 10 — Distinguished:
+World-class vocal composure. The voice is a precision signal of
+total settledness. No moment of unsteadiness across the entire
+recording. Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: Name the specific pattern — continuous tremor, pressure-
+  triggered wavering, or general unsteadiness.
+  Impact: "When the voice trembles or wavers, your audience reads it
+  as anxiety. Even if your words are confident, the physical signal
+  in your voice is telling them a different story. They hear both."
+Scores 4–6: "Your voice is generally steady but shows unsteadiness
+  under pressure. Your audience notices this even briefly — it creates
+  a moment of doubt about your composure precisely when composure
+  matters most."
+Scores 7–10: Confirm what composure signal is present and its effect.
+  "A steady voice is one of the most powerful presence signals
+  available to you — it tells the room you are settled before you
+  have made a single argument."
+
+--------------------------------------------------------------------------------
+DIMENSION 5 — INTONATION
+Pillar: Vocal Delivery | Weight: 8% (audio-only: 10%)
+Source: gpt-audio + F0 signals (min, max, SD)
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+The variation in pitch across the delivery — whether the voice rises
+and falls purposefully to signal emphasis, structure, and meaning, or
+whether it stays flat and monotone regardless of content. Intonation
+is how spoken words feel different from each other. A voice with
+strong intonation guides the listener through the content; a flat
+voice forces the listener to extract meaning without acoustic signposting.
+
+INPUT SIGNALS:
+  - F0 minimum (Hz) — lowest pitch in voiced segments
+  - F0 maximum (Hz) — highest pitch in voiced segments
+  - F0 range (F0 max minus F0 min) — total pitch span available
+  - F0 standard deviation — how actively the pitch range is used
+  - Pitch variation ordinal score (1–5 from audio engine)
+  - gpt-audio intonation quality assessment
+
+QUANTITATIVE REFERENCE:
+
+  F0 range (max minus min):
+    Needs Work:    < 30 Hz (effectively monotone)
+    Developing:    30–60 Hz (limited variation)
+    Strong:        60–100 Hz (expressive range in use)
+    Distinguished: > 100 Hz (full range, deliberately deployed)
+
+  F0 SD (how actively the range is used):
+    Needs Work:    < 8 Hz SD (flat delivery within narrow range)
+    Developing:    8–18 Hz SD (some variation, not purposeful)
+    Strong:        18–30 Hz SD (deliberate, consistent variation)
+    Distinguished: > 30 Hz SD with purposeful patterns detectable
+
+  Pitch variation ordinal (from audio engine):
+    1 = monotone, 2 = minimal, 3 = moderate, 4 = expressive,
+    5 = highly expressive
+
+  Cross-reference rule: F0 SD is shared with Vocal Steadiness
+  (Dimension 4). High F0 SD that is accompanied by gpt-audio
+  assessment of expressive intonation scores well here. High F0 SD
+  accompanied by gpt-audio assessment of tremor or anxiety scores
+  poorly in Vocal Steadiness instead. These are mutually exclusive
+  interpretations of the same numeric signal.
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+F0 range < 20 Hz. Pitch variation score 1. Delivery is completely
+monotone. Every sentence sounds acoustically identical regardless of
+content. The listener disengages. No emphasis is audible anywhere
+in the recording.
+
+Score 2 — Needs Work:
+F0 range 20–30 Hz. Pitch variation score 1–2. Effectively monotone.
+Very rare pitch movement that creates no meaningful pattern. The voice
+provides no acoustic guidance through the content.
+
+Score 3 — Needs Work:
+F0 range 25–35 Hz. Pitch variation score 2. Occasional pitch variation
+but no purposeful pattern. Mostly flat with isolated moments of
+movement that do not signal emphasis or structure.
+
+Score 4 — Developing:
+F0 range 30–50 Hz. Pitch variation score 2–3. Some variation present
+but inconsistent and unpatterned. Moments of expressiveness undercut
+by extended flat passages. The listener gets occasional acoustic
+guidance but not reliably.
+
+Score 5 — Developing:
+F0 range 40–60 Hz. Pitch variation score 3. Moderate variation with
+a recurring problem — either the range is adequate but not deployed
+purposefully, or it is deployed in some sections and absent in others.
+
+Score 6 — Developing:
+F0 range 50–70 Hz. Pitch variation score 3. Solid variation with
+intonation generally supporting the content. Minor inconsistencies —
+some passages more expressive than others. The listener is guided
+most but not all of the time.
+
+Score 7 — Strong:
+F0 range 60–90 Hz. Pitch variation score 3–4. F0 SD 18–25 Hz.
+Deliberate intonation that consistently signals emphasis and structure.
+The voice rises and falls purposefully. The listener is guided
+through the content by the acoustic signal reliably.
+
+Score 8 — Strong:
+F0 range 75–100 Hz. Pitch variation score 4. F0 SD 22–30 Hz.
+Expressive intonation clearly deployed as a communication tool.
+Key points marked by audible pitch movement. The voice is dynamic
+and sustains engagement throughout.
+
+Score 9 — Distinguished:
+F0 range > 100 Hz. Pitch variation score 4–5. F0 SD > 28 Hz.
+Full pitch range in deliberate use. Intonation patterns are
+sophisticated — the voice modulates to serve the structure of the
+argument, not just individual words. A listener could follow the
+structure of the argument from pitch alone.
+
+Score 10 — Distinguished:
+F0 range > 120 Hz. Pitch variation score 5. F0 SD consistently high
+and purposeful. Intonation is a precision instrument. Every pitch
+movement is intentional and serves the communication. World-class
+vocal expressiveness. Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: State F0 range and pitch variation score.
+  Impact: "A flat voice makes every sentence sound equally important,
+  which means nothing feels important. Your audience hears a single
+  tone throughout and their attention drifts — not because your
+  content is weak, but because your voice is not guiding them to
+  what matters."
+Scores 4–6: Name the specific gap — limited range, undeployed range,
+  or inconsistency. "You have pitch variation available but it is not
+  yet working consistently as a tool. The moments where your voice
+  becomes expressive show what is possible. The next step is making
+  that the pattern, not the exception."
+Scores 7–8: Confirm the strength and identify the next level.
+Scores 9–10: Name the specific patterns that made it distinguished.
+
+--------------------------------------------------------------------------------
+DIMENSION 6 — PACE
+Pillar: Vocal Delivery | Weight: 7% (audio-only: 8%)
+Source: Audio waveform — WPM signals
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+Whether speaking speed is controlled, appropriate for the context, and
+purposefully varied. Pace is not simply about being fast or slow — it is
+about whether speed serves the message at every moment. The same WPM that
+signals energy in a vision statement signals carelessness in a difficult
+conversation. This dimension scores both the appropriateness of overall
+pace and the intentionality of how it changes across the session.
+
+INPUT SIGNALS:
+  - WPM overall (total words divided by total active speech seconds)
+  - WPM per 30-second window (array of values)
+  - WPM standard deviation across windows (pace consistency)
+  - Rush events (bursts exceeding 200 WPM for 5 or more consecutive words)
+  - Deceleration events (windows where WPM drops below 80% of session
+    average — potential signal of intentional emphasis)
+  - Context classification (determines ideal WPM range)
+
+QUANTITATIVE REFERENCE BY CONTEXT:
+
+  Context 1 — High Energy / Vision:          Ideal WPM 145–175
+  Context 2 — Formal / Senior Stakeholder:   Ideal WPM 120–145
+  Context 3 — Analytical / Technical:        Ideal WPM 115–145
+  Context 4 — Difficult Conversation:        Ideal WPM 110–135
+  Context 5 — Conversational / Interview:    Ideal WPM 130–160
+
+  "Within range" = within the ideal WPM band for the classified context.
+  "Outside range" = above or below the ideal band.
+
+  Rush events:
+    Needs Work:    4 or more rush events
+    Developing:    2–3 rush events
+    Strong:        0–1 rush events
+    Distinguished: 0 rush events
+
+  WPM SD across 30-second windows:
+    Needs Work:    SD > 40 (uncontrolled variance)
+    Developing:    SD 26–40
+    Strong:        SD 11–25
+    Distinguished: SD < 11 with deliberate deceleration pattern detectable
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+WPM is more than 50 above or below the context ideal. Pace makes
+content incomprehensible or unlistenable. 4 or more rush events.
+WPM SD > 45. The listener cannot follow. Pace is the primary obstacle.
+
+Score 2 — Needs Work:
+WPM is 35–50 outside the context ideal. Rush events are frequent
+(3–4). SD > 40. Delivery consistently difficult to follow. No
+evidence of intentional pace variation anywhere in the session.
+
+Score 3 — Needs Work:
+WPM is 20–35 outside the context ideal, or within range but with
+3+ rush events and SD > 35. Pace is a recurring distraction. The
+listener notices the speed problem multiple times.
+
+Score 4 — Developing:
+WPM is 15–20 outside the context ideal, or within range but with
+2–3 rush events. SD 30–40. Some sections work; others rush or drag
+noticeably. The listener is compensating for the pace problem.
+
+Score 5 — Developing:
+WPM generally close to context ideal (within 15 WPM) but with a
+recurring pattern — typically speeding up under pressure or in
+longer passages. 2 rush events. SD 26–35. The listener can follow
+but occasionally feels pace working against the content.
+
+Score 6 — Developing:
+WPM within context ideal range for the majority of the session.
+1–2 rush events. SD 20–30. Functional and rarely distracting.
+However no evidence of deliberate pace variation as a tool.
+
+Score 7 — Strong:
+WPM consistently within context ideal. 0–1 rush events. SD 15–25.
+The pace serves the content — the listener can follow without effort.
+At least one detectable deceleration on a key point. Minor missed
+opportunities for further variation.
+
+Score 8 — Strong:
+WPM well-controlled within context ideal. 0 rush events. SD 11–20.
+Clear evidence of intentional pace modulation — speaker demonstrably
+slows on recommendations or key statements, moves faster through
+context and background. Pace is an active tool, not merely controlled.
+
+Score 9 — Distinguished:
+WPM precisely controlled within context ideal. 0 rush events.
+SD < 11. Deliberate deceleration detectable across multiple windows
+tied to content importance — a consistent pattern, not isolated
+instances. A listener would describe the delivery as "controlled"
+without being prompted.
+
+Score 10 — Distinguished:
+All criteria for 9. Tempo variation is sophisticated and sustained
+throughout — every significant moment marked by a detectable shift
+in pace. Speed serves structure at every point. Exceptionally rare.
+
+EDGE CASE RULES:
+  - WPM within ideal range but 3+ rush events: cap score at 5.
+    Control has broken down under pressure regardless of average.
+  - WPM outside ideal range but 0 rush events and SD < 20: floor at 5.
+    Pace is off but the control is genuine.
+  - Sessions under 90 seconds: fewer than 3 windows available.
+    Note this in output. Weight overall WPM and rush events more
+    heavily than SD for short sessions.
+  - Classification ambiguous: default to Category 5. Flag in feedback.
+
+COACHING FEEDBACK:
+State actual WPM, the context classification applied, and ideal range.
+Scores 1–3: "This prompt was classified as [context], where an ideal
+  pace is [range] words per minute. Your average was [X] words per
+  minute — [significantly faster/slower] than this context calls for.
+  [Number] moments of very fast speech were detected in the second
+  half of the session. At this speed, [the gravity / the clarity /
+  the authority] the moment requires was not coming through."
+Scores 4–6: "Your average pace of [X] words per minute is [within /
+  close to] range for this context, but you accelerated above [Y] words
+  per minute [number] times — both when moving into your main argument.
+  Slowing into your key points rather than speeding up would
+  significantly increase their impact on your audience."
+Scores 7–8: "Your pace was well-controlled at [X] words per minute
+  for a [context] context. You slowed noticeably when delivering your
+  key point — that was effective. The next level is making that pattern
+  consistent across every significant moment, not just the headline."
+Scores 9–10: "Your pace moved between [X] and [Y] words per minute
+  in a clear pattern — faster through context, slower into every
+  significant point. That is exactly how pace should serve structure."
+
+--------------------------------------------------------------------------------
+DIMENSION 7 — PAUSING
+Pillar: Vocal Delivery | Weight: 6% (audio-only: 7%)
+Source: Audio waveform — pause detection signals
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+The deliberate use of silence as a communication tool. Strategic pauses
+at idea boundaries let points land, signal composure, and create emphasis.
+The absence of pausing produces rushed, breathless delivery. Pausing
+before a key statement — rather than after — is one of the most powerful
+signals of executive presence. This dimension is entirely separate from
+Pace (which measures speed) and from Vocal Steadiness (which covers
+hesitation mid-thought). Only pauses at idea boundaries count here.
+
+INPUT SIGNALS:
+  - Pause count: number of silences of 0.5 seconds or longer
+  - Average pause duration in seconds
+  - Pause placement: boundary (between ideas) vs mid-clause (hesitation)
+  - Pre-statement pause count: pauses occurring before a key statement
+    (boundary pause immediately before a declarative or recommendation)
+  - Speech duration (to calculate pause frequency per minute)
+
+QUANTITATIVE REFERENCE:
+
+  Strategic pause frequency (boundary pauses per minute):
+    Needs Work:    < 0.5 per minute (effectively no pausing)
+    Developing:    0.5–1.5 per minute (occasional, not deliberate)
+    Strong:        1.5–3.0 per minute (regular and purposeful)
+    Distinguished: 1.5–3.0 per minute with pre-statement pauses present
+
+  Average pause duration:
+    Too short:     < 0.4 seconds (micro-gaps, not strategic pauses)
+    Functional:    0.5–2.0 seconds (effective emphasis pauses)
+    Too long:      > 3.0 seconds (dead air, signals loss of thread)
+
+  Pause placement ratio (boundary vs mid-clause):
+    Needs Work:    Majority of pauses are mid-clause
+    Developing:    Mixed — boundary and mid-clause roughly equal
+    Strong:        Majority of pauses are at boundaries
+    Distinguished: Almost all pauses at boundaries with pre-statement
+                   pauses present
+
+  Note: Mid-clause pauses are hesitation signals and belong to
+  Confidence Language (Dimension 9) as evidence of word-searching.
+  They are not counted toward this dimension's strategic pause score.
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Fewer than 0.3 strategic boundary pauses per minute. Speech is
+essentially continuous. The listener gets no acoustic breathing room.
+Every point runs directly into the next. No strategic use of silence
+anywhere in the recording.
+
+Score 2 — Needs Work:
+0.3–0.5 boundary pauses per minute, average duration under 0.4
+seconds — micro-gaps, not pauses. Or multiple pauses present but
+predominantly mid-clause (hesitation, not strategy). No evidence
+of silence being used deliberately.
+
+Score 3 — Needs Work:
+0.4–0.8 boundary pauses per minute but inconsistently placed and
+brief. Occasionally a pause lands well but the pattern is not
+established. The listener rarely gets a moment to absorb a point.
+
+Score 4 — Developing:
+0.8–1.2 boundary pauses per minute. Some pauses land at idea
+boundaries but others are mid-clause or poorly timed. Average
+duration functional (0.5–1.0 seconds) but not commanding. The
+listener gets occasional space but not reliably.
+
+Score 5 — Developing:
+1.0–1.5 boundary pauses per minute at average duration 0.6–1.2
+seconds. Generally well-placed but inconsistent — some sections
+have good pause structure; others run continuously. No pre-statement
+pauses detected.
+
+Score 6 — Developing:
+1.2–1.8 boundary pauses per minute. Generally at idea boundaries.
+Average duration 0.8–1.5 seconds. Functional and occasionally
+effective. The listener gets space to absorb most points. No
+pre-statement pauses yet — pausing is happening after points land,
+not before.
+
+Score 7 — Strong:
+1.5–3.0 boundary pauses per minute. Consistently at idea boundaries.
+Average duration 0.8–2.0 seconds. Pausing is a reliable feature of
+the delivery. At least 1 pre-statement pause detected — the speaker
+settled before at least one key moment before speaking into it.
+
+Score 8 — Strong:
+1.5–3.0 boundary pauses per minute. Almost all at boundaries.
+Average duration 1.0–2.0 seconds. 2 or more pre-statement pauses
+detected. Pausing is clearly an intentional tool. The silences add
+weight to what follows them. A listener would notice the use of
+silence as purposeful.
+
+Score 9 — Distinguished:
+1.5–3.0 boundary pauses per minute with average duration 1.0–2.5
+seconds. All pauses at idea boundaries. Multiple pre-statement
+pauses present — the speaker consistently settles before key
+statements. The pauses feel commanding, not tentative. A listener
+would describe the delivery as "deliberate."
+
+Score 10 — Distinguished:
+All criteria for 9. The use of silence is sophisticated throughout —
+the length of each pause is calibrated to the weight of what
+precedes or follows it. Pre-statement pauses are a consistent
+pattern, not occasional instances. Silence is as powerful as speech
+in this recording. Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: State boundary pause frequency and what is happening instead.
+  Impact: "Without pauses between ideas, every point you make runs
+  directly into the next. Your audience has no moment to absorb what
+  you have said before you are already making the next point. The most
+  important things you say get lost in the momentum."
+Scores 4–6: "You are using pauses occasionally but not yet as a
+  deliberate tool. The pauses that land well — [reference timing if
+  available] — show what is possible. The next step is making that
+  a consistent pattern, particularly before your most important points."
+Scores 7–8: "Your use of pauses is a genuine strength. You paused
+  before [X] — that gave your audience time to register the weight of
+  what followed. The next level is doing that consistently before
+  every key recommendation."
+Scores 9–10: Name specific pause moments and their impact.
+  "The pause before your main recommendation at [timestamp] was
+  exactly right — it signalled to the room that what followed mattered."
+
+--------------------------------------------------------------------------------
+DIMENSION 8 — BREATH CONTROL
+Pillar: Vocal Delivery | Weight: 4% (audio-only: 5%) | Source: gpt-audio
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+Whether breath supports the delivery throughout each phrase. Poor breath
+control causes the voice to thin or trail at phrase endings, forces
+mid-thought pauses at grammatically wrong moments, and produces audible
+inhalations that distract the listener. Strong breath control is the
+physical foundation of commanding delivery — it enables full phrases,
+sustained projection, and strategic pausing. Scored from gpt-audio
+acoustic analysis of the recording.
+
+INPUT SIGNALS:
+  - gpt-audio assessment of phrase support quality (does voice sustain
+    through full phrases or thin toward the end?)
+  - Audible inhalation count and pattern
+  - Breath-induced mid-clause pause count (pauses caused by running
+    out of breath rather than by intent — distinct from strategic
+    pausing in Dimension 7)
+  - Phrase-ending amplitude drop (from Projection signals, used here
+    as corroborating evidence of breath insufficiency)
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Breath support is severely inadequate throughout. Multiple phrases
+per minute end audibly — the voice runs out before the thought does.
+Frequent audible, strained inhalations. Multiple breath-induced
+mid-clause pauses per minute. The breathing competes with the message.
+
+Score 2 — Needs Work:
+Consistent phrase-ending thinning throughout. Audible inhalations
+frequent (more than 3 per minute). Breath-induced pauses interrupt
+the flow of ideas regularly. The listener is aware of the breathing
+as a separate event.
+
+Score 3 — Needs Work:
+Frequent phrase-ending drops where the voice loses support. Audible
+inhalations 2–3 per minute. At least 1 breath-induced mid-clause
+pause per minute. Support is inconsistent and the listener notices
+the pattern across the session.
+
+Score 4 — Developing:
+Phrase-ending thinning present in 30–40% of sentences. Audible
+inhalations 1–2 per minute. Occasional breath-induced mid-clause
+pause. Generally manageable but support is not reliable under
+pressure or in longer phrases.
+
+Score 5 — Developing:
+Phrase-ending support mostly adequate but with recurring drops in
+longer phrases or higher-pressure passages. Audible inhalations
+1 per minute. Breath-induced mid-clause pauses rare but present.
+
+Score 6 — Developing:
+Generally well-supported phrases with occasional thinning at
+endings in extended sentences. Audible inhalations less than 1
+per minute. No breath-induced mid-clause pauses. Functional
+breath control without being commanding.
+
+Score 7 — Strong:
+Phrases are consistently supported to their endings. Audible
+inhalations rare (0–1 in the session). No breath-induced
+mid-clause pauses. Breath control does not draw the listener's
+attention at any point.
+
+Score 8 — Strong:
+Full phrase support throughout. Inhalations inaudible or silent.
+Zero breath-induced mid-clause pauses. At least one instance of
+a deliberate breath taken before a key statement — using breath
+intentionally as a settling signal before important content.
+
+Score 9 — Distinguished:
+Breathing is entirely in service of delivery — silent, invisible,
+and supportive throughout. Full phrase support in every sentence.
+Multiple instances of deliberate, visible pre-statement breath
+used intentionally to signal composure and weight. A listener
+would not register breathing as a separate event.
+
+Score 10 — Distinguished:
+All criteria for 9. The relationship between breath and delivery
+is sophisticated — breath is used strategically to pace the session
+and create deliberate moments of stillness. Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: Identify the specific pattern — phrase-ending drops,
+  audible inhalations, or breath-induced pauses.
+  Impact: "When your voice loses support before the end of a sentence,
+  the authority of the point disappears with it. Your audience hears
+  the trailing as hesitation, even when your words are confident.
+  The end of a sentence is where the point lands — it needs to be
+  your strongest moment, not your weakest."
+Scores 4–6: Name the specific pattern and when it appears.
+  "Your breath support is generally solid but drops in longer passages.
+  Practise sustaining your voice to the final word of each sentence —
+  the audience registers where your voice ends, not just what it said."
+Scores 7–8: Confirm the strength. "Try taking one deliberate breath
+  before your most important point in your next session. That moment
+  of stillness signals to your audience that something important is
+  coming."
+Scores 9–10: Confirm the mastery and name the specific moments.
+
+--------------------------------------------------------------------------------
+DIMENSION 9 — CONFIDENCE LANGUAGE
+Pillar: Thought Clarity | Weight: 13% (audio-only: 16%)
+Source: gpt-4o-mini-transcribe transcript
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+The balance between assertive and hedging language as heard and transcribed
+in the session. Assertive language — clear statements, direct
+recommendations, decisive positions — projects authority. Hedging language
+quietly undermines it even when the content is strong. Filler words (um,
+uh, like, you know, etc.) are tracked as a diagnostic sub-signal of this
+dimension and reported separately in the feedback but feed into this score.
+
+INPUT SIGNALS:
+  - gpt-4o-mini-transcribe transcript for phrase identification
+  - gpt-audio fillerWords field (authoritative filler count)
+  - Assertive language markers: "I know", "we will", "the answer is",
+    "my recommendation is", "the data shows", "I am confident",
+    clear declarative statements without qualification
+  - Hedging language markers: "I think", "maybe", "I guess", "kind of",
+    "I believe", "hopefully", "I'm not sure but", "it might be",
+    "possibly", "sort of", "I suppose"
+  - Filler words (gpt-audio count): um, uh, ah, like (non-prepositional),
+    you know, so (as sentence opener with no referent), basically,
+    literally (as intensifier), right (tag seeking agreement), okay
+    (as filler pause), I mean, kind of, sort of
+
+  Filler rate calculation:
+    Filler words per minute = filler count divided by speech duration
+    in minutes
+
+  FILLER RATE QUANTITATIVE REFERENCE:
+    Needs Work:    > 6 fillers per minute
+    Developing:    3–6 fillers per minute
+    Strong:        1–2 fillers per minute
+    Distinguished: 0–1 fillers per minute across the full session
+
+  ASSERTIVE TO HEDGING RATIO:
+    Needs Work:    More hedges than assertions (ratio < 1:1)
+    Developing:    Roughly equal (ratio 1:1 to 2:1)
+    Strong:        Assertive language dominant (ratio 3:1 or higher)
+    Distinguished: Highly assertive throughout (ratio 5:1 or higher)
+                   with active use of conclusive language
+
+  FILLER CAVEAT FOR SCORING:
+    The filler count from gpt-audio is a reliable estimate, not an
+    exact integer. Soft or swallowed fillers may occasionally be
+    missed. Score anchors use ranges to account for this margin.
+    Do not penalise a speaker for being at the boundary of two bands
+    if the filler rate is on the cusp — use the assertive/hedge ratio
+    and overall impression to resolve ties.
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Language is actively undermining. Nearly every statement hedged or
+qualified. Filler rate > 8 per minute. Assertive language absent or
+rare. The speaker sounds uncertain of every claim they make.
+Hedge ratio < 1:2 (more than twice as many hedges as assertions).
+
+Score 2 — Needs Work:
+Pervasive hedging. Filler rate 6–8 per minute. Multiple types of
+hedge words dominate throughout. Any assertive language is
+overshadowed. Authority is absent. Hedge ratio < 1:1.
+
+Score 3 — Needs Work:
+Frequent hedging and fillers. Filler rate 5–7 per minute. Speaker
+consistently softens positions. Assertive language is occasional
+and not the pattern. Hedge ratio approaching 1:1 but not reaching it.
+
+Score 4 — Developing:
+More hedging than assertive language overall. Filler rate 4–6 per
+minute. Hedging patterns appear regularly. Some assertive phrases
+exist but overall impression is tentative. Hedge ratio 1:1 to 1.5:1.
+
+Score 5 — Developing:
+Mixed. Fillers and hedging present roughly equally alongside assertive
+language. Filler rate 3–5 per minute. Some moments of authority,
+undermined by qualification elsewhere. Hedge ratio approximately 1:1
+to 2:1.
+
+Score 6 — Developing:
+Mostly assertive. Hedges appear occasionally but the overall
+impression is one of confidence. Filler rate 2–4 per minute.
+Declarative statements dominate. Hedge ratio 2:1 to 3:1.
+
+Score 7 — Strong:
+Predominantly assertive. Hedging is rare. Filler rate 1–2 per minute.
+The speaker takes clear positions and holds them. Assertive language
+projects authority consistently. Hedge ratio 3:1 or higher.
+
+Score 8 — Strong:
+Highly assertive throughout. Filler rate 0–2 per minute. Clear,
+direct declarations. Any residual hedge is isolated. The overall
+impression is one of command. Hedge ratio 4:1 or higher.
+
+Score 9 — Distinguished:
+Exceptional language authority. Filler rate 0–1 per minute.
+Speaker states positions with conviction. Word choices project
+certainty and ownership throughout. Active use of conclusive
+language ("therefore", "the answer is clear", "this means").
+Hedge ratio 5:1 or higher.
+
+Score 10 — Distinguished:
+World-class language of authority. Filler rate 0 across the
+session. Every sentence conveys mastery and confidence. A model
+of executive communication. Exceptionally rare.
+
+COACHING FEEDBACK:
+Always state both the filler rate and the assertive/hedge pattern.
+Scores 1–3: "[X] filler words per minute were detected in this session.
+  [specific hedge phrases heard] appeared multiple times. When language
+  is full of qualifiers and filler sounds, your audience hears doubt —
+  even when your ideas are strong. The hedging tells them you are not
+  fully committed to what you are saying."
+Scores 4–6: "Your filler rate of [X] per minute and use of phrases
+  like [example] are creating a pattern of qualified communication.
+  Every time you soften a statement, you invite your audience to
+  soften their response to it."
+Scores 7–8: "Your language is predominantly assertive and your filler
+  rate of [X] per minute is well-controlled. The next level is replacing
+  any remaining qualifiers with declarative statements — 'I think this
+  is the right approach' becomes 'this is the right approach.'"
+Scores 9–10: Name the specific assertive language patterns that
+  earned the score.
+
+FILLER WORD DIAGNOSTIC (always included separately):
+  Report: total filler count, filler rate per minute, breakdown by
+  type (e.g., "um: 4, uh: 2, like: 6, you know: 1"). Frame as data,
+  not judgment. "These are the filler words detected in your session.
+  Reducing these is one of the fastest ways to increase how authoritative
+  you sound."
+
+--------------------------------------------------------------------------------
+DIMENSION 10 — STRUCTURE
+Pillar: Thought Clarity | Weight: 15% (audio-only: 18%)
+Source: gpt-4o-mini-transcribe transcript
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+Whether the response has clear, confident architecture — an opening that
+signals where the communication is going, an organised body where ideas
+build logically, and a decisive close. The highest standard is point-first
+delivery: stating the conclusion or recommendation before the reasoning.
+This is the single most cited differentiator of senior-level thinking in
+executive communication research. Scored from the transcript — this
+dimension assesses what was said and in what order.
+
+INPUT SIGNALS:
+  - gpt-4o-mini-transcribe transcript
+  - Opening frame: does a clear purpose or conclusion appear within
+    the first 15 seconds of speech?
+  - Point-first delivery: is the recommendation or main point stated
+    before the supporting rationale?
+  - Logical sequencing: do ideas follow in cause-and-effect, priority,
+    or chronological order that a listener could outline?
+  - Transition density: count of explicit connective phrases per minute
+    ("because of that", "which means", "as a result", "building on that",
+    "on the other hand", "this leads to", "therefore")
+  - Closing frame: does an explicit conclusion, recommendation, or
+    completion signal appear at the end?
+
+QUANTITATIVE REFERENCE:
+
+  Transition density (per minute of speech):
+    Needs Work:    < 0.5 transitions per minute
+    Developing:    0.5–1.5 transitions per minute
+    Strong:        1.5–3.0 transitions per minute
+    Distinguished: 3.0+ transitions per minute with variety of types
+
+  Opening frame timing:
+    Distinguished: Within first 10 seconds
+    Strong:        Within first 15 seconds
+    Developing:    Present but after 15 seconds
+    Needs Work:    Absent
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+No discernible structure. Speaker jumps between topics without
+connection. No opening frame. No close. The response does not
+address the prompt. The listener cannot extract a main point.
+< 0.3 transitions per minute.
+
+Score 2 — Needs Work:
+Severely disorganized. One or two points appear but are not
+connected or sequenced. Prompt barely addressed. No functional
+opening or close. < 0.5 transitions per minute.
+
+Score 3 — Needs Work:
+Minimal structure. A vague beginning exists but the body wanders
+with little logic. The close is absent or trails off. Prompt
+partially addressed. < 0.7 transitions per minute.
+
+Score 4 — Developing:
+Some structure visible but inconsistent. A functional opening may
+exist without a clear body plan, or the body is organised but the
+close is weak. Speaker starts well but loses the thread. 0.5–1.0
+transitions per minute.
+
+Score 5 — Developing:
+Moderate structure. A recognisable opening, a somewhat organised
+middle, and an attempt at a close. Significant gaps or wanders
+remain. Prompt addressed but not sharply. 0.8–1.3 transitions
+per minute. No point-first delivery.
+
+Score 6 — Developing:
+Solid structure. Clear opening that addresses the prompt. Organised
+body with a logical flow. A close that brings it together. Minor
+gaps only. 1.2–1.8 transitions per minute. Point-first delivery
+attempted but not consistently achieved.
+
+Score 7 — Strong:
+Well-structured throughout. Opening within 15 seconds. Body flows
+without redundancy. Close is decisive. 1.5–2.5 transitions per
+minute with logical variety. Point-first delivery present in at
+least part of the response.
+
+Score 8 — Strong:
+Strong, intentional structure. Opening hooks within 10–15 seconds.
+Body is without redundancy. Close is decisive and links to the
+opening. 2.0–3.0 transitions per minute. Point-first delivery
+consistently applied. The response has been clearly planned.
+
+Score 9 — Distinguished:
+Exceptional structure. Thesis stated in the opening sentence.
+Body is a clear argument that a listener could outline on first
+hearing. Close links explicitly back to the opening thesis.
+3.0+ transitions per minute with genuine variety of connective
+types. Point-first delivery throughout.
+
+Score 10 — Distinguished:
+Masterful architecture. The structure itself communicates authority.
+Opening, body, and close form a seamless, persuasive whole. A
+listener could immediately repeat the structure of the argument.
+All criteria for 9 at the highest level throughout. Exceptionally
+rare.
+
+COACHING FEEDBACK:
+Always reference the specific structural elements observed or missing.
+Scores 1–3: "Your response did not have a clear opening, organised
+  body, or definitive close. When communication has no structure,
+  your audience has to do the organisational work themselves. At
+  senior levels, that work should be done before you speak, not
+  by the people listening to you."
+Scores 4–6: Name specifically what is present and what is missing.
+  "You opened your response with [observation] but the body moved
+  between [topics] without signposting the connections. Your audience
+  could follow each individual point but could not see how they
+  built into an argument."
+Scores 7–8: "Your structure is working well — you opened clearly,
+  organised your points logically, and closed decisively. The next
+  level is leading with your recommendation in the very first sentence,
+  before any context or rationale. This is point-first delivery — the
+  way the most senior communicators operate."
+Scores 9–10: Name the specific structural choices that earned the
+  score and their impact.
+
+--------------------------------------------------------------------------------
+DIMENSION 11 — CONCISENESS
+Pillar: Thought Clarity | Weight: 7% (audio-only: 8%)
+Source: gpt-4o-mini-transcribe transcript
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+Whether the speaker says what needs to be said and stops. Over-explanation,
+repetition, and padding are among the most common executive presence
+detractors in intelligent professionals — particularly those who feel
+compelled to justify every point, caveat every statement, or fill silence
+with additional words. Conciseness is not brevity for its own sake. It is
+the discipline of trusting that a well-made point has landed and that
+adding more words dilutes rather than strengthens it.
+
+INPUT SIGNALS:
+  - gpt-4o-mini-transcribe transcript
+  - Total word count relative to speech duration and context category
+  - Repetition detection: instances where the same point is restated
+    without adding new information
+  - Padding detection: phrases that add length without meaning
+    ("as I said", "what I mean to say is", "basically what I'm
+    trying to say", "if that makes sense", "you know what I mean",
+    re-stating conclusions already made)
+  - Context-expected duration: the appropriate length for the prompt
+    type and context category
+  - Over-run flag: if session exceeds context-appropriate length by
+    more than 40%, flag as a conciseness concern
+
+CONTEXT-APPROPRIATE LENGTH REFERENCE:
+  Category 1 — High Energy / Vision: 60–120 seconds optimal
+  Category 2 — Formal Presentation: 90–180 seconds optimal
+  Category 3 — Analytical / Technical: 90–180 seconds optimal
+  Category 4 — Difficult Conversation: 60–120 seconds optimal
+  Category 5 — Conversational / Interview: 60–90 seconds optimal
+
+  These are benchmarks, not hard limits. Longer responses are not
+  automatically penalised — repetition and padding are. A 3-minute
+  response that adds value throughout scores better than a 90-second
+  response that repeats its opening point three times.
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Response is severely bloated. The same points are restated multiple
+times without adding information. Extensive padding throughout.
+Significantly over the context-appropriate length. A listener would
+struggle to identify what the speaker's main point was within the
+volume of words.
+
+Score 2 — Needs Work:
+Heavy repetition of key points. Multiple padding phrases throughout.
+Significant over-run on expected duration. The response would be
+materially stronger at half its length without losing any content.
+
+Score 3 — Needs Work:
+Frequent repetition and consistent over-explanation. The speaker
+revisits points already made without adding value. Noticeable
+padding. Response exceeds context-appropriate length meaningfully.
+
+Score 4 — Developing:
+Some repetition and over-explanation — particularly at the end of
+the response where the speaker restates conclusions already clearly
+made. Occasional padding phrases. Slightly over context-appropriate
+length.
+
+Score 5 — Developing:
+Moderate efficiency. Most points made once but with occasional
+re-statements or qualifiers that add length without clarity.
+Some padding. Generally within acceptable length but with room
+to trim meaningfully.
+
+Score 6 — Developing:
+Mostly concise with isolated instances of repetition or padding.
+Within context-appropriate length. The response is coherent and
+efficient except for one or two passages that could be removed
+without loss.
+
+Score 7 — Strong:
+Concise throughout. Each point made once. No meaningful repetition.
+Minimal padding. Within context-appropriate length. The response
+respects the listener's time at every moment.
+
+Score 8 — Strong:
+Noticeably efficient. Every sentence adds value. No repetition.
+No padding detected. The speaker trusts their points to land and
+moves on. Response length is appropriate to the content without
+over- or under-serving the prompt.
+
+Score 9 — Distinguished:
+Exceptional conciseness. Not a word is wasted. Every sentence
+either introduces new information, advances the argument, or
+closes a section. The response would not be improved by any
+addition or removal. The listener receives precisely what they
+need and nothing more.
+
+Score 10 — Distinguished:
+All criteria for 9 at the highest level. The economy of language
+is itself a presence signal — the speaker's discipline in saying
+exactly what is needed and no more communicates mastery.
+Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: "Your response restated [specific point] [number] times
+  and included phrases like [example padding phrase] that added length
+  without adding meaning. At senior levels, over-explanation signals
+  doubt — as if you do not trust your point to have landed. Saying
+  something once, clearly, is more powerful than saying it three times
+  with qualifiers."
+Scores 4–6: Name the specific repetition or padding observed.
+  "The clearest opportunity is [specific passage] — this point was
+  already made at [earlier point in response]. Removing the restatement
+  would make the response sharper without losing anything."
+Scores 7–8: "Your response is concise and efficient. The next level
+  is identifying the one sentence in your response that adds the least
+  — and removing it. The discipline of cutting what is 'fine' to keep
+  only what is 'necessary' is what distinguishes Strong from
+  Distinguished."
+Scores 9–10: Confirm the economy and its impact.
+  "Every sentence in this response earned its place. Your audience
+  received exactly what they needed and nothing more — that is the
+  highest form of respect for the listener's attention."
+
+--------------------------------------------------------------------------------
+DIMENSION 12 — EYE CONTACT
+Pillar: Physical Delivery | Weight: 8% | Source: Claude Vision video frames
+Video sessions only. Not scored in audio-only mode.
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+How consistently and intentionally the speaker connects with the camera —
+the equivalent of direct eye contact in a room. Strong eye contact creates
+the feeling of being spoken to personally. Avoiding the camera signals
+discomfort or disengagement, even when the words are confident. Scored
+from video frame analysis only.
+
+INPUT SIGNALS:
+  - Claude Vision eyeContactObservation field (qualitative assessment
+    of gaze direction and consistency across captured frames)
+  - Frame-by-frame gaze direction: on-camera, off to side, downward,
+    upward, closed
+  - faceLostEvents count (how many times the face left frame entirely)
+  - faceCoverageFlag (triggered if face lost more than 3 times)
+  - Frames are captured every 8 seconds (first frame at 2.5 seconds),
+    up to 10 frames per session. All visual scoring based on these frames.
+
+FRAME SCORING GUIDE:
+  For each frame, classify gaze as one of:
+    DIRECT: Speaker looking at or very near the camera lens
+    NEAR: Speaker looking close to camera — slight deviation
+    OFF: Speaker looking clearly away — to side, down, or up
+    ABSENT: Face not in frame
+
+  Calculate: direct + near frames as percentage of total scoreable frames.
+
+GAZE SCORE REFERENCE:
+  Needs Work:    Direct/near in < 40% of frames
+  Developing:    Direct/near in 40–65% of frames
+  Strong:        Direct/near in 66–80% of frames
+  Distinguished: Direct/near in > 80% of frames, with warm and
+                 deliberate quality assessed by Claude Vision
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Speaker never looking at or near the camera across frames. Eyes
+consistently cast down, sideways, or away. The viewer experiences
+no personal connection at any point.
+
+Score 2 — Needs Work:
+Camera connection nearly absent. Rare glances toward camera in 1
+of 10 frames or fewer. No sustained eye contact across the session.
+
+Score 3 — Needs Work:
+Occasional camera connection in 2–3 frames. Speaker frequently
+looks away. Consistency entirely absent. Direct/near frames < 30%.
+
+Score 4 — Developing:
+Some camera connection but unreliable. Direct/near in 35–45% of
+frames. Several frames show good gaze; others show speaker looking
+away. The viewer would notice the inconsistency.
+
+Score 5 — Developing:
+Moderate eye contact. Speaker connects with camera more often than
+not but breaks are frequent enough to weaken the effect. Direct/near
+in 45–60% of frames.
+
+Score 6 — Developing:
+Good eye contact in most frames. Direct/near in 60–70% of frames.
+Breaks are infrequent. Viewer feels connected most of the time
+but not consistently.
+
+Score 7 — Strong:
+Strong eye contact. Direct/near in 70–80% of frames. Breaks are
+rare and brief. The viewer feels reliably spoken to throughout.
+
+Score 8 — Strong:
+Excellent eye contact. Consistent, warm, direct camera connection
+in > 78% of frames. The viewer feels personally engaged.
+Claude Vision assesses quality of connection as warm and genuine.
+
+Score 9 — Distinguished:
+Exceptional. Direct/near in > 83% of frames. Gaze is deliberate
+and commanding. Connection sustained and purposeful across the
+entire session. Claude Vision assesses the eye contact as
+intentional and confident throughout.
+
+Score 10 — Distinguished:
+World-class eye contact. Direct/near in > 88% of frames. Speaker's
+gaze communicates full presence and authority. A benchmark for
+video delivery. Exceptionally rare.
+
+COACHING FEEDBACK:
+Always reference the frame-level observation pattern.
+Scores 1–3: "In most of the frames captured from your session, you
+  were not looking at the camera. To the person watching, this reads
+  as disengagement — as if you are speaking at the room rather than
+  to them. Eye contact through the camera is the virtual equivalent
+  of looking someone in the eye. Without it, your presence is
+  significantly diminished."
+Scores 4–6: "Your camera connection was inconsistent — you connected
+  well in some moments and looked away in others. The breaks in
+  contact are where your audience momentarily loses the sense of
+  being spoken to directly. Consistent camera connection is one of
+  the fastest-return improvements available in video communication."
+Scores 7–8: Confirm and identify the next level.
+Scores 9–10: Name the quality of connection observed.
+
+--------------------------------------------------------------------------------
+DIMENSION 13 — FACIAL EXPRESSION
+Pillar: Physical Delivery | Weight: 4% | Source: Claude Vision video frames
+Video sessions only. Not scored in audio-only mode.
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+Whether the speaker's facial expression matches what they are saying and
+conveys appropriate warmth, conviction, and engagement. A face that is
+flat when the content is important, or animated at the wrong moments,
+creates incongruence that the audience registers instinctively — even
+if they cannot name what feels off. Scored from video frame analysis.
+
+INPUT SIGNALS:
+  - Claude Vision presenceObservation and gestureObservation fields
+    for facial animation assessment
+  - Frame-by-frame assessment of: expression congruence with content,
+    baseline warmth vs tension, expression range across the session,
+    presence of anxiety signals in the face (tight jaw, pressed lips,
+    furrowed brow at baseline)
+  - faceLostEvents count
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Expression is completely flat throughout all frames, or actively
+incongruent — smiling when delivering serious content, or showing
+visible distress. The face contradicts the message in a way the
+viewer cannot ignore.
+
+Score 2 — Needs Work:
+Expression is either absent (frozen or blank across nearly all frames)
+or significantly mismatched to content in multiple frames. Very little
+warmth or engagement visible. Anxiety signals dominant in the face.
+
+Score 3 — Needs Work:
+Minimal expression that does not track the content. Occasional
+movement but no clear relationship between what is being said and
+what the face is doing. The viewer receives no emotional signal.
+
+Score 4 — Developing:
+Some expression present but inconsistent. Moments of appropriate
+engagement visible in some frames, absent in others. Expression
+range is limited. Occasional mismatch with content.
+
+Score 5 — Developing:
+Expression is generally appropriate but not expressive. A
+predominantly neutral face that occasionally animates. The viewer
+receives a sense of engagement but not genuine connection.
+
+Score 6 — Developing:
+Mostly appropriate expression with some warmth visible. Minor
+incongruences in 1–2 frames. Expression range present but limited.
+The viewer generally feels the speaker is present and engaged.
+
+Score 7 — Strong:
+Expression consistently matches content across frames. Warm baseline.
+Visible range — the face conveys gravity on serious points and
+warmth on human moments. Minor lapses only.
+
+Score 8 — Strong:
+Expressive and congruent throughout. The face actively reinforces
+the message. Warmth is genuine and visible. Expression range is
+clear and appropriate to the content. Claude Vision assesses the
+expression as engaged and natural.
+
+Score 9 — Distinguished:
+Expression is a communication tool. The viewer watching without
+audio could identify what the speaker considers important, serious,
+or positive from the face alone. Congruence is consistent. Warmth
+is genuine. No anxiety signals visible.
+
+Score 10 — Distinguished:
+World-class expressiveness and congruence. The face and voice are
+a unified instrument. Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: "Your face was largely [flat / incongruent] across the
+  session. Your audience processes your face and your words
+  simultaneously — when they don't match, the face wins. A flat
+  or mismatched expression creates doubt even when the words are
+  confident."
+Scores 4–6: Name the specific gap — flat baseline, limited range,
+  or occasional mismatch. "Your expression tells your audience how
+  you feel about what you are saying. When it is neutral throughout,
+  they have no signal that any point matters more than any other."
+Scores 7–10: Confirm what is working and what the next level looks like.
+
+--------------------------------------------------------------------------------
+DIMENSION 14 — GESTURES
+Pillar: Physical Delivery | Weight: 3% | Source: Claude Vision video frames
+Video sessions only. Not scored in audio-only mode.
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+Whether hand and arm movements serve the communication or compete with
+it. Purposeful gestures — those that emphasise a point, enumerate ideas,
+or illustrate a relationship — amplify the message. Nervous or repetitive
+movements draw attention away from it. The standard is not frequency of
+gesture but intentionality. Scored from video frame analysis.
+
+INPUT SIGNALS:
+  - Claude Vision gestureObservation field
+  - Frame-by-frame assessment of: purposeful gesture presence,
+    nervous or repetitive movement (fidgeting, self-touching),
+    open vs closed body position (arms crossed, hands gripped),
+    gesture frame (are movements within a controlled area or erratic)
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Gestures are actively harmful — erratic, distracting, or nervous
+movements that undermine presence across frames. Hands create
+negative attention throughout.
+
+Score 2 — Needs Work:
+Movements are mostly distracting. Persistent fidgeting, self-touching,
+or constant movement visible in multiple frames. Closed body
+throughout.
+
+Score 3 — Needs Work:
+Either completely rigid with no expressive movement at all, or
+gesture patterns consistently distract from the message. No
+purposeful gestures visible across frames.
+
+Score 4 — Developing:
+Gestures present but stiff or mechanical. Some purposeful movement
+but it lacks naturalness. Occasional closed body position.
+
+Score 5 — Developing:
+Some purposeful gesturing with some awkward or absent moments.
+Movement is uneven across the session. Open body generally but
+with lapses.
+
+Score 6 — Developing:
+Good use of gesture in most frames. Movements generally support
+and reinforce content. Open body. Minor stiffness or missed
+opportunities only.
+
+Score 7 — Strong:
+Natural, purposeful gesturing visible across frames. Hands work
+with the message. Movements feel unscripted and appropriate.
+Open body throughout.
+
+Score 8 — Strong:
+Excellent gesture work. Hands are an active communication tool.
+Movements expressive, appropriately timed, and reinforcing key
+points. Open, confident body position throughout.
+
+Score 9 — Distinguished:
+Gesture and movement fully integrated with speech. Physical
+delivery amplifies the message at key moments. Natural rather
+than performed — gestures emerge from the content.
+
+Score 10 — Distinguished:
+World-class physical expressiveness. Gesture and movement seamless
+and powerful throughout. Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: Name the specific movement pattern observed.
+  "Nervous movements pull your audience's attention to your hands
+  rather than your message. Every moment they are watching your
+  hands is a moment they are not receiving what you are saying."
+Scores 4–6: "Your gestures are present but not yet working as a
+  tool. Purposeful movement — a hand that counts out three points,
+  or opens to indicate scale — reinforces your words in a way that
+  makes them more memorable."
+Scores 7–10: Confirm and build. Higher scores: "Your gestures are
+  a genuine asset — they make your communication more vivid without
+  drawing attention to themselves."
+
+--------------------------------------------------------------------------------
+DIMENSION 15 — POSTURE
+Pillar: Physical Delivery | Weight: 5% | Source: Claude Vision video frames
+Video sessions only. Not scored in audio-only mode.
+--------------------------------------------------------------------------------
+
+WHAT IS MEASURED:
+How the speaker holds and carries themselves physically — spinal
+alignment, shoulder position, stillness, and whether the body signals
+settled authority or managed anxiety. Posture communicates the speaker's
+relationship to the conversation before a word is spoken. Scored from
+video frame analysis.
+
+INPUT SIGNALS:
+  - Claude Vision presenceObservation field
+  - Frame-by-frame assessment of: spinal alignment (upright vs
+    slumped), shoulder position (level and open vs raised or
+    collapsed), head position (aligned vs forward-jutting or
+    tilted), visible tension (gripped hands, tense shoulders,
+    physical contraction), deliberate forward lean at key moments
+
+SCORE ANCHORS:
+
+Score 1 — Needs Work:
+Posture is collapsed or severely slumped throughout frames.
+Physical presentation actively signals anxiety or disengagement.
+The body contradicts any verbal authority.
+
+Score 2 — Needs Work:
+Significantly poor posture in most frames. Either slumped, hunched,
+or physically contracted in a way that communicates low confidence
+throughout.
+
+Score 3 — Needs Work:
+Posture is noticeably poor — below professional standard in most
+frames. Inconsistent head position or visible physical tension.
+The body is working against the speaker.
+
+Score 4 — Developing:
+Posture generally attempts upright but with clear lapses. Shoulders
+occasionally collapsed or raised. Tension visible in some frames.
+The physical signal is mixed.
+
+Score 5 — Developing:
+Generally upright but with noticeable inconsistency. Some frames
+show strong posture; others show slouching or physical contraction.
+The signal is not reliable.
+
+Score 6 — Developing:
+Mostly upright and open. Minor lapses in a few frames. Generally
+professional standard with room to improve consistency.
+
+Score 7 — Strong:
+Upright, open posture consistently across frames. Head aligned.
+Shoulders level and open. Physical presentation supports authority.
+Only very minor lapses.
+
+Score 8 — Strong:
+Clearly strong, settled posture throughout. The body communicates
+composure and confidence. No meaningful lapses. Deliberate
+forward lean visible in at least one frame at an appropriate moment.
+
+Score 9 — Distinguished:
+Posture is a presence signal in its own right. Consistently upright,
+open, and settled. Deliberate postural variation visible —
+leaning forward at key moments, grounded stillness in others.
+The body is fully in service of the message.
+
+Score 10 — Distinguished:
+World-class physical command. The speaker's body communicates
+authority before a word is spoken. Every frame shows deliberate,
+powerful physical presence. Exceptionally rare.
+
+COACHING FEEDBACK:
+Scores 1–3: "Your posture in this session was [description from frames].
+  Before your voice makes an impression, your body already has.
+  A collapsed or tense posture tells your audience you are not
+  settled — and unsettled leaders do not command rooms."
+Scores 4–6: "Your posture was inconsistent — some moments were
+  strong, others showed [specific observation]. Consistency matters
+  because your audience is watching you throughout, not just when
+  you are making your key point."
+Scores 7–10: Confirm and build. "A settled, upright physical presence
+  is one of the most immediate authority signals available to you.
+  You are already using it well — the next level is making it the
+  foundation everything else builds on."
+
+================================================================================
+SECTION 6 — COMPOSITE SCORE
+================================================================================
+
+6.1 DIMENSION WEIGHTS
+--------------------------------------------------------------------------------
+
+VIDEO SESSION WEIGHTS (all 15 dimensions):
+
+  PILLAR 1: VOICE QUALITY          Total: 20%
+    Articulation                    4%
+    Projection                      6%
+    Vocal Tone                      8%
+    Vocal Steadiness                2%
+
+  PILLAR 2: VOCAL DELIVERY         Total: 25%
+    Intonation                      8%
+    Pace                            7%
+    Pausing                         6%
+    Breath Control                  4%
+
+  PILLAR 3: THOUGHT CLARITY        Total: 35%
+    Confidence Language            13%
+    Structure                      15%
+    Conciseness                     7%
+
+  PILLAR 4: PHYSICAL DELIVERY      Total: 20%
+    Eye Contact                     8%
+    Facial Expression               4%
+    Gestures                        3%
+    Posture                         5%
+
+  TOTAL                           100%
+
+AUDIO-ONLY SESSION WEIGHTS (11 dimensions, Physical Delivery absent):
+  Physical Delivery weight (20%) redistributed proportionally.
+
+  PILLAR 1: VOICE QUALITY          Total: 25%
+    Articulation                    5%
+    Projection                      7%
+    Vocal Tone                      9%
+    Vocal Steadiness                4%  (note: Jitter unavailable —
+                                        scored from F0 SD and gpt-audio
+                                        tremor assessment only)
+
+  PILLAR 2: VOCAL DELIVERY         Total: 30%
+    Intonation                     10%
+    Pace                            8%
+    Pausing                         7%
+    Breath Control                  5%
+
+  PILLAR 3: THOUGHT CLARITY        Total: 45%  (note: increased from 35%
+    Confidence Language            16%   because Thought Clarity carries
+    Structure                      20%   the highest perceptual weight
+    Conciseness                     9%   when visual channel is absent)
+
+  TOTAL                           100%
+
+RESEARCH BASIS FOR WEIGHTS:
+  Thought Clarity at 35% (video) / 45% (audio): Supported by Sylvia Ann
+  Hewlett's research identifying gravitas as accounting for approximately
+  60% of executive presence perception. Structure and Confidence Language
+  are the most direct measurable proxies for gravitas.
+
+  Vocal Delivery at 25% (video) / 30% (audio): Supported by communication
+  science research on paralinguistic signals as dominant credibility
+  channels when content and delivery diverge.
+
+  Voice Quality at 20% (video) / 25% (audio): Supported by Klofstad,
+  Anderson, and Tigue (2012) on vocal resonance and tone as predictors
+  of perceived leadership competence.
+
+  Physical Delivery at 20% (video): Supported by Cuddy's research on
+  postural dominance, Ekman's work on facial expression and trust, and
+  eye contact research in virtual communication contexts.
+
+6.2 COMPOSITE CALCULATION
+--------------------------------------------------------------------------------
+
+Step 1: Multiply each dimension score (integer 1–10) by its weight.
+Step 2: Sum all weighted scores.
+Step 3: Apply gating rules (Section 6.3).
+Step 4: Round to one decimal place for display.
+Step 5: Assign tier from the composite score.
+
+COMPOSITE = sum of (dimension score × dimension weight) for all
+            applicable dimensions, subject to gating rules.
+
+6.3 GATING RULES
+--------------------------------------------------------------------------------
+
+ANCHOR DIMENSIONS:
+  Video mode:     Structure, Vocal Tone, Intonation, Eye Contact
+  Audio-only mode: Structure, Vocal Tone, Intonation
+
+These represent the highest-weighted dimension from each pillar and
+are the foundational signals of executive presence. A speaker cannot
+be rated Strong or Distinguished overall if any anchor dimension is
+in the Needs Work band.
+
+RULE 1 — NEEDS WORK CAP:
+  If any anchor dimension scores 1–3 (Needs Work), the composite is
+  capped at 6.4 regardless of how well other dimensions scored.
+  Rationale: a speaker cannot be rated Strong overall if a foundational
+  dimension is severely deficient, even if individual delivery mechanics
+  are polished elsewhere.
+
+  Application: Calculate the weighted composite normally. If the result
+  would be above 6.4 but an anchor dimension is 1–3, set composite to
+  6.4 and display a note: "Your composite score has been adjusted because
+  [Dimension Name] is in the Needs Work range. Strengthening this
+  foundational dimension is the highest-return action available to you."
+
+RULE 2 — DISTINGUISHED GATE:
+  To receive a composite of 8.5 or above (Distinguished tier), the
+  speaker must meet both of the following conditions:
+    Condition A: All anchor dimensions score 7 or above.
+    Condition B: At least 10 of 15 dimensions score 7 or above
+                 (video mode), OR at least 8 of 11 dimensions score 7
+                 or above (audio-only mode).
+
+  If the weighted composite calculates to 8.5 or above but either
+  condition fails, the composite is capped at 8.4 (Strong tier).
+  Display note: "Your composite score has been adjusted to Strong. To
+  reach Distinguished, all foundational dimensions must score Strong
+  or above, and consistent strength is required across the majority
+  of dimensions."
+
+RULE 3 — AUDIO-ONLY REBALANCING:
+  When video is unavailable (face coverage < 80%), Physical Delivery
+  dimensions are removed and their combined weight (20%) is redistributed
+  proportionally across the remaining three pillars using the audio-only
+  weights in Section 6.1. The audio-only anchor dimensions apply.
+  Notify user that Physical Delivery dimensions were not scored.
+
+6.4 TIER ASSIGNMENT
+--------------------------------------------------------------------------------
+
+  Composite 1.0–3.9   →  Needs Work
+  Composite 4.0–6.4   →  Developing
+  Composite 6.5–8.4   →  Strong
+  Composite 8.5–10.0  →  Distinguished (subject to Gate in Rule 2)
+
+  Note: A composite of 8.9 that fails the Distinguished Gate is assigned
+  8.4 (Strong). The gate takes precedence over the numeric threshold.
+  Display to user as the capped value (8.4), not the pre-cap value.
+
+6.5 COMPOSITE DISPLAY
+--------------------------------------------------------------------------------
+  Dimension scores: displayed as integers (e.g. 7)
+  Composite score: displayed to one decimal place (e.g. 7.4)
+  Tier: displayed alongside composite (e.g. 7.4 — Strong)
+  Gating adjustments: always disclosed to the user with explanation
+
+================================================================================
+SECTION 7 — SCORING CONSISTENCY REQUIREMENTS
+================================================================================
+
+7.1 CALIBRATION STANDARD
+  Any scorer — human or AI — applying this document to the same recording
+  must arrive within ±0.5 points per dimension of the reference score.
+  Composite scores must agree within ±0.3. Larger discrepancies indicate
+  an anchor or decision rule is insufficiently specific and must be
+  flagged for methodology review.
+
+7.2 SCORE 9 AND 10 RARITY
+  Scores of 9 and 10 are rare. A 9 means the scoring engine found almost
+  nothing meaningful to improve in that dimension. A 10 is reserved for
+  world-class delivery rarely encountered even among professional speakers.
+  If the scoring engine awards 9 or 10, the coaching feedback must
+  specifically name what earned it — a score of 9 or 10 with generic
+  feedback is a scoring error.
+
+7.3 SCORE 7 STANDARD
+  A 7 is a genuinely good score. Do not inflate to 8 or 9 to be
+  encouraging. A 7 means: consistent, controlled, credible, solid
+  professional standard with only minor gaps. The coaching feedback
+  for a 7 should acknowledge real strength while identifying the
+  specific gap that keeps it from 8.
+
+7.4 CROSS-DIMENSION CONFLICT RESOLUTION
+  F0 SD is used in both Intonation (Dimension 5) and Vocal Steadiness
+  (Dimension 4). When F0 SD is high:
+    - If gpt-audio assesses the variation as expressive and purposeful:
+      scores well in Intonation, neutral in Vocal Steadiness.
+    - If gpt-audio assesses the variation as tremor or anxiety-driven:
+      scores poorly in Vocal Steadiness, neutral in Intonation.
+  These are mutually exclusive interpretations. The gpt-audio qualitative
+  assessment is the deciding signal when the numeric value is ambiguous.
+
+7.5 TRANSCRIPT DEPENDENCY ACKNOWLEDGEMENT
+  Structure and Conciseness are scored from gpt-4o-mini-transcribe output.
+  This model produces clean, readable transcripts adequate for semantic
+  structure assessment. It may normalise some speech patterns. If the
+  transcript appears to have missed significant content, note this in
+  the output and reduce scoring confidence for these two dimensions.
+
+================================================================================
+SECTION 8 — FILLER WORD DIAGNOSTIC REPORT
+================================================================================
+
+Filler words are reported as a standalone diagnostic in addition to
+their role as a sub-signal of Confidence Language (Dimension 9).
+This report appears in the results for every session and is separate
+from the Confidence Language score.
+
+REPORT CONTENTS:
+  - Total filler word count (from gpt-audio)
+  - Filler rate: total count divided by speech duration in minutes
+  - Breakdown by type: um, uh, ah, like, you know, so, basically,
+    literally, right, okay, I mean, kind of, sort of
+  - Note: "This count is based on what was audible in your recording.
+    Soft or quiet filler sounds may occasionally not be detected."
+
+FRAMING IN FEEDBACK:
+  Present as data, not judgment.
+  "These are the filler words detected in your session:
+  [breakdown by type and count]
+  Your filler rate was [X] per minute. For reference, [Strong /
+  Distinguished] communicators typically use fewer than [2 / 1]
+  per minute. Reducing filler words is one of the fastest ways to
+  increase how authoritative you sound — the silence that replaces
+  a filler word is always more powerful than the filler itself."
+
+================================================================================
+SECTION 9 — VERSION CONTROL
+================================================================================
+
+Methodology version: 4.0
+All sessions scored under this methodology are tagged v4.0 in the
+database. Scores from v4.0 are not directly comparable to scores
+from v3.0 or earlier. When a user views historical scores across
+versions, display: "These sessions were scored using different
+methodology versions. They show your development over time but
+cannot be compared as exact like-for-like numbers."
+
+Pillar structure: Voice Quality | Vocal Delivery | Thought Clarity |
+                  Physical Delivery
+Dimensions: 15 scored dimensions (11 in audio-only mode)
+Composite tiers: Needs Work (1.0–3.9) | Developing (4.0–6.4) |
+                 Strong (6.5–8.4) | Distinguished (8.5–10.0)
+Gating rules: Needs Work cap at 6.4 | Distinguished gate at 8.5
+
+================================================================================
+END OF METHODOLOGY DOCUMENT v4.0
+================================================================================

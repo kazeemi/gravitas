@@ -1,11 +1,11 @@
 export const TIER_COLORS = {
   "Needs Focus": {
-    hex: "#B83219",
-    bg: "bg-[#B83219]",
-    text: "text-[#B83219]",
-    border: "border-[#B83219]",
-    light: "bg-[#FAEAE6]",
-    badge: "bg-[#B83219] text-white",
+    hex: "#8a8584",
+    bg: "bg-[#8a8584]",
+    text: "text-[#8a8584]",
+    border: "border-[#8a8584]",
+    light: "bg-[#F0EEEE]",
+    badge: "bg-[#8a8584] text-white",
   },
   Developing: {
     hex: "#F0953E",

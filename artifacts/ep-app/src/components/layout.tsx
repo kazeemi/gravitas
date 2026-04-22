@@ -19,7 +19,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
               <img
-                src="/gravitas-logo-light.png"
+                src="/Logo.png"
                 alt="Gravitas logo mark"
                 className="h-14 w-auto"
               />
@@ -72,7 +72,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <header className="flex md:hidden items-center justify-between border-b border-border bg-sidebar px-4 py-3">
           <div className="flex items-center gap-2">
             <img
-              src="/gravitas-logo-light.png"
+              src="/Logo.png"
               alt="Gravitas logo mark"
               className="h-10 w-auto"
             />

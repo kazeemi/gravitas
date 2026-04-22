@@ -665,24 +665,6 @@ export default function RecordPage() {
             </div>
           </div>
 
-          {mode === "video" && (
-            <div>
-              <label className="text-sm font-medium text-gray-700">Recording context</label>
-              <div className="mt-2 grid grid-cols-2 gap-3">
-                {(["seated", "standing"] as const).map(ctx => (
-                  <button
-                    key={ctx}
-                    onClick={() => setRecordingContext(ctx)}
-                    className={`rounded border p-3 text-sm transition-colors ${
-                      recordingContext === ctx ? "border-gray-900 bg-gray-50" : "border-gray-200"
-                    }`}
-                  >
-                    <span className="capitalize">{ctx}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           <div>
             <div className="flex items-center justify-between">

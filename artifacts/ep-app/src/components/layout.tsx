@@ -21,9 +21,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <h1
               className="text-base font-semibold text-foreground"
               style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-            >
-              Executive Presence AI Coach
-            </h1>
+            >Gravitas
+            Executive Presence AI Coach</h1>
             <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
               Beta
             </span>

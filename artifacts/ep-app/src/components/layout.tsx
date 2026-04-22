@@ -21,10 +21,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <img
                 src="/Logo.png"
                 alt="Gravitas logo mark"
-                className="h-14 w-auto"
+                className="h-8 w-auto"
               />
               <span
-                className="text-4xl font-semibold tracking-tight text-foreground"
+                className="text-3xl font-semibold tracking-tight text-foreground"
                 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
               >
                 Gravitas
@@ -74,10 +74,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <img
               src="/Logo.png"
               alt="Gravitas logo mark"
-              className="h-10 w-auto"
+              className="h-6 w-auto"
             />
             <span
-              className="text-2xl font-semibold text-foreground"
+              className="text-xl font-semibold text-foreground"
               style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
               Gravitas

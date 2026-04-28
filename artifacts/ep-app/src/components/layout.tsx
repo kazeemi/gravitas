@@ -13,7 +13,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const { logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex h-screen overflow-hidden bg-background">
       <nav className="hidden md:flex w-56 flex-col border-r border-border bg-sidebar px-3 py-6">
         <div className="mb-8 px-3">
           <div className="flex flex-col gap-1 items-center">

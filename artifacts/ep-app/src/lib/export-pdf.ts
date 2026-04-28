@@ -196,9 +196,9 @@ export function downloadSessionPdf(session: SessionDetail, userName: string | nu
 
         // Strength, gap, next step
         const subItems: { dot: string; text: string; color: [number,number,number] }[] = [];
-        if (dim.strengthText) subItems.push({ dot: "●", text: dim.strengthText, color: [45, 106, 45] });
-        if (dim.gapText) subItems.push({ dot: "●", text: dim.gapText, color: [138, 92, 0] });
-        if (dim.nextStepText) subItems.push({ dot: "●", text: dim.nextStepText, color: [26, 74, 138] });
+        if (dim.strengthText) subItems.push({ dot: "+", text: dim.strengthText, color: [45, 106, 45] });
+        if (dim.gapText) subItems.push({ dot: "-", text: dim.gapText, color: [138, 92, 0] });
+        if (dim.nextStepText) subItems.push({ dot: ">", text: dim.nextStepText, color: [26, 74, 138] });
 
         for (const sub of subItems) {
           y = checkPage(doc, y, pageH, margin, 10);
@@ -345,7 +345,7 @@ function buildMetricsRows(session: SessionDetail): MetricRow[] {
 
   if (duration > 0) {
     const m = Math.floor(duration / 60); const s = duration % 60;
-    rows.push({ label: "Duration", value: `${m}m ${s}s`, benchmark: "≥ 1 minute", statusColor: duration >= 60 ? GOOD_COLOR : POOR_COLOR });
+    rows.push({ label: "Duration", value: `${m}m ${s}s`, benchmark: ">= 1 minute", statusColor: duration >= 60 ? GOOD_COLOR : POOR_COLOR });
   }
   if (wpm !== null) {
     const benchmarkLabel = idealWpmMin !== null && idealWpmMax !== null

@@ -122,18 +122,6 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      <section className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900">Data</h2>
-        <div className="space-y-3">
-          <Button
-            variant="outline"
-            onClick={() => api.users.export()}
-          >
-            Export my data
-          </Button>
-        </div>
-      </section>
-
       <section className="rounded-lg border border-red-100 bg-white p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Account</h2>
         <Button

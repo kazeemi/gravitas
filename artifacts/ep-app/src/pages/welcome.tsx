@@ -43,17 +43,17 @@ export default function WelcomePage() {
             {
               number: "1",
               title: "Choose a prompt",
-              body: "Select a professional scenario or write your own. Gravitas detects the context automatically — board presentation, difficult conversation, impromptu — and calibrates the scoring standard.",
+              body: "Select a professional scenario or write your own.",
             },
             {
               number: "2",
               title: "Record",
-              body: "Record your response in audio or video mode. Audio scores 11 dimensions. Video scores all 15, including physical presence. Sessions run 1 to 10 minutes.",
+              body: "Record your response in audio or video mode. Sessions run 1 to 10 minutes.",
             },
             {
               number: "3",
               title: "Get your scores and coaching",
-              body: "Receive scores across 15 dimensions of executive presence. Every dimension includes evidence-based coaching feedback and one concrete action to take before your next session.",
+              body: "Get your scores, evidence-based coaching feedback for up to 15 dimensions of executive presence.",
             },
           ].map((card) => (
             <div

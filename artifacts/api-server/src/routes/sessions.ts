@@ -1,12 +1,14 @@
 import { Router } from "express";
 import multer from "multer";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray, sql } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { requireAuth } from "../lib/auth.js";
 import { logger } from "../lib/logger.js";
-import { sessionsTable, dimensionScoresTable } from "@workspace/db";
+import { sessionsTable, dimensionScoresTable, usersTable } from "@workspace/db";
 import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresence, type VideoPresenceResult } from "../lib/scoring.js";
 import { ensureCompatibleFormat, computeRmsMetrics, computeF0Metrics, type RmsMetrics, type F0Metrics } from "@workspace/integrations-openai-ai-server/audio";
+
+const BETA_LIMIT_SECONDS = 1200;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -20,6 +22,16 @@ router.post("/v1/sessions", requireAuth, async (req, res) => {
   if (!mode || !["audio", "video"].includes(mode)) {
     return res.status(400).json({ error: "mode must be 'audio' or 'video'" });
   }
+
+  const [user] = await db.select({ totalRecordingSeconds: usersTable.totalRecordingSeconds })
+    .from(usersTable)
+    .where(eq(usersTable.id, req.user!.userId))
+    .limit(1);
+
+  if (user && user.totalRecordingSeconds >= BETA_LIMIT_SECONDS) {
+    return res.status(403).json({ error: "beta_limit_reached", totalRecordingSeconds: user.totalRecordingSeconds });
+  }
+
   const [session] = await db.insert(sessionsTable).values({
     userId: req.user!.userId,
     mode,
@@ -268,6 +280,10 @@ router.post(
               scoredAt: new Date(),
             })
             .where(eq(sessionsTable.id, session.id));
+          await db
+            .update(usersTable)
+            .set({ totalRecordingSeconds: sql`total_recording_seconds + ${durationSeconds}` })
+            .where(eq(usersTable.id, session.userId));
           return;
         }
 
@@ -322,6 +338,10 @@ router.post(
             scoredAt: new Date(),
           })
           .where(eq(sessionsTable.id, session.id));
+        await db
+          .update(usersTable)
+          .set({ totalRecordingSeconds: sql`total_recording_seconds + ${durationSeconds}` })
+          .where(eq(usersTable.id, session.userId));
       } catch (err) {
         await db
           .update(sessionsTable)

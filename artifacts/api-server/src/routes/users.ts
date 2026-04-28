@@ -14,7 +14,7 @@ router.get("/v1/users/me", requireAuth, async (req, res) => {
 });
 
 router.patch("/v1/users/me", requireAuth, async (req, res) => {
-  const { name, roleTitle, communicationContext, goal, defaultRecordingContext, emailSummaries, hasSeenWelcome } = req.body;
+  const { name, roleTitle, communicationContext, goal, defaultRecordingContext, emailSummaries, hasSeenWelcome, notifyOnUpgrade } = req.body;
   const updates: Partial<typeof usersTable.$inferInsert> = {};
   if (name !== undefined) updates.name = name;
   if (roleTitle !== undefined) updates.roleTitle = roleTitle;
@@ -23,6 +23,7 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
   if (defaultRecordingContext !== undefined) updates.defaultRecordingContext = defaultRecordingContext;
   if (emailSummaries !== undefined) updates.emailSummaries = emailSummaries;
   if (hasSeenWelcome !== undefined) updates.hasSeenWelcome = hasSeenWelcome;
+  if (notifyOnUpgrade !== undefined) updates.notifyOnUpgrade = notifyOnUpgrade;
   const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, req.user!.userId)).returning();
   if (!user) return res.status(404).json({ error: "User not found" });
   const { passwordHash: _ph, ...safe } = user;

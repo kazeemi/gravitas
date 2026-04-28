@@ -12,6 +12,8 @@ interface User {
   hasSeenWelcome?: boolean;
   defaultRecordingContext?: string | null;
   emailSummaries?: boolean;
+  totalRecordingSeconds?: number;
+  notifyOnUpgrade?: boolean;
 }
 
 interface AuthContextValue {

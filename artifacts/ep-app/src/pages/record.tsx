@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useSearch } from "wouter";
 import { api, type Prompt } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import {
   MicIcon,
@@ -13,6 +14,8 @@ import {
   AlertCircleIcon,
   AlertTriangleIcon,
 } from "lucide-react";
+
+const BETA_LIMIT_SECONDS = 1200;
 
 const SILENCE_THRESHOLD = 8;      // avg amplitude (0–255) below which = silence
 const SILENCE_WARN_SECS = 10;     // seconds of continuous silence before warning
@@ -86,6 +89,7 @@ export default function RecordPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
   const modeParam = params.get("mode") as "audio" | "video" | null;
+  const { user, refreshUser } = useAuth();
 
   const [mode, setMode] = useState<"audio" | "video">(modeParam || "audio");
   const [step, setStep] = useState<Step>("setup");
@@ -98,6 +102,8 @@ export default function RecordPage() {
   const [error, setError] = useState("");
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [processingStatus, setProcessingStatus] = useState("");
+  const [totalRecordingSeconds, setTotalRecordingSeconds] = useState<number>(user?.totalRecordingSeconds ?? 0);
+  const [notifySet, setNotifySet] = useState(false);
 
   const [audioLevel, setAudioLevel] = useState(0);       // 0–100 live mic level
   const [silenceWarning, setSilenceWarning] = useState(false);
@@ -137,6 +143,8 @@ export default function RecordPage() {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [pendingVideoBlob, setPendingVideoBlob] = useState<Blob | null>(null);
   const [, setLocation] = useLocation();
+  const quotaRemainingAtStartRef = useRef<number>(BETA_LIMIT_SECONDS);
+  const quotaAutoStopRef = useRef(false);
 
   useEffect(() => {
     if (modeParam) setMode(modeParam);
@@ -145,6 +153,12 @@ export default function RecordPage() {
   useEffect(() => {
     api.prompts.random().then(setPrompt).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (user?.totalRecordingSeconds !== undefined) {
+      setTotalRecordingSeconds(user.totalRecordingSeconds);
+    }
+  }, [user?.totalRecordingSeconds]);
 
   // Proactively detect blocked permissions on mount so the user sees guidance
   // immediately rather than only after clicking "Start recording".
@@ -176,10 +190,15 @@ export default function RecordPage() {
     recordingStateRef.current = recordingState;
   }, [recordingState]);
 
-  // Auto-stop when max duration reached
+  // Auto-stop when max duration or beta quota reached
   useEffect(() => {
-    if (recordingState === "recording" && elapsed >= MAX_DURATION) {
-      stopRecording();
+    if (recordingState === "recording") {
+      if (elapsed >= MAX_DURATION) {
+        stopRecording();
+      } else if (elapsed >= quotaRemainingAtStartRef.current) {
+        quotaAutoStopRef.current = true;
+        stopRecording();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [elapsed, recordingState]);
@@ -333,6 +352,14 @@ export default function RecordPage() {
 
   const startRecording = async () => {
     setError("");
+    const quotaRemaining = BETA_LIMIT_SECONDS - totalRecordingSeconds;
+    if (quotaRemaining <= 0) {
+      setTotalRecordingSeconds(BETA_LIMIT_SECONDS);
+      return;
+    }
+    quotaRemainingAtStartRef.current = quotaRemaining;
+    quotaAutoStopRef.current = false;
+
     try {
       const constraints = mode === "video"
         ? { audio: true, video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } }
@@ -340,12 +367,23 @@ export default function RecordPage() {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
 
-      const session = await api.sessions.create({
-        mode,
-        promptText: customPrompt.trim() || prompt?.text || undefined,
-        promptType: prompt?.type,
-        recordingContext: mode === "video" ? recordingContext : "seated",
-      });
+      let session: { id: string; mode: string; processingStatus: string };
+      try {
+        session = await api.sessions.create({
+          mode,
+          promptText: customPrompt.trim() || prompt?.text || undefined,
+          promptType: prompt?.type,
+          recordingContext: mode === "video" ? recordingContext : "seated",
+        });
+      } catch (apiErr) {
+        const msg = apiErr instanceof Error ? apiErr.message : "";
+        if (msg === "beta_limit_reached") {
+          releaseStream();
+          setTotalRecordingSeconds(BETA_LIMIT_SECONDS);
+          return;
+        }
+        throw apiErr;
+      }
       setSessionId(session.id);
 
       audioChunksRef.current = [];
@@ -514,6 +552,8 @@ export default function RecordPage() {
     let doneCount = 0;
     const totalRecorders = vRecorder && vRecorder.state !== "inactive" ? 2 : 1;
 
+    const wasQuotaStop = quotaAutoStopRef.current;
+
     const onBothDone = async () => {
       doneCount += 1;
       if (doneCount < totalRecorders) return;
@@ -532,12 +572,18 @@ export default function RecordPage() {
       }
 
       releaseStream();
-      setPendingBlob(blob);
-      setPendingVideoBlob(videoBlob);
-      setPendingDuration(finalDuration);
-      setPendingFrames(capturedFrames);
-      setPendingSilenceEvents(capturedSilenceEvents);
-      setStep("review");
+
+      if (wasQuotaStop) {
+        // Auto-submit immediately — skip review screen
+        submitAudio(finalDuration, blob, capturedFrames, capturedSilenceEvents);
+      } else {
+        setPendingBlob(blob);
+        setPendingVideoBlob(videoBlob);
+        setPendingDuration(finalDuration);
+        setPendingFrames(capturedFrames);
+        setPendingSilenceEvents(capturedSilenceEvents);
+        setStep("review");
+      }
     };
 
     recorder.onstop = onBothDone;
@@ -611,6 +657,7 @@ export default function RecordPage() {
             clearInterval(pollRef.current!);
             if (processingStepRef.current) clearInterval(processingStepRef.current);
             setProcessingStep(4);
+            refreshUser().catch(() => {});
             setStep("done");
           } else if (status.processingStatus === "error") {
             clearInterval(pollRef.current!);
@@ -654,11 +701,81 @@ export default function RecordPage() {
     api.prompts.random().then(setPrompt).catch(() => {});
   };
 
+  const quotaRemaining = Math.max(0, BETA_LIMIT_SECONDS - totalRecordingSeconds);
+  const quotaUsedMins = Math.floor(totalRecordingSeconds / 60);
+  const quotaUsedSecs = totalRecordingSeconds % 60;
+  const isAtLimit = totalRecordingSeconds >= BETA_LIMIT_SECONDS;
+
+  const handleNotifyMe = async () => {
+    try {
+      await api.users.update({ notifyOnUpgrade: true });
+      setNotifySet(true);
+    } catch {
+      setNotifySet(true);
+    }
+  };
+
+  if (isAtLimit) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="rounded-2xl border border-gray-200 bg-white px-8 py-10 space-y-6">
+          <div className="space-y-3">
+            <h1 className="text-2xl font-bold text-gray-900">You have used your 20 minutes.</h1>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              Your beta recording allowance is complete. We hope the sessions so far have given you a clear picture of where you stand and what to work on next. If you have not already done so, please share your feedback with Kanza Azeemi.
+            </p>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              When paid plans launch, you will be the first to know. Upgrading will give you continued access to recording, scoring, and coaching so you can keep tracking your progress.
+            </p>
+          </div>
+
+          <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+            <p className="text-sm text-gray-500">We will notify you as soon as upgrades are available.</p>
+          </div>
+
+          <div className="space-y-3">
+            {notifySet ? (
+              <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                <CheckCircleIcon className="h-4 w-4 text-green-600 flex-shrink-0" />
+                <p className="text-sm text-green-800 font-medium">You're on the list — we'll notify you when upgrades launch.</p>
+              </div>
+            ) : (
+              <Button className="w-full" onClick={handleNotifyMe}>
+                Got it! Notify me when upgrades launch
+              </Button>
+            )}
+            <button
+              onClick={() => setLocation("/sessions")}
+              className="w-full text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2"
+            >
+              View my session history
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Let's record a new session</h1>
-        <p className="mt-1 text-sm text-gray-500">Record and analyze your executive presence</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Let's record a new session</h1>
+          <p className="mt-1 text-sm text-gray-500">Record and analyze your executive presence</p>
+        </div>
+        <div className="flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-right">
+          <p className="text-xs font-medium text-gray-500 whitespace-nowrap">Beta recording</p>
+          <p className="text-xs text-gray-700 whitespace-nowrap font-mono">
+            {quotaUsedMins}m {quotaUsedSecs.toString().padStart(2, "0")}s
+            <span className="text-gray-400"> / 20m used</span>
+          </p>
+          <div className="mt-1 h-1 w-24 rounded-full bg-gray-200 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gray-700 transition-all"
+              style={{ width: `${Math.min(100, (totalRecordingSeconds / BETA_LIMIT_SECONDS) * 100)}%` }}
+            />
+          </div>
+        </div>
       </div>
       {permissionDenied && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm">
@@ -778,6 +895,15 @@ export default function RecordPage() {
               )}
             </div>
           </div>
+
+          {quotaRemaining < 60 && quotaRemaining > 0 && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
+              <AlertTriangleIcon className="h-4 w-4 flex-shrink-0 text-amber-600 mt-0.5" />
+              <p className="text-sm text-amber-800">
+                You have <strong>{quotaRemaining} second{quotaRemaining !== 1 ? "s" : ""}</strong> of beta recording remaining. Your session will stop automatically when the limit is reached.
+              </p>
+            </div>
+          )}
 
           <Button className="w-full gap-2" onClick={startRecording}>
             <PlayCircleIcon className="h-4 w-4" />
@@ -916,6 +1042,10 @@ export default function RecordPage() {
                 <p className="mt-1 text-xs text-amber-600">
                   {MIN_DURATION - elapsed}s remaining to reach minimum
                 </p>
+              ) : elapsed >= quotaRemainingAtStartRef.current - 60 && elapsed < quotaRemainingAtStartRef.current ? (
+                <p className="mt-1 text-xs text-amber-600">
+                  {quotaRemainingAtStartRef.current - elapsed}s until beta limit — recording will stop automatically
+                </p>
               ) : elapsed >= MAX_DURATION - 60 ? (
                 <p className="mt-1 text-xs text-red-500">
                   {MAX_DURATION - elapsed}s until maximum — recording will stop automatically
@@ -925,6 +1055,9 @@ export default function RecordPage() {
                   Max {formatTime(MAX_DURATION)} · {formatTime(MAX_DURATION - elapsed)} remaining
                 </p>
               )}
+              <p className="mt-2 text-xs text-gray-400 font-mono">
+                Beta: {Math.floor((totalRecordingSeconds + elapsed) / 60)}m {((totalRecordingSeconds + elapsed) % 60).toString().padStart(2, "0")}s / 20m used
+              </p>
             </div>
           </div>
 

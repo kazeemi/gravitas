@@ -25,9 +25,15 @@ const STEPS = [
   },
 ];
 
+const BETA_LIMIT_SECONDS = 1200;
+
 export default function WelcomePage() {
   const [, setLocation] = useLocation();
   const { user, refreshUser } = useAuth();
+
+  const totalRecordingSeconds = user?.totalRecordingSeconds ?? 0;
+  const quotaUsedMins = Math.floor(totalRecordingSeconds / 60);
+  const quotaUsedSecs = totalRecordingSeconds % 60;
 
   const handleBegin = async () => {
     try {
@@ -72,6 +78,25 @@ export default function WelcomePage() {
         <p className="text-sm text-gray-500">
           Once you've completed two recordings, your Progress page activates — showing how your
           scores are moving across every dimension, where you're improving, and where to focus next.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white px-6 py-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-semibold text-gray-900">Beta recording allowance</p>
+          <p className="text-sm font-mono text-gray-700">
+            {quotaUsedMins}m {quotaUsedSecs.toString().padStart(2, "0")}s
+            <span className="text-gray-400"> / 20m used</span>
+          </p>
+        </div>
+        <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-gray-800 transition-all"
+            style={{ width: `${Math.min(100, (totalRecordingSeconds / BETA_LIMIT_SECONDS) * 100)}%` }}
+          />
+        </div>
+        <p className="mt-2 text-xs text-gray-400">
+          {Math.max(0, BETA_LIMIT_SECONDS - totalRecordingSeconds)} seconds remaining in your beta allowance.
         </p>
       </div>
 

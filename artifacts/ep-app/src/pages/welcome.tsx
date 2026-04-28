@@ -1,10 +1,33 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { MicIcon, VideoIcon, BarChart2Icon } from "lucide-react";
+
+const STEPS = [
+  {
+    number: "1",
+    icon: <MicIcon className="h-5 w-5 text-amber-500" />,
+    title: "Choose a prompt",
+    body: "Select a professional scenario or write your own.",
+  },
+  {
+    number: "2",
+    icon: <VideoIcon className="h-5 w-5 text-amber-500" />,
+    title: "Record",
+    body: "Record your response in audio or video mode. Sessions run 1 to 10 minutes.",
+  },
+  {
+    number: "3",
+    icon: <BarChart2Icon className="h-5 w-5 text-amber-500" />,
+    title: "Get your scores and coaching",
+    body: "Receive scores and evidence-based feedback across up to 15 dimensions of executive presence.",
+  },
+];
 
 export default function WelcomePage() {
   const [, setLocation] = useLocation();
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const handleBegin = async () => {
     try {
@@ -17,109 +40,53 @@ export default function WelcomePage() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-between px-6 py-12"
-      style={{ backgroundColor: "#0F1117" }}
-    >
-      <div className="flex flex-col items-center w-full max-w-4xl flex-1 justify-center gap-10">
-
-        <div className="text-center space-y-3">
-          <h1
-            className="text-4xl md:text-5xl text-[#F5F0E8]"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Welcome to Gravitas.
-          </h1>
-          <p
-            className="text-xl md:text-2xl text-[#D4A853] italic"
-            style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-          >
-            Your personal executive presence coach. Here is how it works.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 w-full">
-          {[
-            {
-              number: "1",
-              title: "Choose a prompt",
-              body: "Select a professional scenario or write your own.",
-            },
-            {
-              number: "2",
-              title: "Record",
-              body: "Record your response in audio or video mode. Sessions run 1 to 10 minutes.",
-            },
-            {
-              number: "3",
-              title: "Get your scores and coaching",
-              body: "Get your scores and evidence-based coaching feedback for up to 15 dimensions of executive presence.",
-            },
-          ].map((card) => (
-            <div
-              key={card.number}
-              className="flex flex-col gap-3 rounded-lg px-5 py-5"
-              style={{
-                backgroundColor: "#1A1D27",
-                borderTop: "3px solid #D4A853",
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className="text-[#D4A853] text-xs font-semibold uppercase tracking-widest"
-                  style={{ fontFamily: "Calibri, 'Segoe UI', sans-serif" }}
-                >
-                  Step {card.number}
-                </span>
-              </div>
-              <h3
-                className="text-[#F5F0E8] text-lg font-semibold"
-                style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
-              >
-                {card.title}
-              </h3>
-              <p
-                className="text-[#9CA3AF] text-sm leading-relaxed"
-                style={{ fontFamily: "Calibri, 'Segoe UI', sans-serif" }}
-              >
-                {card.body}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <p
-          className="text-center text-[#9CA3AF] max-w-xl"
-          style={{ fontFamily: "Calibri, 'Segoe UI', sans-serif", fontSize: "13px" }}
-        >
-          After two sessions, your Progress page unlocks. You will see how your scores are moving
-          across every dimension — where you are improving and where to focus next.
+    <div className="max-w-2xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">How it works</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Your personal executive presence coach — powered by AI.
         </p>
-
-        <button
-          onClick={handleBegin}
-          className="rounded-lg px-10 py-3.5 text-base font-semibold text-[#0F1117] transition-opacity hover:opacity-90 active:opacity-80"
-          style={{
-            backgroundColor: "#D4A853",
-            fontFamily: "Georgia, 'Times New Roman', serif",
-          }}
-        >
-          Let's begin →
-        </button>
       </div>
 
-      <p
-        className="text-center mt-8 max-w-2xl"
-        style={{
-          fontFamily: "Calibri, 'Segoe UI', sans-serif",
-          fontSize: "11px",
-          color: "rgba(245, 240, 232, 0.35)",
-        }}
-      >
-        Built on McKinsey-level analytical rigour and Executive Coaching methodology. Your recording
-        is deleted immediately after scoring. During beta, transcripts are accessible to the Gravitas
-        team for scoring validation only.
-      </p>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {STEPS.map((step) => (
+          <div
+            key={step.number}
+            className="rounded-lg border border-gray-200 bg-white px-5 py-5 space-y-3"
+            style={{ borderTop: "3px solid rgb(245 158 11)" }}
+          >
+            <div className="flex items-center gap-2">
+              {step.icon}
+              <span className="text-xs font-semibold uppercase tracking-widest text-amber-500">
+                Step {step.number}
+              </span>
+            </div>
+            <h3 className="text-base font-semibold text-gray-900">{step.title}</h3>
+            <p className="text-sm text-gray-500 leading-relaxed">{step.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white px-6 py-5 space-y-1">
+        <p className="text-sm font-semibold text-gray-900">Your progress unlocks after two sessions</p>
+        <p className="text-sm text-gray-500">
+          Once you've completed two recordings, your Progress page activates — showing how your
+          scores are moving across every dimension, where you're improving, and where to focus next.
+        </p>
+      </div>
+
+      {!user?.hasSeenWelcome && (
+        <div className="flex flex-col items-start gap-3">
+          <Button onClick={handleBegin} className="px-8">
+            Let's begin →
+          </Button>
+          <p className="text-xs text-gray-400 max-w-lg leading-relaxed">
+            Built on McKinsey-level analytical rigour and Executive Coaching methodology. Your
+            recording is deleted immediately after scoring. During beta, transcripts are accessible
+            to the Gravitas team for scoring validation only.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

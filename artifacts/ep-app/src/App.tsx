@@ -66,7 +66,7 @@ function AppRouter() {
         {!user ? <Redirect to="/login" /> : <OnboardingPage />}
       </Route>
       <Route path="/welcome">
-        {!user ? <Redirect to="/login" /> : <WelcomePage />}
+        {!user ? <Redirect to="/login" /> : <Layout><WelcomePage /></Layout>}
       </Route>
       <Route path="/dashboard">
         <ProtectedRoute component={DashboardPage} />

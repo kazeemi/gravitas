@@ -53,7 +53,7 @@ export default function WelcomePage() {
             {
               number: "3",
               title: "Get your scores and coaching",
-              body: "Get your scores, evidence-based coaching feedback for up to 15 dimensions of executive presence.",
+              body: "Get your scores and evidence-based coaching feedback for up to 15 dimensions of executive presence.",
             },
           ].map((card) => (
             <div

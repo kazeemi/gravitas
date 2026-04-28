@@ -709,16 +709,18 @@ export default function RecordPage() {
             </div>
           </div>
 
-          <div className="rounded border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            {mode === "video"
-              ? "Minimum 1 minute · maximum 10 minutes. Your audio will be transcribed and your visual presence analyzed after recording."
-              : "Minimum 1 minute · maximum 10 minutes. Your audio will be transcribed and analyzed after recording."}
-          </div>
-
           <Button className="w-full gap-2" onClick={startRecording}>
             <PlayCircleIcon className="h-4 w-4" />
             Start recording
           </Button>
+
+          <p className="text-center text-xs text-gray-400">Minimum 1 minute · maximum 10 minutes.</p>
+
+          <p className="text-center text-xs text-gray-400">
+            Your recording is deleted immediately after scoring. No one at Gravitas or your organization has access to your audio or video.
+            <br />
+            During beta only, Gravitas may review session transcripts to validate scoring accuracy.
+          </p>
         </div>
       )}
       {step === "recording" && (

@@ -25,6 +25,7 @@ export const usersTable = pgTable("users", {
   hasSeenWelcome: boolean("has_seen_welcome").notNull().default(false),
   totalRecordingSeconds: integer("total_recording_seconds").notNull().default(0),
   notifyOnUpgrade: boolean("notify_on_upgrade").notNull().default(true),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

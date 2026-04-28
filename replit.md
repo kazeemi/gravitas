@@ -12,6 +12,7 @@ pnpm workspace monorepo using TypeScript.
 artifacts/
   api-server/   # Express 5 backend API (port 8080, served at /api)
   ep-app/       # React + Vite frontend (served at /)
+  admin/        # Internal admin dashboard (served at /admin) — admin-only
 lib/
   db/           # Drizzle ORM schema + PostgreSQL connection
   api-spec/     # OpenAPI 3.0 spec + Orval codegen config
@@ -93,6 +94,22 @@ All routes are prefixed with `/api`:
 - `POST /v1/sessions/test-video` — video quality check
 - `GET /v1/prompts` — list practice prompts
 - `GET /v1/prompts/random` — get random prompt
+- `GET /v1/admin/stats` — platform aggregate stats (admin only)
+- `GET /v1/admin/users` — all users with session counts (admin only)
+- `GET /v1/admin/users/:id` — user detail + all sessions (admin only)
+- `GET /v1/admin/sessions/:id` — session detail with scores/transcript (admin only)
+- `PATCH /v1/admin/users/:id` — grant/revoke admin flag (admin only)
+
+## Admin Dashboard
+
+Served at `/admin`. Auth guard: JWT must contain `isAdmin: true`.
+Granting admin: `UPDATE users SET is_admin = true WHERE email = 'you@example.com';`
+
+Pages:
+- `/admin/` — stats overview (users, sessions, avg score, recording time)
+- `/admin/users` — searchable user table with session counts + avg scores
+- `/admin/users/:id` — user detail, all sessions, grant/revoke admin toggle
+- `/admin/sessions/:id` — full session detail, dimension scores with bars, transcript, feedback
 
 ## Frontend Pages
 

@@ -22,8 +22,8 @@ router.post("/v1/auth/signup", async (req, res) => {
     name,
     passwordHash,
   }).returning();
-  const token = signToken({ userId: user.id, email: user.email });
-  return res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name } });
+  const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
+  return res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
 });
 
 router.post("/v1/auth/login", async (req, res) => {
@@ -39,8 +39,8 @@ router.post("/v1/auth/login", async (req, res) => {
   if (!valid) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
-  const token = signToken({ userId: user.id, email: user.email });
-  return res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
+  const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
+  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
 });
 
 router.post("/v1/auth/logout", requireAuth, (_req, res) => {
@@ -97,10 +97,10 @@ router.post("/v1/auth/google", async (req, res) => {
       [user] = await db.insert(usersTable).values({ email, name }).returning();
     }
 
-    const token = signToken({ userId: user.id, email: user.email });
+    const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
     return res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.name },
+      user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin },
       isNewUser: !user.onboardingCompleted,
     });
   } catch {

@@ -787,15 +787,19 @@ export default function RecordPage() {
                   {mode === "video" ? "Camera and microphone access blocked" : "Microphone access blocked"}
                 </p>
                 <p className="mt-1 text-red-700">
-                  You previously denied permission. Your browser won't ask again automatically — you need to re-enable it manually.
+                  Try tapping the button below — your browser may prompt you directly. If not, re-enable access manually using the steps below, then tap the button again.
                 </p>
               </div>
               <div className="space-y-2 text-red-700">
-                <p className="font-medium">How to fix it:</p>
+                <p className="font-medium">If the button below doesn't trigger a prompt, re-enable manually:</p>
                 <ul className="space-y-1.5 text-xs list-none">
                   <li className="flex items-start gap-1.5">
-                    <span className="font-semibold shrink-0">Chrome / Edge:</span>
-                    <span>Tap or click the <strong>lock icon</strong> (🔒) in the address bar → Site settings → set {mode === "video" ? "Camera and Microphone" : "Microphone"} to <strong>Allow</strong>, then refresh.</span>
+                    <span className="font-semibold shrink-0">Chrome (desktop):</span>
+                    <span>Click the <strong>lock or info icon</strong> in the address bar → Site settings → set {mode === "video" ? "Camera and Microphone" : "Microphone"} to <strong>Allow</strong>, then try again.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="font-semibold shrink-0">Chrome (mobile):</span>
+                    <span>Tap the <strong>three-dot menu → Settings → Site settings → {mode === "video" ? "Camera / Microphone" : "Microphone"}</strong> → find this site and set to Allow.</span>
                   </li>
                   <li className="flex items-start gap-1.5">
                     <span className="font-semibold shrink-0">Safari (iPhone/iPad):</span>
@@ -808,7 +812,7 @@ export default function RecordPage() {
                 </ul>
               </div>
               <button
-                onClick={() => { setPermissionDenied(false); }}
+                onClick={() => { setPermissionDenied(false); startRecording(); }}
                 className="mt-1 rounded bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
               >
                 I've updated my settings — try again

@@ -96,6 +96,7 @@ export default function RecordPage() {
   const [elapsed, setElapsed] = useState(0);
   const [recordingState, setRecordingState] = useState<RecordingState>("idle");
   const [error, setError] = useState("");
+  const [permissionDenied, setPermissionDenied] = useState(false);
   const [processingStatus, setProcessingStatus] = useState("");
 
   const [audioLevel, setAudioLevel] = useState(0);       // 0–100 live mic level
@@ -144,6 +145,28 @@ export default function RecordPage() {
   useEffect(() => {
     api.prompts.random().then(setPrompt).catch(() => {});
   }, []);
+
+  // Proactively detect blocked permissions on mount so the user sees guidance
+  // immediately rather than only after clicking "Start recording".
+  useEffect(() => {
+    if (!navigator.permissions) return;
+    const names: PermissionName[] = ["microphone"];
+    if (mode === "video") names.push("camera" as PermissionName);
+    Promise.all(names.map(n => navigator.permissions.query({ name: n }))).then(results => {
+      if (results.some(r => r.state === "denied")) {
+        setPermissionDenied(true);
+      }
+      results.forEach(r => {
+        r.onchange = () => {
+          if (results.some(s => s.state === "denied")) {
+            setPermissionDenied(true);
+          } else {
+            setPermissionDenied(false);
+          }
+        };
+      });
+    }).catch(() => {});
+  }, [mode]);
 
   useEffect(() => {
     elapsedRef.current = elapsed;
@@ -388,11 +411,18 @@ export default function RecordPage() {
       timerRef.current = window.setInterval(() => setElapsed(e => e + 1), 1000);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to start recording";
-      setError(
-        msg.includes("Permission") || msg.includes("NotAllowed")
-          ? `${mode === "video" ? "Camera and microphone" : "Microphone"} permission denied — please allow access and try again.`
-          : msg
-      );
+      const isPermission =
+        msg.includes("Permission") ||
+        msg.includes("NotAllowed") ||
+        msg.toLowerCase().includes("not allowed") ||
+        (err instanceof Error && err.name === "NotAllowedError");
+      if (isPermission) {
+        setPermissionDenied(true);
+        setError("");
+      } else {
+        setPermissionDenied(false);
+        setError(msg);
+      }
       releaseStream();
     }
   };
@@ -630,7 +660,47 @@ export default function RecordPage() {
         <h1 className="text-2xl font-bold text-gray-900">Let's record a new session</h1>
         <p className="mt-1 text-sm text-gray-500">Record and analyze your executive presence</p>
       </div>
-      {error && (
+      {permissionDenied && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircleIcon className="h-5 w-5 flex-shrink-0 text-red-500 mt-0.5" />
+            <div className="flex-1 space-y-3">
+              <div>
+                <p className="font-semibold text-red-800">
+                  {mode === "video" ? "Camera and microphone access blocked" : "Microphone access blocked"}
+                </p>
+                <p className="mt-1 text-red-700">
+                  You previously denied permission. Your browser won't ask again automatically — you need to re-enable it manually.
+                </p>
+              </div>
+              <div className="space-y-2 text-red-700">
+                <p className="font-medium">How to fix it:</p>
+                <ul className="space-y-1.5 text-xs list-none">
+                  <li className="flex items-start gap-1.5">
+                    <span className="font-semibold shrink-0">Chrome / Edge:</span>
+                    <span>Tap or click the <strong>lock icon</strong> (🔒) in the address bar → Site settings → set {mode === "video" ? "Camera and Microphone" : "Microphone"} to <strong>Allow</strong>, then refresh.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="font-semibold shrink-0">Safari (iPhone/iPad):</span>
+                    <span>Go to <strong>Settings → Safari → {mode === "video" ? "Camera / Microphone" : "Microphone"}</strong> → set to Allow. Then return here and try again.</span>
+                  </li>
+                  <li className="flex items-start gap-1.5">
+                    <span className="font-semibold shrink-0">Firefox:</span>
+                    <span>Click the <strong>shield or lock icon</strong> in the address bar → remove the blocked permission → reload the page.</span>
+                  </li>
+                </ul>
+              </div>
+              <button
+                onClick={() => { setPermissionDenied(false); }}
+                className="mt-1 rounded bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition-colors"
+              >
+                I've updated my settings — try again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {error && !permissionDenied && (
         <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
           <AlertCircleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <span>{error}</span>

@@ -366,6 +366,7 @@ export default function RecordPage() {
         : { audio: true };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
+      setPermissionDenied(false);
 
       let session: { id: string; mode: string; processingStatus: string };
       try {

@@ -14,6 +14,7 @@ import HistoryPage from "@/pages/history";
 import SessionDetailPage from "@/pages/session-detail";
 import ProgressPage from "@/pages/progress";
 import SettingsPage from "@/pages/settings";
+import WelcomePage from "@/pages/welcome";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     );
   }
   if (!user) return <Redirect to="/login" />;
+  if (!user.hasSeenWelcome) return <Redirect to="/welcome" />;
   return (
     <Layout>
       <Component />
@@ -49,19 +51,22 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/">
-        {user ? <Redirect to="/record" /> : <Redirect to="/login" />}
+        {user ? (user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <Redirect to="/login" />}
       </Route>
       <Route path="/login">
-        {user ? <Redirect to="/record" /> : <LoginPage />}
+        {user ? (user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <LoginPage />}
       </Route>
       <Route path="/signup">
-        {user ? <Redirect to="/record" /> : <SignupPage />}
+        {user ? (user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <SignupPage />}
       </Route>
       <Route path="/forgot-password">
         {user ? <Redirect to="/record" /> : <ForgotPasswordPage />}
       </Route>
       <Route path="/onboarding">
         {!user ? <Redirect to="/login" /> : <OnboardingPage />}
+      </Route>
+      <Route path="/welcome">
+        {!user ? <Redirect to="/login" /> : <WelcomePage />}
       </Route>
       <Route path="/dashboard">
         <ProtectedRoute component={DashboardPage} />

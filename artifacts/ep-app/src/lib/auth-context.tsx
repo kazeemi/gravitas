@@ -9,6 +9,7 @@ interface User {
   communicationContext?: string | null;
   goal?: string | null;
   onboardingCompleted?: boolean;
+  hasSeenWelcome?: boolean;
   defaultRecordingContext?: string | null;
   emailSummaries?: boolean;
 }

@@ -21,6 +21,7 @@ export const usersTable = pgTable("users", {
   methodologyVersion: varchar("methodology_version", { length: 10 }).notNull().default("3.0"),
   defaultRecordingContext: varchar("default_recording_context", { length: 20 }).default("seated"),
   emailSummaries: boolean("email_summaries").notNull().default(false),
+  hasSeenWelcome: boolean("has_seen_welcome").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

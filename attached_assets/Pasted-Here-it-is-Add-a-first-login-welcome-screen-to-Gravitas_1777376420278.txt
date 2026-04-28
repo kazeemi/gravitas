@@ -1,0 +1,36 @@
+Here it is:
+
+Add a first-login welcome screen to Gravitas.
+Show this screen only once — on first login, before the user reaches the dashboard. Once they dismiss it, never show it again. A "How it works" link in the nav or footer should let returning users access it if needed.
+Design: Full-screen welcome state using the existing Gravitas design system. Midnight background, amber accents, Georgia for headings, Calibri for body text. Not a modal — a full page the user actively exits by clicking the CTA button.
+
+Content — display exactly as follows:
+Headline (Georgia, large, cream):
+Welcome to Gravitas.
+Subheadline (Georgia, italic, amber):
+Your personal executive presence coach. Here is how it works.
+
+Three horizontal cards in a row (equal width, Midnight panel style, amber top accent):
+Card 1 — Choose a prompt
+Select a professional scenario or write your own. Gravitas detects the context automatically — board presentation, difficult conversation, impromptu — and calibrates the scoring standard.
+Card 2 — Record
+Record your response in audio or video mode. Audio scores 11 dimensions. Video scores all 15, including physical presence. Sessions run 1 to 10 minutes.
+Card 3 — Get your scores and coaching
+Receive scores across 15 dimensions of executive presence. Every dimension includes evidence-based coaching feedback and one concrete action to take before your next session.
+
+Below the three cards, a smaller note in muted text (Calibri, 12pt, not amber — subtle):
+After two sessions, your Progress page unlocks. You will see how your scores are moving across every dimension — where you are improving and where to focus next.
+
+Bottom of screen, smallest text, cream at low opacity:
+Built on McKinsey-level analytical rigour and Co-Active coaching methodology. Your recording is deleted immediately after scoring. During beta, transcripts are accessible to the Selfcraft team for scoring validation only.
+
+CTA button (full amber, Georgia, centred):
+Let's begin →
+
+Technical notes:
+
+Use a flag in the user record (e.g. has_seen_welcome: true) set on CTA click. Check this flag on every login — if true, skip directly to dashboard.
+The CTA navigates to the main dashboard / prompt selection screen.
+Do not show an X or close button. The only exit is the CTA. This ensures the user reads the privacy line before proceeding.
+On mobile, stack the three cards vertically rather than horizontally.
+No animations needed. Static screen is fine.

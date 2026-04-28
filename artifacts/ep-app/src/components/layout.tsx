@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { LayoutDashboardIcon, MicIcon, SettingsIcon, LogOutIcon } from "lucide-react";
+import { LayoutDashboardIcon, MicIcon, SettingsIcon, LogOutIcon, InfoIcon } from "lucide-react";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
@@ -58,6 +58,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
         </div>
+        <button
+          onClick={() => setLocation("/welcome")}
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors"
+        >
+          <InfoIcon className="h-4 w-4" />
+          How it works
+        </button>
         <button
           onClick={logout}
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors"

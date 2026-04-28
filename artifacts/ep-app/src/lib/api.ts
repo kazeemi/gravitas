@@ -68,6 +68,8 @@ export const api = {
       request("/v1/users/me", { method: "PATCH", body: JSON.stringify(data) }),
     completeOnboarding: (data: Record<string, unknown>) =>
       request("/v1/users/me/onboarding", { method: "POST", body: JSON.stringify(data) }),
+    markWelcomeSeen: () =>
+      request("/v1/users/me", { method: "PATCH", body: JSON.stringify({ hasSeenWelcome: true }) }),
     export: () => {
       const token = getToken();
       window.open(`${API_BASE}/v1/users/me/export?token=${token}`, "_blank");

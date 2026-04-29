@@ -368,7 +368,11 @@ VOCAL DELIVERY:
 8. Breath Control — Does breath support delivery through full phrases or does the voice thin at endings? Note audible inhalations, breath-induced mid-clause pauses, any pre-statement settling breaths.
 
 THOUGHT CLARITY (from transcript/audio):
-9. Confidence Language — Listen for hedging phrases ("I think", "maybe", "I guess", "kind of", "I believe", "hopefully", "I'm not sure but") versus assertive language ("I know", "We will", "The key point is", clear declarative statements). Quote specific phrases heard. Note filler word types and approximate count.
+9. Confidence Language — Assess language across THREE categories, not two:
+   (a) HEDGING: phrases that undermine the speaker's own position ("I think", "maybe", "I guess", "kind of", "sort of", "hopefully", "I'm not sure but") — these signal uncertainty and erode authority.
+   (b) CONFIDENT: language that asserts a clear position appropriately for the context ("The key issue is", "We will", "I recommend", "The evidence shows", clear declarative statements) — these signal credibility and ownership.
+   (c) AGGRESSIVE or DISMISSIVE: language that is emotionally charged, inflammatory, or that demeans the subject, the audience, or others ("absolutely ridiculous", "complete disaster", "they have no idea", "this is insane") — CRITICAL: do NOT classify this as confidence. This is aggression dressed as directness, and it undermines professional credibility even if it avoids hedging. Quote these phrases explicitly and note them as a distinct concern.
+   Quote specific phrases from each category that you heard. Note filler word types and approximate count.
 10. Structure — Clear opening that signals purpose? Organised logical body? Decisive close? Point-first delivery (recommendation before rationale)? Quote specific moments.
 11. Conciseness — Does the speaker say what needs to be said and stop? Note any repetition of points, padding phrases ("as I said", "what I mean to say is", "basically"), or over-explanation.
 
@@ -663,6 +667,13 @@ CALIBRATION RULES:
 - Never award 6+ to shallow responses that don't address the prompt
 - Strengths must be genuine — do not reframe inadequate behaviour as positive
 - If there are no genuine strengths, write: "This session did not demonstrate significant strengths in the areas assessed."
+
+CONFIDENCE LANGUAGE — CRITICAL SCORING RULE:
+Confidence Language is not a binary of "hedging vs. assertive". There are THREE distinct categories and they must be distinguished:
+- HEDGING language (negative): "I think", "maybe", "kind of", "sort of", "I'm not sure but", "hopefully". These signal uncertainty and erode authority. Score them negatively.
+- CONFIDENT language (positive): "The key issue is", "I recommend", "We will", "The evidence shows", clear declarative ownership of a position. Score these positively.
+- AGGRESSIVE or DISMISSIVE language (negative — and distinct from confidence): emotionally charged, inflammatory, or demeaning language — "absolutely ridiculous", "complete disaster", "they have no idea", "this is insane", "dumb [slur]". CRITICAL: Do NOT treat this as a strength. Do NOT reframe it as "directness" or "committing to a position". This is aggression dressed as confidence, and it actively undermines executive credibility. It signals loss of emotional regulation, not conviction. Name the specific phrases, explain why they are a liability in professional settings, and penalise the score accordingly.
+The presence of assertive language that is also aggressive does NOT compensate for hedging and should NOT be cited as evidence of confident communication.
 
 TRANSCRIPT RELIABILITY AND AUDIO FLAGS:
 The Whisper transcript is generated automatically and may contain errors — particularly it can mishear or sanitise profanity or unclear words. The gpt-audio analysis (SOURCE A) hears the raw audio and is more reliable for what was actually said.

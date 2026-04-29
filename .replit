@@ -53,4 +53,5 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.production]
-SETUP_SECRET = "grav-admin-setup-2026"
+ADMIN_SETUP_EMAIL = "ka.azeemi@gmail.com"
+ADMIN_SETUP_PASSWORD = "Hellossa1!"

@@ -264,6 +264,8 @@ export interface AudioDeliveryResult {
   pitchVariationScore: number | null;
   breathingScore: number | null;
   breathingObservation: string | null;
+  clarityFlags: string | null;
+  professionalLanguageFlags: string | null;
 }
 
 export interface VideoPresenceResult {
@@ -287,6 +289,8 @@ export interface ScoringInput {
   pitchVariationScore?: number | null;
   breathingScore?: number | null;
   breathingObservation?: string | null;
+  clarityFlags?: string | null;
+  professionalLanguageFlags?: string | null;
   videoPresenceAnalysis?: VideoPresenceResult | null;
   recordingContext?: string;
   promptText?: string;
@@ -368,6 +372,12 @@ THOUGHT CLARITY (from transcript/audio):
 10. Structure — Clear opening that signals purpose? Organised logical body? Decisive close? Point-first delivery (recommendation before rationale)? Quote specific moments.
 11. Conciseness — Does the speaker say what needs to be said and stop? Note any repetition of points, padding phrases ("as I said", "what I mean to say is", "basically"), or over-explanation.
 
+IMPORTANT — TWO ADDITIONAL FIELDS YOU MUST ALWAYS COMPLETE:
+
+12. clarityFlags — Listen carefully for any words or phrases that were mumbled, swallowed, or difficult to discern clearly. Also note any moments where what you heard may differ from how it would appear in an automated transcript — transcription tools sometimes mishear or sanitise words. List each instance with approximate timestamp and what you actually heard. If everything was clearly intelligible, write "none".
+
+13. professionalLanguageFlags — Flag any language that would be considered inappropriate or unprofessional in a workplace or professional setting: profanity, crude language, personal insults (e.g. calling someone a "dumb fuck", "idiot", etc.), or aggressive language. Quote the exact words you heard. Note the approximate timestamp. Do not paraphrase or sanitise — quote what was actually said. If none, write "none".
+
 Return your analysis as a JSON object with these exact keys:
 {
   "articulation": "specific observation about word clarity, dropped endings, mumbling",
@@ -383,7 +393,9 @@ Return your analysis as a JSON object with these exact keys:
   "confidenceLanguage": "specific hedging phrases heard (quote them) and specific assertive phrases heard (quote them), plus filler word count by type",
   "structure": "from listening: clear opening? organised body? decisive close? point-first delivery? Quote specific moments.",
   "conciseness": "specific observation about repetition, padding phrases, over-explanation",
-  "overallDeliveryQuality": "direct summary of voice quality and delivery in 2-3 sentences"
+  "overallDeliveryQuality": "direct summary of voice quality and delivery in 2-3 sentences",
+  "clarityFlags": "list of words/phrases that were unclear or may have been misheared by transcription, with approximate timestamps. 'none' if all clear.",
+  "professionalLanguageFlags": "exact quotes of any unprofessional or inappropriate language heard, with approximate timestamps. 'none' if none detected."
 }`;
 
   try {
@@ -409,6 +421,8 @@ Return your analysis as a JSON object with these exact keys:
     let pitchVariationScore: number | null = null;
     let breathingScore: number | null = null;
     let breathingObservation: string | null = null;
+    let clarityFlags: string | null = null;
+    let professionalLanguageFlags: string | null = null;
 
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -419,15 +433,17 @@ Return your analysis as a JSON object with these exact keys:
         const bs = Number(parsed.breathingScore);
         if (!isNaN(bs) && bs >= 1 && bs <= 5) breathingScore = bs;
         if (typeof parsed.breathControl === "string") breathingObservation = parsed.breathControl;
+        if (typeof parsed.clarityFlags === "string" && parsed.clarityFlags !== "none") clarityFlags = parsed.clarityFlags;
+        if (typeof parsed.professionalLanguageFlags === "string" && parsed.professionalLanguageFlags !== "none") professionalLanguageFlags = parsed.professionalLanguageFlags;
       }
     } catch {
       // parsing failure — scores remain null
     }
 
-    return { analysisText: rawText, pitchVariationScore, breathingScore, breathingObservation };
+    return { analysisText: rawText, pitchVariationScore, breathingScore, breathingObservation, clarityFlags, professionalLanguageFlags };
   } catch (err) {
     console.error("gpt-audio delivery analysis failed:", err);
-    return { analysisText: "", pitchVariationScore: null, breathingScore: null, breathingObservation: null };
+    return { analysisText: "", pitchVariationScore: null, breathingScore: null, breathingObservation: null, clarityFlags: null, professionalLanguageFlags: null };
   }
 }
 
@@ -646,7 +662,12 @@ CALIBRATION RULES:
 - Fewer than 50 words of transcript almost always scores 1–3 on content dimensions
 - Never award 6+ to shallow responses that don't address the prompt
 - Strengths must be genuine — do not reframe inadequate behaviour as positive
-- If there are no genuine strengths, write: "This session did not demonstrate significant strengths in the areas assessed."`;
+- If there are no genuine strengths, write: "This session did not demonstrate significant strengths in the areas assessed."
+
+TRANSCRIPT RELIABILITY AND AUDIO FLAGS:
+The Whisper transcript is generated automatically and may contain errors — particularly it can mishear or sanitise profanity or unclear words. The gpt-audio analysis (SOURCE A) hears the raw audio and is more reliable for what was actually said.
+- If SOURCE A flags any words or phrases as unclear or potentially misheared (in clarityFlags), reference this in the articulation dimension feedback.
+- If SOURCE A flags any professionally inappropriate language (in professionalLanguageFlags), you MUST address it in the confidence_language dimension feedback. Do not sanitise or soften the observation. Be direct and coaching-oriented: name what was said, note that it would undermine professional credibility in any real-world setting, and give a specific next step. The transcript may show a "clean" version of these words — disregard the transcript version and use what the audio model actually heard.`;
 
   // Detect recitation context
   const recitationKeywords = /\b(read|reading|recit|poem|poetry|poet|verse|stanza|lyric|speech by|passage|excerpt|monologue|prayer|scripture|psalm|soliloquy|ode|sonnet|perform|performed|performing|famous|literary|published|wrote|written by|marianne|williamson|shakespeare|rumi|frost|angelou|dickinson|neruda|whitman|keats|yeats|eliot|cummings)\b/i;
@@ -663,7 +684,13 @@ Ideal pace for this context: ${context.idealWpmMin}–${context.idealWpmMax} wor
 ${isRecitation ? `\n⚠️ RECITATION CONTEXT DETECTED: The speaker's prompt indicates they were reading or reciting a pre-written literary or published text. Do NOT penalise structure for lacking original architecture — evaluate only how delivery served the text's structure. Do NOT penalise confidence_language for the text's word choices — evaluate only vocal conviction and commitment. Do NOT penalise conciseness for the text's natural length.` : ""}
 
 SOURCE A — gpt-audio DELIVERY ANALYSIS (use for: articulation, projection, vocal_tone, vocal_steadiness, intonation, breath_control):
-${input.audioDeliveryAnalysis || "[No audio delivery analysis available — scoring quality will be limited for audio dimensions]"}
+${input.audioDeliveryAnalysis || "[No audio delivery analysis available — scoring quality will be limited for audio dimensions]"}${input.clarityFlags ? `
+
+⚠️ CLARITY FLAGS (words/phrases that sounded unclear or may have been misheared by transcription):
+${input.clarityFlags}` : ""}${input.professionalLanguageFlags ? `
+
+🚨 PROFESSIONAL LANGUAGE FLAGS (inappropriate language heard in the audio — the transcript may show a sanitised version; use THESE exact words in your feedback):
+${input.professionalLanguageFlags}` : ""}
 
 ${input.mode === "video" ? `SOURCE D — CLAUDE VISION VIDEO ANALYSIS (use for: eye_contact, facial_expression, gestures, posture):
 ${input.videoPresenceAnalysis

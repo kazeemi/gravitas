@@ -363,7 +363,12 @@ VOICE QUALITY:
 
 VOCAL DELIVERY:
 5. Intonation — Does pitch vary purposefully to signal emphasis, structure, and meaning? Or is delivery monotone? Note whether pitch falls decisively at statements (authority) or rises (uncertainty). Reference any pitch variation score 1-5.
-6. Pace — Estimate speaking pace and any acceleration/deceleration patterns. Note rush events (bursts >200 WPM) and moments of deliberate slowing on key points.
+6. Pace — Estimate speaking pace and any acceleration/deceleration patterns. Pay particular attention to:
+   - How pace changes over the course of the response — did the speaker start slow then accelerate? Start fast and slow down? Stay consistent?
+   - End-of-response sprints: if the speaker noticeably rushed at the end of their response, flag this explicitly with approximate timestamp. This is one of the most common and impactful pace errors.
+   - Any moment where speech became so rapid that words themselves became unclear or blurred together — note the timestamp and what it sounded like.
+   - Note rush events (bursts that sound above 200 WPM) and moments of deliberate slowing on key points.
+   IMPORTANT: If the speaker's overall pace was slow but they had a burst of speed at any point — especially at the end — do NOT summarise this as simply "slow pace". The burst is the more impactful observation and must be named explicitly.
 7. Pausing — Observe strategic pauses at idea boundaries vs hesitation mid-thought. Are pauses used deliberately before key statements? Count boundary pauses vs mid-clause pauses.
 8. Breath Control — Does breath support delivery through full phrases or does the voice thin at endings? Note audible inhalations, breath-induced mid-clause pauses, any pre-statement settling breaths.
 
@@ -634,6 +639,9 @@ FEEDBACK STANDARDS — ALL MUST BE MET:
    - DO NOT frame the average as a success when there is a stark pace contrast — an average in range with wild variation is NOT a compliment
    - WRONG: "Your pace averaged 130 wpm, landing within the ideal range — a genuine asset."
    - RIGHT: "Your pace started around 90 wpm in the opening, then climbed sharply to 175 wpm as you continued. While the average landed in range, that acceleration is what the listener experiences — it reads as a loss of composure."
+
+   LATE-SESSION BURSTS — CRITICAL ADDITIONAL RULE:
+   If the audio delivery analysis (SOURCE A) describes a noticeable acceleration or rush at the end of the response, you MUST flag this explicitly even if the overall average WPM is below the ideal range. A slow-then-fast pattern is NOT simply "slow pace" — the rush at the end is the dominant experience for the listener and is often the most damaging part of the delivery. The WPM window data may under-represent late-session bursts if speech was so rapid that transcription missed words. In these cases, SOURCE A's observation takes precedence over the numeric averages. Name the moment, describe what the listener experienced, and give a specific next step.
 
 7. PAUSE CLARITY RULE: Strategic pauses that signal control and confidence are typically 0.5–2 seconds, placed after key points or between ideas. NEVER state that pauses need to be 4 seconds or longer to be meaningful. The ≥4s silence events in Source B are long hesitation gaps, which are different from intentional emphasis pauses. Reference the pause count from Source B (pauses ≥0.5s) when discussing pausing technique.
 

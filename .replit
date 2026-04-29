@@ -49,3 +49,8 @@ externalPort = 3002
 
 [nix]
 channel = "stable-25_05"
+
+[userenv]
+
+[userenv.production]
+SETUP_SECRET = "grav-admin-setup-2026"

@@ -109,7 +109,8 @@ export default function RecordPage() {
   const [silenceWarning, setSilenceWarning] = useState(false);
   const [silenceSecs, setSilenceSecs] = useState(0);      // current silence streak in seconds
   const [earlyNoAudioWarning, setEarlyNoAudioWarning] = useState(false); // mic never picked up audio in first 5s
-  const [processingStep, setProcessingStep] = useState(0); // 0–3 for animated steps
+  const [processingStep, setProcessingStep] = useState(0); // 0–3 for step labels
+  const [progressPct, setProgressPct] = useState(0);       // 0–100 smooth progress bar
   const processingStepRef = useRef<number | null>(null);
 
   // Holds the raw recording blob + metadata between "recording" and "processing"
@@ -631,13 +632,32 @@ export default function RecordPage() {
     if (!sessionId) return;
     setStep("processing");
     setProcessingStep(0);
+    setProgressPct(0);
 
-    // Advance through processing steps on a timer so the user sees progress
-    let step = 0;
+    // Smooth time-elapsed progress animation decoupled from step labels.
+    // Uses an exponential curve that approaches 90% asymptotically — never
+    // reaches it until the poll confirms the session is truly complete.
+    const startTime = Date.now();
+    let currentStep = 0;
     processingStepRef.current = window.setInterval(() => {
-      step = Math.min(step + 1, 3);
-      setProcessingStep(step);
-    }, 12000);
+      const elapsed = (Date.now() - startTime) / 1000; // seconds elapsed
+
+      // Exponential approach to 90%: p = 90 * (1 - e^(-t/50))
+      // At 20s ≈ 33%, at 40s ≈ 55%, at 70s ≈ 75%, asymptotes to 90%
+      const raw = 90 * (1 - Math.exp(-elapsed / 50));
+      setProgressPct(Math.round(raw));
+
+      // Step labels advance at realistic time milestones (independent of bar)
+      const nextStep =
+        elapsed > 40 ? 3 :  // Generating coaching feedback
+        elapsed > 20 ? 2 :  // Analyzing delivery
+        elapsed > 5  ? 1 :  // Transcribing speech
+        0;
+      if (nextStep > currentStep) {
+        currentStep = nextStep;
+        setProcessingStep(nextStep);
+      }
+    }, 250);
 
     try {
       await api.sessions.upload(sessionId, {
@@ -649,7 +669,11 @@ export default function RecordPage() {
         videoFrames: videoFrames.length > 0 ? videoFrames : undefined,
       });
 
-      setProcessingStep(s => Math.max(s, 1));
+      // Force step label to at least "Transcribing" once upload is confirmed
+      if (currentStep < 1) {
+        currentStep = 1;
+        setProcessingStep(1);
+      }
 
       pollRef.current = window.setInterval(async () => {
         try {
@@ -657,6 +681,7 @@ export default function RecordPage() {
           if (status.processingStatus === "complete") {
             clearInterval(pollRef.current!);
             if (processingStepRef.current) clearInterval(processingStepRef.current);
+            setProgressPct(100); // Only hit 100% when truly done
             setProcessingStep(4);
             refreshUser().catch(() => {});
             setStep("done");
@@ -1170,18 +1195,17 @@ export default function RecordPage() {
         const steps = mode === "video"
           ? ["Uploading recording", "Transcribing speech", "Analyzing delivery & visual presence", "Generating coaching feedback"]
           : ["Uploading recording", "Transcribing speech", "Analyzing delivery", "Generating coaching feedback"];
-        const progress = Math.min(100, Math.round((processingStep / (steps.length - 1)) * 100));
         return (
           <div className="py-10 space-y-8">
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-gray-400 mb-1">
                 <span>Analyzing…</span>
-                <span>{progress}%</span>
+                <span>{progressPct}%</span>
               </div>
               <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gray-900 transition-all duration-700 ease-out"
-                  style={{ width: `${progress}%` }}
+                  className="h-full rounded-full bg-gray-900 transition-all duration-500 ease-out"
+                  style={{ width: `${progressPct}%` }}
                 />
               </div>
             </div>
@@ -1210,7 +1234,7 @@ export default function RecordPage() {
                 );
               })}
             </div>
-            <p className="text-xs text-center text-gray-400">This typically takes 30–60 seconds</p>
+            <p className="text-xs text-center text-gray-400">Taking a moment to give you feedback worth reading. Thank you for your patience.</p>
           </div>
         );
       })()}

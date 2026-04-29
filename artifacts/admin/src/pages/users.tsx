@@ -5,7 +5,8 @@ import { getUsers, type UserRow } from "@/lib/api";
 import Layout from "@/components/layout";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Search, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 
 function tierBadge(score: number | null) {
@@ -26,7 +27,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const [, navigate] = useLocation();
 
-  const { data, isLoading, error } = useQuery({ queryKey: ["admin-users"], queryFn: getUsers });
+  const { data, isLoading, isFetching, error, refetch } = useQuery({ queryKey: ["admin-users"], queryFn: getUsers });
 
   const filtered = (data?.users ?? []).filter(u => {
     const q = search.toLowerCase();
@@ -40,15 +41,21 @@ export default function UsersPage() {
   return (
     <Layout title="Users">
       <div className="space-y-4">
-        <div className="relative w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search by email, name, role…"
-            className="pl-9"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div className="flex items-center gap-3">
+          <div className="relative w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search by email, name, role…"
+              className="pl-9"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
+            {isFetching ? "Refreshing…" : "Refresh"}
+          </Button>
         </div>
 
         {isLoading && <p className="text-muted-foreground text-sm">Loading users…</p>}

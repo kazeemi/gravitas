@@ -6,6 +6,12 @@ import { usersTable, sessionsTable, dimensionScoresTable } from "@workspace/db";
 
 const router = Router();
 
+// Admin data must always be fresh — disable HTTP caching for all admin routes
+router.use((_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
 router.get("/v1/admin/stats", requireAdmin, async (_req, res) => {
   const [userCount] = await db.select({ count: count() }).from(usersTable).where(isNotNull(usersTable.id));
   const [sessionCount] = await db.select({ count: count() }).from(sessionsTable);

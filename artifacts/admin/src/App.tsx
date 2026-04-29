@@ -11,7 +11,13 @@ import SessionDetailPage from "@/pages/session-detail";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 0,           // always consider admin data stale — refetch on every mount/focus
+      refetchOnWindowFocus: true,
+    },
+  },
 });
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {

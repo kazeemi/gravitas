@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getStats } from "@/lib/api";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Video, Mic, TrendingUp, Clock, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Users, Video, Mic, TrendingUp, Clock, CheckCircle, RefreshCw } from "lucide-react";
 
 function fmt(n: number | null | undefined, suffix = "") {
   if (n == null) return "—";
@@ -34,10 +35,16 @@ function StatCard({ title, value, sub, icon: Icon, color = "text-primary" }: {
 }
 
 export default function DashboardPage() {
-  const { data, isLoading, error } = useQuery({ queryKey: ["admin-stats"], queryFn: getStats });
+  const { data, isLoading, isFetching, error, refetch } = useQuery({ queryKey: ["admin-stats"], queryFn: getStats });
 
   return (
     <Layout title="Dashboard">
+      <div className="flex justify-end mb-4">
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`w-4 h-4 mr-1.5 ${isFetching ? "animate-spin" : ""}`} />
+          {isFetching ? "Refreshing…" : "Refresh"}
+        </Button>
+      </div>
       {isLoading && (
         <div className="text-muted-foreground text-sm">Loading stats…</div>
       )}

@@ -4,6 +4,7 @@ const API = `${BASE.replace(/\/admin$/, "")}/api`;
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem("admin_token");
   const res = await fetch(`${API}${path}`, {
+    cache: "no-store", // bypass browser HTTP cache so admin data is always fresh
     ...options,
     headers: {
       "Content-Type": "application/json",

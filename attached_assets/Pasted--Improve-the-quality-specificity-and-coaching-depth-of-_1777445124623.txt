@@ -1,0 +1,53 @@
+
+
+Improve the quality, specificity, and coaching depth of all session feedback in Gravitas.
+This is a set of changes to how feedback is generated across all dimensions. The goal is for every piece of feedback to feel like it was written by a human coach who listened to the recording — specific, warm, evidence-based, and genuinely useful.
+
+1. Granular pace feedback using WPM per 5-second window
+Replit already tracks WPM in 5-second windows. Use this data to identify localised pace changes within the session — both rushes and slowdowns.
+Do not flag every deviation from average. Only flag a pace change when there is evidence it affected the listening experience — positively or negatively.
+Rushes: If a 5-second window shows WPM significantly above the speaker's session average — use 40 WPM above average as the trigger — assess whether the content in that window was high-stakes or important. If it was — a key recommendation, a main point, a critical transition — flag it as a rush that likely undermined impact: "Around the 45-second mark, you moved quickly through what was actually your central point. At that speed, the listener may not have registered its weight." If the rushed content was transitional or low-stakes filler, do not flag it.
+Slowdowns: If a 5-second window shows WPM significantly below average, assess whether the slowdown served the message. If it preceded or accompanied an important statement, credit it: "You slowed down noticeably before your conclusion — that shift in pace signals to the listener that something significant is coming. It works well here." If the slowdown appeared mid-sentence without apparent purpose and created a sense of uncertainty or loss of thread, flag it gently: "There was a moment around the one-minute mark where your pace dropped mid-thought — it created a brief sense of searching rather than deliberate emphasis."
+The governing principle throughout: pace variation is not inherently good or bad. The question is always whether it served the speaker's intention and the listener's experience. Reward deliberate variation. Flag variation that worked against the message. Ignore variation that had no meaningful impact either way.
+
+2. Make all dimension feedback more qualitative, specific, and coaching-like
+For every dimension, the feedback should:
+* Reference something that actually happened in the recording — a specific moment, phrase, pattern, or signal. Never give generic feedback that could apply to any session.
+* Name the impact on the listener. Not just "your pace was fast" but "at that speed, your listener is working to keep up rather than absorbing what you are saying."
+* Give one concrete, specific next action — not "slow down" but "before your next session, identify the one sentence in your response that carried the most important idea and practise delivering it with a two-second pause after."
+* Use a warm, direct coaching voice throughout. Not clinical, not academic, not generic. Write as if speaking to a capable person who can handle honest feedback and act on it.
+This applies to every dimension without exception — Voice Quality, Vocal Delivery, Thought Clarity, and Physical Delivery.
+
+3. Pausing — add qualitative moment-level feedback
+Pausing already has a dimension score. Add the following to the Pausing feedback block:
+For positive pausing — if the speaker paused well at a boundary moment, name it: "You paused before your main recommendation — that single moment of silence told your listener that something important was coming. It creates anticipation and signals confidence." Be specific about when it happened if the timestamp allows.
+For absent or weak pausing — name where a pause would have landed: "After your opening statement — 'the challenge we are facing is significant' — there was an opportunity to let that land before moving on. A one to two second pause there would have given your listener a moment to absorb the weight of what you said before you continued."
+Never just score the pattern. Always name the moment and the impact.
+
+4. Communication framework detection
+Analyse the transcript for evidence of structured communication frameworks. Detect the following when clearly present: STAR (Situation, Task, Action, Result), SCR (Situation, Complication, Resolution), Pyramid Principle or point-first delivery, PREP (Point, Reason, Example, Point), and Problem-Solution-Benefit.
+Rules for detection and feedback:
+* Only flag a framework when it is clearly and intentionally present. Do not force-fit a label onto loose structure.
+* If a framework is used well, name it and credit it specifically: "You led with your recommendation before giving context — that is point-first communication, and it immediately signals a senior, confident thinker."
+* If a framework is used loosely or partially, comment on the structure without naming the framework: "You set up the situation well, but the response ended before reaching a clear resolution or recommendation. Your listener is left doing the work of drawing the conclusion themselves."
+* If no structure is evident and the prompt is one where structure would be expected — interview questions, presentation prompts, stakeholder updates — flag its absence and suggest what would have helped: "This response would have landed more powerfully with a clear opening statement of your main point, followed by your supporting reasoning."
+* Incorporate this into the Structure dimension feedback block. Do not create a separate section.
+* Do not over-detect. If the structure is genuinely ambiguous, say nothing about frameworks.
+
+5. Inner work nudge — per dimension, used sparingly
+For the following dimensions only — Vocal Steadiness, Confidence Language, Eye Contact, and Posture — add a final sentence to the feedback block when the score is in the Needs Focus tier (1–3) or at the low end of Developing (4–5).
+This sentence should:
+* Acknowledge that the outer signal often has a deeper cause
+* Suggest gently that exploring that layer can accelerate progress
+* Never mention Gravitas, upselling, or any specific coaching product
+Example for Vocal Steadiness: "Steadiness at this level sometimes reflects something worth exploring beneath the technique — how we feel about the room, the stakes, or our right to be there. A conversation with a coach can help surface and shift that layer."
+Example for Confidence Language: "The hedging patterns here can be habitual, but they can also reflect something deeper about how certain you feel in your own thinking. That is worth exploring beyond technique alone."
+This sentence appears as the final line of the relevant dimension block, clearly separated, and only when the threshold is met.
+
+6. Inner work nudge — overall summary escalation
+If two or more of the four trigger dimensions — Vocal Steadiness, Confidence Language, Eye Contact, Posture — score in the Needs Focus tier in the same session, add the following to the overall session summary at the top of the report, as the final paragraph of the summary:
+"A pattern worth noting: several of the signals in this session — [name the specific dimensions] — can point to something beneath the technique. The outer dimensions are the observable layer, but they are often shaped by inner foundations: how we hold ourselves in relation to the room, the stakes, and our own authority. If you find these patterns persisting across sessions, working with a coach on that inner layer can create change that technique practice alone may not reach."
+This paragraph only appears when the threshold is met. It does not appear on every report.
+
+One implementation note:
+All of the above applies to newly generated reports from this point forward. Do not retroactively regenerate feedback for existing beta sessions.

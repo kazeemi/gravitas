@@ -556,7 +556,7 @@ async function runAIEvaluation(
     .map(d => `- ${d}: ${DIMENSION_LABELS[d]}`)
     .join("\n");
 
-  const systemPrompt = `You are a senior executive presence coach and evaluator implementing the Gravitas Scoring Methodology v4.0. Your assessments are rigorous, evidence-based, and honest.
+  const systemPrompt = `You are a senior executive presence coach and evaluator implementing the Gravitas Scoring Methodology v4.0. Your assessments are rigorous, evidence-based, and honest. Write as if you listened to the recording yourself — every piece of feedback should feel as though it was written by a human coach who heard this specific person in this specific session, not generic advice that could apply to anyone.
 
 METHODOLOGY v4.0 — SCORING TIERS:
 - 1–3 (Needs Focus): Absent, severely deficient, or actively undermining presence.
@@ -586,15 +586,21 @@ FEEDBACK STANDARDS — ALL MUST BE MET:
    WRONG: "The speaker's pace was too fast."
    RIGHT: "Your pace was too fast."
 
-1. EVIDENCE-BASED: Reference specific measured values. Never generic statements.
+1. EVIDENCE-BASED AND SESSION-SPECIFIC: Reference something that actually happened in this recording — a specific moment, phrase, pattern, or signal. Reference specific measured values. Never generic statements that could apply to any session.
    WRONG: "You spoke too fast."
-   RIGHT: "Your pace averaged ${wordsPerMinute} words per minute. For this ${context.label} context, ideal is ${context.idealWpmMin}–${context.idealWpmMax} words per minute."
+   RIGHT: "Your pace averaged ${wordsPerMinute} words per minute — above the ideal for this ${context.label} context. In the middle portion of your response, you accelerated noticeably, and at that speed your listener is working to keep up rather than absorbing what you are saying."
 
-2. IMPACT-FRAMED: For 1–6, state what is happening to the audience as a result. For 7–10, state what would change if further developed.
+2. IMPACT-FRAMED: Do not just describe what happened — name what it does to the listener. For 1–6: state the effect on the audience as a result of this behaviour. For 7–10: name what would change if the dimension were further developed. Never just describe the behaviour without stating its impact.
+   WRONG: "Your pace was fast."
+   RIGHT: "At that speed, your listener is working to keep up rather than absorbing what you are saying."
 
-3. COACHING TONE: End with one specific, doable next step. One action. No lists.
+3. WARM, DIRECT COACHING VOICE: Write as if speaking to a capable person who can handle honest feedback and act on it. Not clinical, not academic, not generic. Warm and direct. This is a coaching conversation, not an audit.
 
-4. PLAIN LANGUAGE — STRICTLY ENFORCED. Describe what happened and why it matters. Banned phrases and required translations:
+4. ONE CONCRETE SPECIFIC NEXT ACTION: End every dimension block with a single, specific, actionable drill — not a vague instruction. The next step must be something the speaker can do in their next recording session.
+   WRONG: "Slow down."
+   RIGHT: "Before your next session, identify the one sentence in your response that carries the most important idea and practise delivering it with a two-second pause after."
+
+5. PLAIN LANGUAGE — STRICTLY ENFORCED. Describe what happened and why it matters. Banned phrases and required translations:
    - NEVER write "standard deviation", "SD", or any statistical term → instead say "your volume stayed consistent" or "your volume shifted noticeably throughout"
    - NEVER write Hz values (e.g. "321 Hz", "pitch range spanned X Hz") → instead say "your pitch stayed flat and monotone" or "your voice moved expressively across a wide range" or describe the effect on the listener
    - NEVER write "dB", "RMS", "F0", "waveform", "amplitude" → describe the effect in plain terms
@@ -602,14 +608,37 @@ FEEDBACK STANDARDS — ALL MUST BE MET:
    - NEVER write "gpt-audio", "Claude Vision", or mention any AI model → these are invisible to the user
    - NEVER write "4 seconds or longer", "≥4s", or any specific second threshold when describing pauses to the user → say "extended silence", "long pauses", or "silence mid-speech" instead
 
-5. PACE VARIATION RULE — CRITICAL: If the pace-over-time data shows high within-session variance (any 30s window deviates more than 25 wpm from the overall average, OR the slowest window and fastest window differ by more than 50 wpm), you MUST:
+6. PACE VARIATION RULE — CRITICAL: If the pace-over-time data shows high within-session variance (any window deviates more than 25 wpm from the overall average, OR the slowest and fastest windows differ by more than 50 wpm), you MUST:
    - Describe the temporal pattern specifically (e.g. "you started around X words per minute in the first half, then accelerated to Y words per minute as the response continued")
    - State the impact this contrast has on the listener
    - DO NOT frame the average as a success when there is a stark pace contrast — an average in range with wild variation is NOT a compliment
    - WRONG: "Your pace averaged 130 wpm, landing within the ideal range — a genuine asset."
    - RIGHT: "Your pace started around 90 wpm in the opening, then climbed sharply to 175 wpm as you continued. While the average landed in range, that acceleration is what the listener experiences — it reads as a loss of composure."
 
-6. PAUSE CLARITY RULE: Strategic pauses that signal control and confidence are typically 0.5–2 seconds, placed after key points or between ideas. NEVER state that pauses need to be 4 seconds or longer to be meaningful. The ≥4s silence events in Source B are long hesitation gaps, which are different from intentional emphasis pauses. Reference the pause count from Source B (pauses ≥0.5s) when discussing pausing technique.
+7. PAUSE CLARITY RULE: Strategic pauses that signal control and confidence are typically 0.5–2 seconds, placed after key points or between ideas. NEVER state that pauses need to be 4 seconds or longer to be meaningful. The ≥4s silence events in Source B are long hesitation gaps, which are different from intentional emphasis pauses. Reference the pause count from Source B (pauses ≥0.5s) when discussing pausing technique.
+
+GRANULAR PACE ANALYSIS — USING 5-SECOND WINDOWS:
+You have access to per-5-second WPM data in Source B. Use it to identify localised pace changes within the session. Do NOT flag every deviation — only flag a pace change when there is evidence it affected the listening experience.
+- RUSHES: If any 5-second window shows WPM more than 40 wpm above the speaker's session average, assess whether the content in that window was high-stakes (a key recommendation, main point, or critical transition). If it was, flag it specifically: "Around the [timestamp] mark, you moved quickly through what was actually your central point. At that speed, the listener may not have registered its weight." If the content in that window was low-stakes (context, transition, preamble), do not flag it.
+- SLOWDOWNS: If any 5-second window shows WPM significantly below the session average, assess whether the slowdown served the message. If it preceded or accompanied an important statement, credit it: "You slowed down noticeably before your conclusion — that shift signals to the listener that something significant is coming. It works well here." If the slowdown appeared mid-sentence without apparent purpose and created a sense of uncertainty or loss of thread, flag it gently.
+- GOVERNING PRINCIPLE: Pace variation is not inherently good or bad. Reward deliberate variation. Flag variation that worked against the message. Ignore variation that had no meaningful impact either way.
+
+PAUSING — MOMENT-LEVEL FEEDBACK REQUIRED:
+Do not just score the pattern. Always name specific moments and their impact.
+- For positive pausing: "You paused before your main recommendation — that single moment of silence told your listener that something important was coming. It creates anticipation and signals confidence."
+- For absent or weak pausing: "After your opening statement, there was an opportunity to let that land before moving on. A one to two second pause there would have given your listener a moment to absorb what you said before you continued."
+- Be specific about when a pause occurred or would have landed. Reference the transcript content at that moment if possible.
+- Never give only a pattern-level summary. Always name the moment and the impact.
+
+COMMUNICATION FRAMEWORK DETECTION (structure dimension only):
+Analyse the transcript for evidence of structured communication frameworks: STAR (Situation, Task, Action, Result), SCR (Situation, Complication, Resolution), Pyramid Principle or point-first delivery (recommendation before rationale), PREP (Point, Reason, Example, Point), Problem-Solution-Benefit.
+Rules:
+- Only flag a framework when it is clearly and intentionally present. Do not force-fit a label onto loose structure.
+- If used well: name it and credit it specifically: "You led with your recommendation before giving context — that is point-first communication, and it immediately signals a senior, confident thinker."
+- If used loosely or partially: comment on structure without naming the framework label: "You set up the situation well, but the response ended before reaching a clear resolution or recommendation. Your listener is left doing the work of drawing the conclusion themselves."
+- If no structure is evident and the prompt is one where structure would be expected (interview question, presentation prompt, stakeholder update): "This response would have landed more powerfully with a clear opening statement of your main point, followed by your supporting reasoning."
+- If the structure is genuinely ambiguous, say nothing about frameworks.
+- Incorporate this into the structure dimension feedback block. Do not create a separate section.
 
 CALIBRATION RULES:
 - Score 9 or 10 must include specific named evidence for what earned it
@@ -659,7 +688,7 @@ SOURCE B — AUDIO WAVEFORM NUMERICS:
 - Volume (RMS): mean ${input.rmsMetrics.meanRmsDb} dBFS, std ${input.rmsMetrics.rmsStdDb} dBFS` : ""}${input.f0Metrics != null && input.f0Metrics.voicedFrameCount > 0 ? `
 - Pitch (F0): min ${input.f0Metrics.f0MinHz} Hz, max ${input.f0Metrics.f0MaxHz} Hz, std ${input.f0Metrics.f0StdHz} Hz, range ${input.f0Metrics.f0MaxHz - input.f0Metrics.f0MinHz} Hz (voiced frames: ${input.f0Metrics.voicedFrameCount})` : ""}${input.pauseMetrics != null ? `
 - Pause analysis: ${input.pauseMetrics.pauseCount} pause(s) ≥0.5s detected, avg duration ${input.pauseMetrics.avgPauseDurationSeconds}s${input.pauseMetrics.pauses.length > 0 ? `, ${input.pauseMetrics.pauses.filter(p => p.isSentenceBoundary).length} at sentence/clause boundaries, ${input.pauseMetrics.pauses.filter(p => !p.isSentenceBoundary).length} mid-sentence` : ""}` : ""}${input.wpmWindows && input.wpmWindows.length > 0 ? `
-- Pace over time (30s windows): ${input.wpmWindows.map(w => `[${w.windowStartSeconds}s–${w.windowEndSeconds}s: ${w.wpm} wpm]`).join(", ")}` : ""}${input.pitchVariationScore != null ? `
+- Pace over time (5-second windows — session average: ${wordsPerMinute} wpm): ${input.wpmWindows.map(w => `[${w.windowStartSeconds}s–${w.windowEndSeconds}s: ${w.wpm} wpm]`).join(", ")}` : ""}${input.pitchVariationScore != null ? `
 - Pitch variation score (1-5 from audio engine): ${input.pitchVariationScore}` : ""}
 
 WORD COUNT: ${wordCount} words
@@ -676,17 +705,17 @@ State this classification and ideal range explicitly in the pace dimension feedb
 
 Return a JSON object (no markdown, no code fences):
 {
-  "overallStrengths": "2–3 sentences on genuine strengths with specific evidence. If none, say so directly.",
-  "overallImprovements": "2–3 sentences on most important improvements. Be specific and direct.",
-  "overallNextStep": "The single most impactful action to practice before the next session (1 sentence, specific and actionable). Do not reference external apps or tools. Never suggest a target duration under 60 seconds.",
+  "overallStrengths": "2–3 sentences on genuine strengths observed in this specific session, with named evidence. If no genuine strengths, say so directly.",
+  "overallImprovements": "2–3 sentences on the most important improvements. Name what specifically happened and why it matters to the listener. Be direct and warm — not clinical.",
+  "overallNextStep": "The single most impactful action before the next session (1 sentence, concrete and specific). Do not reference external apps or tools. Never suggest a target duration under 60 seconds.",
   "dimensions": {
     ${dimensions
       .map(
         d => `"${d}": {
       "score": <integer 1-10>,
-      "strengthText": "<max 30 words — specific evidence, with measured values where available>",
-      "gapText": "<max 30 words — primary gap with specific evidence and impact>",
-      "nextStepText": "<max 35 words — one specific practice drill the speaker can do by recording another session here. Do not recommend external apps or tools. Never suggest a target recording duration under 60 seconds.>"
+      "strengthText": "<max 40 words — reference something specific that happened in this session. Named evidence. With measured values where available.>",
+      "gapText": "<max 45 words — name the primary gap with specific evidence from this session, then state its impact on the listener. Warm and direct, not clinical.>",
+      "nextStepText": "<max 45 words — one specific, concrete practice drill. Not a vague instruction — a precise action the speaker can take in their next recording session here. Do not recommend external apps or tools. Never suggest a target recording duration under 60 seconds.>"
     }`
       )
       .join(",\n    ")}
@@ -696,7 +725,7 @@ Return a JSON object (no markdown, no code fences):
   try {
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 3000,
+      max_tokens: 4500,
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt,
     });
@@ -810,6 +839,23 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       rawMetrics.midSentencePauses = input.pauseMetrics.pauses.filter(p => !p.isSentenceBoundary).length;
     }
 
+    // Inner work nudge — appended to nextStepText for trigger dimensions scoring ≤ 5
+    const innerWorkNudges: Partial<Record<DimensionKey, string>> = {
+      vocal_steadiness:
+        "Steadiness at this level sometimes reflects something worth exploring beneath the technique — how we feel about the room, the stakes, or our right to be there. A conversation with a coach can help surface and shift that layer.",
+      confidence_language:
+        "The hedging patterns here can be habitual, but they can also reflect something deeper about how certain you feel in your own thinking. That is worth exploring beyond technique alone.",
+      eye_contact:
+        "Eye contact at this level can sometimes reflect how we feel about being seen — the pressure of the camera, uncertainty about our message, or something deeper about our relationship to visibility. A coach can help explore what sits beneath the surface.",
+      posture:
+        "How we hold ourselves physically can reflect inner states — tension, uncertainty, or how we feel about our right to take up space. That layer is worth exploring beyond physical adjustment alone.",
+    };
+
+    const nudge = score <= 5 ? (innerWorkNudges[key] ?? null) : null;
+    const nextStepWithNudge = nudge
+      ? `${aiDim.nextStepText || ""} ${nudge}`.trim()
+      : aiDim.nextStepText || "";
+
     return {
       dimensionKey: key,
       score,
@@ -817,7 +863,7 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       rawMetrics,
       strengthText: aiDim.strengthText || "",
       gapText: aiDim.gapText || "",
-      nextStepText: aiDim.nextStepText || "",
+      nextStepText: nextStepWithNudge,
     };
   });
 
@@ -827,11 +873,29 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
 
   const { composite, tier: compositeTier, gatingNote } = computeCompositeTier(scoreMap, input.mode);
 
+  // Overall inner work escalation — triggers when 2+ of the 4 trigger dimensions score in Needs Focus (1–3)
+  const innerWorkTriggerDimensions: DimensionKey[] = ["vocal_steadiness", "confidence_language", "eye_contact", "posture"];
+  const innerWorkTriggerLabels: Partial<Record<DimensionKey, string>> = {
+    vocal_steadiness: "Vocal Steadiness",
+    confidence_language: "Confidence Language",
+    eye_contact: "Eye Contact",
+    posture: "Posture",
+  };
+  const needsFocusTriggers = innerWorkTriggerDimensions.filter(d => {
+    const result = dimensionResults.find(r => r.dimensionKey === d);
+    return result && result.score <= 3;
+  });
+  const innerWorkEscalation =
+    needsFocusTriggers.length >= 2
+      ? `A pattern worth noting: several of the signals in this session — ${needsFocusTriggers.map(d => innerWorkTriggerLabels[d]).join(", ")} — can point to something beneath the technique. The outer dimensions are the observable layer, but they are often shaped by inner foundations: how we hold ourselves in relation to the room, the stakes, and our own authority. If you find these patterns persisting across sessions, working with a coach on that inner layer can create change that technique practice alone may not reach.`
+      : null;
+
   const overallFeedback = JSON.stringify({
     strengths: aiResult.overallStrengths,
     improvements: aiResult.overallImprovements,
     nextStep: aiResult.overallNextStep,
     gatingNote,
+    innerWorkEscalation,
   });
 
   return {

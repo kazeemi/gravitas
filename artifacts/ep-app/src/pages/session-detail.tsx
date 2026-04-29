@@ -23,6 +23,7 @@ interface OverallFeedback {
   improvements?: string;
   nextStep?: string;
   gatingNote?: string;
+  innerWorkEscalation?: string;
 }
 
 function parseOverallFeedback(raw: string | null): OverallFeedback | null {
@@ -267,6 +268,11 @@ export default function SessionDetailPage() {
                 </p>
                 <p className="text-sm text-gray-700 leading-relaxed">{overallFeedback.nextStep}</p>
               </div>
+            </div>
+          )}
+          {overallFeedback.innerWorkEscalation && (
+            <div className="mt-2 rounded-md border border-purple-100 bg-purple-50 px-4 py-3">
+              <p className="text-sm text-purple-900 leading-relaxed">{overallFeedback.innerWorkEscalation}</p>
             </div>
           )}
         </div>

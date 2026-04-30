@@ -771,7 +771,7 @@ export default function RecordPage() {
               </Button>
             )}
             <button
-              onClick={() => setLocation("/sessions")}
+              onClick={() => setLocation("/history")}
               className="w-full text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2"
             >
               View my session history

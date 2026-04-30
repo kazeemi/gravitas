@@ -93,7 +93,8 @@ export default function RecordPage() {
 
   const [mode, setMode] = useState<"audio" | "video">(modeParam || "audio");
   const [step, setStep] = useState<Step>("setup");
-  const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const [prompts, setPrompts] = useState<Prompt[]>([]);
+  const [promptIndex, setPromptIndex] = useState(0);
   const [customPrompt, setCustomPrompt] = useState("");
   const [recordingContext, setRecordingContext] = useState("seated");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -152,8 +153,15 @@ export default function RecordPage() {
   }, [modeParam]);
 
   useEffect(() => {
-    api.prompts.random().then(setPrompt).catch(() => {});
+    api.prompts.list().then(data => {
+      if (data.prompts.length > 0) {
+        setPrompts(data.prompts);
+        setPromptIndex(Math.floor(Math.random() * data.prompts.length));
+      }
+    }).catch(() => {});
   }, []);
+
+  const prompt = prompts[promptIndex] ?? null;
 
   useEffect(() => {
     if (user?.totalRecordingSeconds !== undefined) {
@@ -723,8 +731,14 @@ export default function RecordPage() {
     return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const getNewPrompt = () => {
-    api.prompts.random().then(setPrompt).catch(() => {});
+  const goPrevPrompt = () => {
+    if (prompts.length === 0) return;
+    setPromptIndex(i => (i - 1 + prompts.length) % prompts.length);
+  };
+
+  const goNextPrompt = () => {
+    if (prompts.length === 0) return;
+    setPromptIndex(i => (i + 1) % prompts.length);
   };
 
   const quotaRemaining = Math.max(0, BETA_LIMIT_SECONDS - totalRecordingSeconds);
@@ -886,13 +900,22 @@ export default function RecordPage() {
           <div>
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-700">Practice prompt</label>
-              {!customPrompt.trim() && (
-                <button
-                  onClick={getNewPrompt}
-                  className="text-xs font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2"
-                >
-                  Get a new prompt
-                </button>
+              {!customPrompt.trim() && prompts.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={goPrevPrompt}
+                    className="text-xs font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2"
+                  >
+                    ← Previous
+                  </button>
+                  <span className="text-xs text-gray-400">{promptIndex + 1} / {prompts.length}</span>
+                  <button
+                    onClick={goNextPrompt}
+                    className="text-xs font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2"
+                  >
+                    Next →
+                  </button>
+                </div>
               )}
             </div>
             {!customPrompt.trim() && prompt && (

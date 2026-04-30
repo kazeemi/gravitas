@@ -1,0 +1,39 @@
+| # | Category | Context | Prompt | Duration |
+|---|---|---|---|---|
+| 1 | Introduction | Stakeholder Update | Introduce yourself to a new stakeholder group and establish your credibility. | 60 sec |
+| 2 | Introduction | Stakeholder Update | You are at a senior networking event. Someone asks what you do. Make it compelling. | 60 sec |
+| 3 | Persuasion | Formal Presentation | Convince a sceptical executive that your team needs additional headcount. | 90 sec |
+| 4 | Persuasion | Formal Presentation | Pitch an idea you believe in to a room that has not asked for it and may be sceptical. | 90 sec |
+| 5 | Persuasion | Stakeholder Update | Make the case to your manager for why you should lead an upcoming high-visibility project. | 90 sec |
+| 6 | Vision | Formal Presentation | Describe your vision for how your team or department will look in three years. | 120 sec |
+| 7 | Vision | Stakeholder Update | Describe where you want to be professionally in three years and what you are doing to get there. | 120 sec |
+| 8 | Feedback | Difficult Conversation | Deliver constructive feedback to a high-performing team member who missed a critical deadline. | 90 sec |
+| 9 | Difficult Conversation | Difficult Conversation | Inform a senior colleague that their behaviour in a recent meeting undermined the team. | 90 sec |
+| 10 | Difficult Conversation | Difficult Conversation | Push back on a decision made by someone more senior than you, respectfully and clearly. | 90 sec |
+| 11 | Crisis | Formal Presentation | Address your team after a major project setback and outline the path forward. | 120 sec |
+| 12 | Data | Formal Presentation | Present three key findings from a recent analysis to a non-technical leadership team. | 90 sec |
+| 13 | Data | Stakeholder Update | Explain a complex idea in your field to someone who knows nothing about it. | 90 sec |
+| 14 | Negotiation | Difficult Conversation | Negotiate a scope change with a client who is resistant to adjustments. | 90 sec |
+| 15 | Inspiration | High Energy | Motivate your team at the start of a challenging quarter with high expectations. | 90 sec |
+| 16 | Stakeholder Update | Stakeholder Update | Brief your board on the current status of a high-priority initiative, including one risk you are actively managing. | 90 sec |
+| 17 | Stakeholder Update | Stakeholder Update | Update a sceptical client on a project that has fallen behind schedule. | 90 sec |
+| 18 | Stakeholder Update | Stakeholder Update | Update your manager on a project that has hit an unexpected obstacle. | 90 sec |
+| 19 | Interview | Impromptu | Answer the question: "Tell me about a time you led through significant uncertainty." | 120 sec |
+| 20 | Interview | Impromptu | Answer the question: "What is your leadership philosophy and how have you applied it?" | 120 sec |
+| 21 | Interview | Impromptu | Answer the question: "What is your greatest professional achievement and why?" | 120 sec |
+| 22 | Impromptu | Impromptu | You have just been asked, without warning, to share your perspective on your organisation's biggest strategic risk. No preparation. Begin now. | 90 sec |
+| 23 | Impromptu | Impromptu | A senior leader has just asked you to summarise — in two minutes — why your project deserves continued investment. You have 10 seconds to collect your thoughts. | 120 sec |
+| 24 | Impromptu | Impromptu | You have been asked to speak for 90 seconds on the most important lesson your career has taught you. No preparation. | 90 sec |
+
+---
+
+**Notes for Replit:**
+
+The Category column is what the user sees when browsing prompts in the library. The Context column is used by the scoring system only — it determines which WPM benchmark and scoring standard is applied to that session. The user does not see the context classification.
+
+**Context categories and their WPM benchmarks:**
+- High Energy: 145–175 WPM ideal
+- Formal Presentation: 130–155 WPM ideal
+- Stakeholder Update: 135–160 WPM ideal
+- Difficult Conversation: 110–135 WPM ideal
+- Impromptu: 125–150 WPM ideal

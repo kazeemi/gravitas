@@ -212,47 +212,33 @@ export function computeCompositeTier(
 }
 
 // ============================================================
-// CONTEXT CLASSIFICATION — v4.0 Section 3
+// CONTEXT CLASSIFICATION — v4.1 (explicit label-based)
 // ============================================================
 
-export type ContextCategory = 1 | 2 | 3 | 4 | 5;
-
 export interface ContextClassification {
-  category: ContextCategory;
   label: string;
   idealWpmMin: number;
   idealWpmMax: number;
 }
 
-export function classifyContext(promptText: string | undefined): ContextClassification {
-  if (!promptText) {
-    return { category: 5, label: "Conversational / Interview", idealWpmMin: 130, idealWpmMax: 160 };
-  }
-  const p = promptText.toLowerCase();
+const CONTEXT_BENCHMARKS: Record<string, ContextClassification> = {
+  "High Energy":           { label: "High Energy",           idealWpmMin: 145, idealWpmMax: 175 },
+  "Formal Presentation":   { label: "Formal Presentation",   idealWpmMin: 130, idealWpmMax: 155 },
+  "Stakeholder Update":    { label: "Stakeholder Update",    idealWpmMin: 135, idealWpmMax: 160 },
+  "Difficult Conversation":{ label: "Difficult Conversation",idealWpmMin: 110, idealWpmMax: 135 },
+  "Impromptu":             { label: "Impromptu",             idealWpmMin: 125, idealWpmMax: 150 },
+};
 
-  // Category 1: High Energy / Vision / Inspiration
-  if (/\b(vision|motivat|inspir|rallying|bold|strategic direction|morale|enthus|exciting|ambitious)\b/.test(p) ||
-      /\b(start of.*quarter|beginning of.*year|launch|kick.?off|energi)\b/.test(p)) {
-    return { category: 1, label: "High Energy / Vision / Inspiration", idealWpmMin: 145, idealWpmMax: 175 };
-  }
+const DEFAULT_CONTEXT: ContextClassification = { label: "Stakeholder Update", idealWpmMin: 135, idealWpmMax: 160 };
 
-  // Category 2: Formal Presentation / Senior Stakeholder
-  if (/\b(board|investor|c-suite|executive|ceo|cfo|coo|senior leader|stakeholder|quarterly review|investor pitch|earnings|formal presentation)\b/.test(p)) {
-    return { category: 2, label: "Formal Presentation / Senior Stakeholder", idealWpmMin: 120, idealWpmMax: 145 };
+export function classifyContext(
+  promptText: string | undefined,
+  promptContext?: string | undefined
+): ContextClassification {
+  if (promptContext && CONTEXT_BENCHMARKS[promptContext]) {
+    return CONTEXT_BENCHMARKS[promptContext];
   }
-
-  // Category 3: Analytical / Technical / Complex
-  if (/\b(data|technical|analysis|findings|recommend|analytical|complex|walkthrough|rationale|strategic analysis|research|metrics|numbers|results)\b/.test(p)) {
-    return { category: 3, label: "Analytical / Technical", idealWpmMin: 115, idealWpmMax: 145 };
-  }
-
-  // Category 4: Difficult Conversation / Sensitive
-  if (/\b(feedback|conflict|difficult|sensitive|underperform|missed.*deadline|apolog|address.*concern|personnel|performance review|disappointing|crisis|setback)\b/.test(p)) {
-    return { category: 4, label: "Difficult Conversation / Sensitive", idealWpmMin: 110, idealWpmMax: 135 };
-  }
-
-  // Default: Category 5
-  return { category: 5, label: "Conversational / Interview", idealWpmMin: 130, idealWpmMax: 160 };
+  return DEFAULT_CONTEXT;
 }
 
 // ============================================================
@@ -294,6 +280,7 @@ export interface ScoringInput {
   videoPresenceAnalysis?: VideoPresenceResult | null;
   recordingContext?: string;
   promptText?: string;
+  promptContext?: string;
   rmsMetrics?: RmsMetrics | null;
   f0Metrics?: F0Metrics | null;
   pauseMetrics?: PauseMetrics | null;
@@ -820,7 +807,7 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
   const dimensions =
     input.mode === "audio" ? AUDIO_DIMENSIONS : VIDEO_DIMENSIONS;
 
-  const context = classifyContext(input.promptText);
+  const context = classifyContext(input.promptText, input.promptContext);
 
   const audioQualityFlag = input.audioGapEvents > 5;
   const faceCoverageFlag = input.mode === "video" && input.faceLostEvents > 3;

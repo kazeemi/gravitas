@@ -374,7 +374,7 @@ export default function RecordPage() {
         session = await api.sessions.create({
           mode,
           promptText: customPrompt.trim() || prompt?.text || undefined,
-          promptType: prompt?.type,
+          promptType: prompt?.category,
           recordingContext: mode === "video" ? recordingContext : "seated",
         });
       } catch (apiErr) {

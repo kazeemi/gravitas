@@ -7,6 +7,7 @@ import { logger } from "../lib/logger.js";
 import { sessionsTable, dimensionScoresTable, usersTable } from "@workspace/db";
 import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresence, type VideoPresenceResult } from "../lib/scoring.js";
 import { ensureCompatibleFormat, computeRmsMetrics, computeF0Metrics, type RmsMetrics, type F0Metrics } from "@workspace/integrations-openai-ai-server/audio";
+import { getPromptContext } from "./prompts.js";
 
 const BETA_LIMIT_SECONDS = 1200;
 
@@ -312,6 +313,7 @@ router.post(
           wpmWindows,
           recordingContext: session.recordingContext || "seated",
           promptText: session.promptText || undefined,
+          promptContext: getPromptContext(session.promptText || "") || undefined,
         });
 
         await db.insert(dimensionScoresTable).values(

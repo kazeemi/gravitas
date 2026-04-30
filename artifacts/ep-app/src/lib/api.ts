@@ -121,10 +121,10 @@ export const api = {
   },
 
   prompts: {
-    list: (type?: string) =>
-      request<{ prompts: Prompt[] }>(`/v1/prompts${type ? `?type=${type}` : ""}`),
-    random: (type?: string) =>
-      request<Prompt>(`/v1/prompts/random${type ? `?type=${type}` : ""}`),
+    list: (category?: string) =>
+      request<{ prompts: Prompt[] }>(`/v1/prompts${category ? `?category=${category}` : ""}`),
+    random: (category?: string) =>
+      request<Prompt>(`/v1/prompts/random${category ? `?category=${category}` : ""}`),
   },
 };
 
@@ -188,7 +188,7 @@ export interface ChartSession {
 
 export interface Prompt {
   id: string;
-  type: string;
+  category: string;
   text: string;
   recommendedDurationSeconds: number;
 }

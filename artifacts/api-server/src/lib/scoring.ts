@@ -473,21 +473,23 @@ You are a senior executive presence coach reviewing a series of video frames cap
 
 Assess the following four areas based solely on what you see in the frames:
 
-1. EYE CONTACT: For each frame, classify the speaker's gaze as DIRECT (at/near camera lens), NEAR (slight deviation from camera), or OFF (clearly looking away — side, down, up). State the count for each classification. Then assess overall camera connection quality, consistency, and deliberateness.
+1. EYE CONTACT: Internally classify the speaker's gaze in each image as DIRECT (at/near camera lens), NEAR (slight deviation from camera), or OFF (clearly looking away — side, down, up). Use these counts to form your observation, but do NOT mention "frames" or image numbers in your written output — describe patterns in plain terms (e.g. "throughout most of the recording", "at several points", "consistently"). Then assess overall camera connection quality, consistency, and deliberateness.
 
-2. FACIAL EXPRESSION: Is the expression flat, neutral, warm, animated, or incongruent with what appears to be serious content? Does the face convey genuine engagement? Is there visible tension (tight jaw, pressed lips, furrowed brow) or warmth? Does expression vary across frames to match content importance?
+2. FACIAL EXPRESSION: Is the expression flat, neutral, warm, animated, or incongruent with what appears to be serious content? Does the face convey genuine engagement? Is there visible tension (tight jaw, pressed lips, furrowed brow) or warmth? Does expression vary across the recording to match content importance?
 
 3. GESTURES: Are hand or arm gestures visible? Classify each as: purposeful (emphasise points, enumerate ideas), neutral (hands still or naturally positioned), or distracting (fidgeting, self-touching, erratic movement). Note posture — open vs closed body position.
 
-4. POSTURE: Is the speaker upright, open, and settled? Or slumped, tense, or physically withdrawn? Is there evidence of deliberate forward lean on key moments? Is posture consistent across frames?
+4. POSTURE: Is the speaker upright, open, and settled? Or slumped, tense, or physically withdrawn? Is there evidence of deliberate forward lean on key moments? Is posture consistent throughout the recording?
+
+CRITICAL LANGUAGE RULE: Your written observations must NEVER use the words "frame", "frames", "image", or image numbers (e.g. "frame 6", "in image 3"). Describe everything in plain, user-friendly language as if you are a human coach who watched a video — use terms like "throughout your recording", "at several points during your session", "consistently", "for most of the session", "at times", etc.
 
 Return your analysis as a JSON object with these exact keys:
 {
-  "eyeContactObservation": "frame-by-frame classification (DIRECT/NEAR/OFF count), description of gaze direction and consistency, quality of camera connection",
-  "gestureObservation": "specific description of gesture types observed, whether purposeful or distracting, body openness/closedness",
-  "presenceObservation": "specific description of facial expression across frames — range, congruence, warmth, tension signals, engagement quality",
-  "professionalAppearanceObservation": "specific assessment of posture (upright/settled vs slumped/tense), attire, grooming, and background",
-  "overallVisualPresence": "2-sentence summary of the speaker's overall visual executive presence"
+  "eyeContactObservation": "gaze pattern classification (DIRECT/NEAR/OFF counts expressed as proportions or plain descriptions), description of gaze direction and consistency, quality of camera connection — NO frame numbers",
+  "gestureObservation": "specific description of gesture types observed, whether purposeful or distracting, body openness/closedness — NO frame numbers",
+  "presenceObservation": "specific description of facial expression throughout the recording — range, congruence, warmth, tension signals, engagement quality — NO frame numbers",
+  "professionalAppearanceObservation": "specific assessment of posture (upright/settled vs slumped/tense), attire, grooming, and background — NO frame numbers",
+  "overallVisualPresence": "2-sentence summary of the speaker's overall visual executive presence — NO frame numbers"
 }`;
 
   const imageContent = frames.map(frame => ({
@@ -632,6 +634,7 @@ FEEDBACK STANDARDS — ALL MUST BE MET:
    - NEVER write "breath engine", "pitch engine", "audio engine", or reference any internal scoring tool → just state the observation and its impact
    - NEVER write "gpt-audio", "Claude Vision", or mention any AI model → these are invisible to the user
    - NEVER write "4 seconds or longer", "≥4s", or any specific second threshold when describing pauses to the user → say "extended silence", "long pauses", or "silence mid-speech" instead
+   - NEVER write "frame", "frames", "frame 6", or any reference to video frames or image numbers → these are internal analysis artefacts invisible to the user. Instead say "throughout your recording", "at several points in your session", "for most of the session", "consistently", "at times", etc.
 
 6. PACE VARIATION RULE — CRITICAL: If the pace-over-time data shows high within-session variance (any window deviates more than 25 wpm from the overall average, OR the slowest and fastest windows differ by more than 50 wpm), you MUST:
    - Describe the temporal pattern specifically (e.g. "you started around X words per minute in the first half, then accelerated to Y words per minute as the response continued")

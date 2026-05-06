@@ -321,6 +321,7 @@ interface AIEvalResult {
   summaryImprovements: string[];
   priorityAction: string | null;
   priorityActions: string[];
+  recordAgainPrompt: string;
   // Legacy fields (kept for backward-compat in case AI returns old format)
   overallStrengths?: string;
   overallImprovements?: string;
@@ -615,9 +616,13 @@ FEEDBACK STANDARDS — ALL MUST BE MET:
 
 3. WARM, DIRECT COACHING VOICE: Write as if speaking to a capable person who can handle honest feedback and act on it. Not clinical, not academic, not generic. Warm and direct. This is a coaching conversation, not an audit.
 
-4. ONE CONCRETE SPECIFIC NEXT ACTION: End every dimension block with a single, specific, actionable drill — not a vague instruction. The next step must be something the speaker can do in their next recording session.
+4. ONE CONCRETE SPECIFIC NEXT ACTION — IN THE RECORDING: End every dimension block with a single, specific, actionable instruction framed around recording again. The action must be something the speaker thinks about before or tries during their next recording here — not something they do in isolation.
+   NEVER suggest writing, scripting, noting down, or preparing any written material. All preparation is mental: thinking through structure, identifying a key point, deciding on an opening.
+   WRONG: "Write down your three key points and practise delivering them."
    WRONG: "Slow down."
-   RIGHT: "Before your next session, identify the one sentence in your response that carries the most important idea and practise delivering it with a two-second pause after."
+   WRONG: "Before your next session, note the key ideas you want to cover."
+   RIGHT: "In your next recording, try opening with a single declarative statement — think of the one thing you most want your listener to take away, then lead with that."
+   RIGHT: "Record again and notice whether you can hear yourself land a pause after your main point before moving on."
 
 5. PLAIN LANGUAGE — STRICTLY ENFORCED. Describe what happened and why it matters. Banned phrases and required translations:
    - NEVER write "standard deviation", "SD", or any statistical term → instead say "your volume stayed consistent" or "your volume shifted noticeably throughout"
@@ -752,8 +757,9 @@ Return a JSON object (no markdown, no code fences):
   "summaryImprovements": [
     "<one sentence. Names the specific dimension. For Strong/Distinguished sessions: frame as relative gap, not absolute failure. Up to 3 items.>"
   ],
-  "priorityAction": "<for Developing/Strong/Distinguished sessions: one specific, concrete instruction — the single highest-impact thing to practise in the next recording session. For Needs Focus sessions: null.>",
-  "priorityActions": ["<Start here: [specific action]>", "<Then here: [specific action]>", "<Then here: [specific action]>"],
+  "priorityAction": "<for Developing/Strong/Distinguished sessions: the single highest-impact thing to focus on in the next recording — frame as something to think through before hitting record or to try while recording. NEVER suggest writing, scripting, or preparing material. Use language like 'in your next recording, try' or 'record again and notice whether'. For Needs Focus sessions: null.>",
+  "priorityActions": ["<Start here: [specific mental focus or in-recording experiment — no writing, no scripting]>", "<Then here: [specific focus]>", "<Then here: [specific focus]>"],
+  "recordAgainPrompt": "<one sentence. Frame the next recording as the natural continuation of this session — not optional, not homework. The insight from this session is most valuable when tested immediately. Make the user feel that recording again right now is the single most useful thing they can do. Be energetic and specific to what was observed in this session.>",
   "dimensions": {
     ${dimensions
       .map(
@@ -761,7 +767,7 @@ Return a JSON object (no markdown, no code fences):
       "score": <integer 1-10>,
       "strengthText": "<max 40 words — reference something specific that happened in this session. Named evidence. With measured values where available.>",
       "gapText": "<max 45 words — name the primary gap with specific evidence from this session, then state its impact on the listener. Warm and direct, not clinical.>",
-      "nextStepText": "<max 45 words — one specific, concrete practice drill. Not a vague instruction — a precise action the speaker can take in their next recording session here. Do not recommend external apps or tools. Never suggest a target recording duration under 60 seconds.>"
+      "nextStepText": "<max 45 words — one specific thing to try in their next recording here. Frame as mental preparation or an in-recording experiment. NEVER suggest writing, scripting, or noting anything down — all prep is mental. Use language like 'in your next recording, try' or 'record again and notice whether'. Do not recommend external tools.>"
     }`
       )
       .join(",\n    ")}
@@ -794,8 +800,9 @@ function buildFallbackEvaluation(
   const result: AIEvalResult = {
     summaryStrengths: [],
     summaryImprovements: ["Full AI feedback could not be generated — please try recording again."],
-    priorityAction: "Record a session of at least 90 seconds addressing the prompt directly.",
+    priorityAction: "In your next recording, aim for at least 90 seconds and respond directly to the prompt — that gives the system enough to work with.",
     priorityActions: [],
+    recordAgainPrompt: "The best thing you can do right now is record again — a longer response will give you much richer feedback to work with.",
     dimensions: {},
   };
   for (const d of dimensions) {
@@ -803,7 +810,7 @@ function buildFallbackEvaluation(
       score: baseScore,
       strengthText: `Some foundational elements present in ${DIMENSION_LABELS[d]}.`,
       gapText: `Significant development needed in ${DIMENSION_LABELS[d]}.`,
-      nextStepText: `Practice dedicated ${DIMENSION_LABELS[d]} exercises daily.`,
+      nextStepText: `In your next recording, try giving yourself more time on ${DIMENSION_LABELS[d]} — notice what changes when you slow down and focus on it.`,
     };
   }
   return result;
@@ -951,13 +958,14 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
     summaryImprovements,
     priorityAction,
     priorityActions,
+    recordAgainPrompt: aiResult.recordAgainPrompt || null,
     needsFocusPreamble:
       needsFocusComposite && priorityActions.length > 0
-        ? "There is a lot to build on here — and that is okay. The most effective approach is one thing at a time. Work through these in order."
+        ? "You have clear areas to move on — and the fastest way to move is to record again. Work through these one at a time, starting at the top."
         : null,
     noStrengthsLine:
       needsFocusComposite && summaryStrengths.length === 0
-        ? "This session gives you a clear starting point. That clarity is useful."
+        ? "This session gives you a clear starting point. That clarity is exactly what you need to make the next recording count."
         : null,
     gatingNote,
     innerWorkEscalation,

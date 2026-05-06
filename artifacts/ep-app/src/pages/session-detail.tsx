@@ -28,6 +28,7 @@ interface OverallFeedback {
   summaryImprovements?: string[];
   priorityAction?: string | null;
   priorityActions?: string[];
+  recordAgainPrompt?: string | null;
   needsFocusPreamble?: string | null;
   noStrengthsLine?: string | null;
   strengths?: string;
@@ -330,7 +331,7 @@ export default function SessionDetailPage() {
               ) : effectivePriorityAction ? (
                 <>
                   <p className="text-xs font-semibold uppercase tracking-widest text-[#C84A18] mb-2">
-                    Priority Action
+                    Focus for your next recording
                   </p>
                   <p className="text-sm text-gray-700 leading-relaxed">{effectivePriorityAction}</p>
                 </>
@@ -415,23 +416,47 @@ export default function SessionDetailPage() {
       {/* SECTION 4 — Transcript (collapsed) */}
       {!noAudioDetected && <CollapsibleTranscript session={session} />}
 
-      {/* Action buttons */}
-      <div className="mt-6 flex gap-3">
-        <Button variant="outline" onClick={() => setLocation("/record")}>
-          New session
-        </Button>
-        <Button
-          variant="outline"
-          className="text-red-600 border-red-200 hover:bg-red-50"
-          onClick={async () => {
-            if (!confirm("Delete this session?")) return;
-            await api.sessions.delete(session.id);
-            setLocation("/history");
-          }}
-        >
-          Delete
-        </Button>
-      </div>
+      {/* SECTION 5 — Record Again (always visible, never collapsed) */}
+      {!noAudioDetected && (
+        <div className="mt-6 rounded-xl overflow-hidden" style={{ background: "#0F1B2D" }}>
+          <div className="px-6 pt-6 pb-5">
+            <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#F0953E" }}>
+              What's next
+            </p>
+            <p className="text-base leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.88)" }}>
+              {overallFeedback?.recordAgainPrompt ||
+                "The insight from this session is most valuable when tested immediately — record again now and see what shifts."}
+            </p>
+            <button
+              onClick={() => setLocation("/record")}
+              className="w-full rounded-lg py-3.5 text-sm font-bold tracking-wide transition-colors"
+              style={{ background: "#F0953E", color: "#fff" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C84A18"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F0953E"; }}
+            >
+              Record again
+            </button>
+          </div>
+          <div className="px-6 py-3 flex justify-between items-center" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+              {format(new Date(session.createdAt), "MMM d, yyyy")}
+            </span>
+            <button
+              className="text-xs transition-colors"
+              style={{ color: "rgba(255,255,255,0.25)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#f87171"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.25)"; }}
+              onClick={async () => {
+                if (!confirm("Delete this session?")) return;
+                await api.sessions.delete(session.id);
+                setLocation("/history");
+              }}
+            >
+              Delete session
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -483,7 +508,7 @@ function DimensionCard({
             {score.nextStepText && !isHighScoring && (
               <div className="mt-3 rounded-md bg-[#FBF7F2] border border-[#F0953E]/20 px-3.5 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#C84A18] mb-1.5">
-                  Action
+                  Try in your next recording
                 </p>
                 <p className="text-sm text-gray-700 leading-relaxed">{score.nextStepText}</p>
               </div>

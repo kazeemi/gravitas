@@ -29,6 +29,7 @@ interface OverallFeedback {
   priorityAction?: string | null;
   priorityActions?: string[];
   recordAgainPrompt?: string | null;
+  motivationalMessage?: string | null;
   needsFocusPreamble?: string | null;
   noStrengthsLine?: string | null;
   strengths?: string;
@@ -223,6 +224,13 @@ export default function SessionDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* Motivational message */}
+            {overallFeedback.motivationalMessage && (
+              <p className="mt-4 text-sm leading-relaxed" style={{ color: "#6B6560" }}>
+                {overallFeedback.motivationalMessage}
+              </p>
+            )}
 
             {/* Notices */}
             {isLegacySession && (

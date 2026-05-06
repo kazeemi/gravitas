@@ -285,6 +285,8 @@ export interface ScoringInput {
   f0Metrics?: F0Metrics | null;
   pauseMetrics?: PauseMetrics | null;
   wpmWindows?: WpmWindow[] | null;
+  sessionNumber?: number;
+  previousCompositeScore?: number | null;
 }
 
 export type { RmsMetrics, F0Metrics, PauseMetrics, WpmWindow };
@@ -322,6 +324,7 @@ interface AIEvalResult {
   priorityAction: string | null;
   priorityActions: string[];
   recordAgainPrompt: string;
+  motivationalMessage: string;
   // Legacy fields (kept for backward-compat in case AI returns old format)
   overallStrengths?: string;
   overallImprovements?: string;
@@ -749,6 +752,12 @@ Ideal pace: ${context.idealWpmMin}–${context.idealWpmMax} words per minute.
 Speaker's pace: ${wordsPerMinute} wpm (${wordsPerMinute < context.idealWpmMin ? `${context.idealWpmMin - wordsPerMinute} wpm BELOW ideal` : wordsPerMinute > context.idealWpmMax ? `${wordsPerMinute - context.idealWpmMax} wpm ABOVE ideal` : "within ideal range"}).
 State this classification and ideal range explicitly in the pace dimension feedback.
 
+SESSION HISTORY CONTEXT (used only for motivationalMessage — do not reference score numbers in the message):
+Session number: ${input.sessionNumber ?? 1}
+${input.previousCompositeScore != null
+  ? `Previous session composite score: ${input.previousCompositeScore.toFixed(1)}. Based on your dimension scores in this evaluation, infer whether this session represents improvement, similar performance, or decline — but never state the numbers in the message.`
+  : "This is the user's first session — no previous score exists."}
+
 Return a JSON object (no markdown, no code fences):
 {
   "summaryStrengths": [
@@ -760,6 +769,7 @@ Return a JSON object (no markdown, no code fences):
   "priorityAction": "<for Developing/Strong/Distinguished sessions: the single highest-impact thing to focus on in the next recording — frame as something to think through before hitting record or to try while recording. NEVER suggest writing, scripting, or preparing material. Use language like 'in your next recording, try' or 'record again and notice whether'. For Needs Focus sessions: null.>",
   "priorityActions": ["<Start here: [specific mental focus or in-recording experiment — no writing, no scripting]>", "<Then here: [specific focus]>", "<Then here: [specific focus]>"],
   "recordAgainPrompt": "<one sentence. Frame the next recording as the natural continuation of this session — not optional, not homework. The insight from this session is most valuable when tested immediately. Make the user feel that recording again right now is the single most useful thing they can do. Be energetic and specific to what was observed in this session.>",
+  "motivationalMessage": "<1–2 sentences max. About the act of showing up — NEVER about the score number. Rules by session number: If sessionNumber=1: acknowledge starting is the hardest part; feel like a warm welcome and genuine recognition of a real first step. If sessionNumber=2: acknowledge that returning matters more than most people realise; the fact they came back signals something about commitment. If sessionNumber>=3: stop counting; focus on the pattern — consistency, commitment, the habit of self-development. Score comparison (session 2+): if this session looks strong vs previous score (improvement of 0.5+): acknowledge progress implicitly, may name the dimension or pillar that moved most — never state numbers — say 'your vocal delivery has shifted' not 'your score went from 6 to 7'. If improvement <0.5 or score dropped: do not reference score movement at all; focus entirely on showing up. If composite looks like Needs Focus (mostly low scores) OR score declined: shift to quietly affirming — acknowledge effort not outcome, never make user feel they failed. NEVER use: 'great job', 'well done', 'amazing effort', 'you're crushing it', or anything that sounds automated. Write as a real coach who heard this specific person in this specific session.>",
   "dimensions": {
     ${dimensions
       .map(
@@ -788,21 +798,31 @@ Return a JSON object (no markdown, no code fences):
     const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text) as AIEvalResult;
     return parsed;
   } catch (err) {
-    return buildFallbackEvaluation(dimensions, wordCount);
+    return buildFallbackEvaluation(dimensions, wordCount, input.sessionNumber);
   }
 }
 
 function buildFallbackEvaluation(
   dimensions: DimensionKey[],
-  wordCount: number
+  wordCount: number,
+  sessionNumber?: number
 ): AIEvalResult {
   const baseScore = wordCount < 30 ? 2 : wordCount < 80 ? 3 : 4;
+  const sessionNum = sessionNumber ?? 1;
+  const fallbackMotivational =
+    sessionNum === 1
+      ? "This is where it starts — and starting takes more courage than most people give themselves credit for."
+      : sessionNum === 2
+      ? "You came back. Most people talk about developing themselves — you're actually doing it."
+      : "The consistency is the work. Every session you show up for compounds.";
+
   const result: AIEvalResult = {
     summaryStrengths: [],
     summaryImprovements: ["Full AI feedback could not be generated — please try recording again."],
     priorityAction: "In your next recording, aim for at least 90 seconds and respond directly to the prompt — that gives the system enough to work with.",
     priorityActions: [],
     recordAgainPrompt: "The best thing you can do right now is record again — a longer response will give you much richer feedback to work with.",
+    motivationalMessage: fallbackMotivational,
     dimensions: {},
   };
   for (const d of dimensions) {
@@ -959,6 +979,7 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
     priorityAction,
     priorityActions,
     recordAgainPrompt: aiResult.recordAgainPrompt || null,
+    motivationalMessage: aiResult.motivationalMessage || null,
     needsFocusPreamble:
       needsFocusComposite && priorityActions.length > 0
         ? "You have clear areas to move on — and the fastest way to move is to record again. Work through these one at a time, starting at the top."

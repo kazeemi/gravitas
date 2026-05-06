@@ -292,6 +292,23 @@ router.post(
           return;
         }
 
+        // Query session history for motivational message context
+        const prevCompletedSessions = await db
+          .select({ compositeScore: sessionsTable.compositeScore })
+          .from(sessionsTable)
+          .where(and(
+            eq(sessionsTable.userId, session.userId),
+            eq(sessionsTable.processingStatus, "complete"),
+          ))
+          .orderBy(desc(sessionsTable.createdAt))
+          .limit(10);
+
+        const sessionNumber = prevCompletedSessions.length + 1;
+        const previousCompositeScore =
+          prevCompletedSessions.length > 0 && prevCompletedSessions[0].compositeScore
+            ? parseFloat(prevCompletedSessions[0].compositeScore)
+            : null;
+
         const result = await scoreSession({
           mode: session.mode as "audio" | "video",
           durationSeconds,
@@ -314,6 +331,8 @@ router.post(
           recordingContext: session.recordingContext || "seated",
           promptText: session.promptText || undefined,
           promptContext: getPromptContext(session.promptText || "") || undefined,
+          sessionNumber,
+          previousCompositeScore,
         });
 
         await db.insert(dimensionScoresTable).values(

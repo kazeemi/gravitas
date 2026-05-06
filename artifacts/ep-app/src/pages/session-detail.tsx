@@ -69,6 +69,19 @@ function getImprovementBullets(fb: OverallFeedback): string[] {
   return [];
 }
 
+function getFallbackMotivationalMessage(tier: string): string {
+  switch (tier) {
+    case "Distinguished":
+      return "You keep coming back and it keeps showing — this is what sustained development actually looks like.";
+    case "Strong":
+      return "Showing up consistently is what separates people who talk about developing themselves from those who actually do it.";
+    case "Developing":
+      return "Coming back is the practice — and you keep showing up.";
+    default:
+      return "Showing up when it's hard is exactly the work. You're doing it.";
+  }
+}
+
 function getSummaryLabels(tier: string): { left: string; right: string } {
   switch (tier) {
     case "Distinguished": return { left: "What makes you exceptional", right: "What would make you even greater" };
@@ -226,11 +239,9 @@ export default function SessionDetailPage() {
             </div>
 
             {/* Motivational message */}
-            {overallFeedback.motivationalMessage && (
-              <p className="mt-4 text-sm leading-relaxed" style={{ color: "#6B6560" }}>
-                {overallFeedback.motivationalMessage}
-              </p>
-            )}
+            <p className="mt-4 text-sm leading-relaxed" style={{ color: "#6B6560" }}>
+              {overallFeedback.motivationalMessage || getFallbackMotivationalMessage(tier)}
+            </p>
 
             {/* Notices */}
             {isLegacySession && (

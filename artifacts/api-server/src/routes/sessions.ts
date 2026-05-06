@@ -6,6 +6,7 @@ import { requireAuth } from "../lib/auth.js";
 import { logger } from "../lib/logger.js";
 import { sessionsTable, dimensionScoresTable, usersTable } from "@workspace/db";
 import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresence, type VideoPresenceResult } from "../lib/scoring.js";
+import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { ensureCompatibleFormat, computeRmsMetrics, computeF0Metrics, type RmsMetrics, type F0Metrics } from "@workspace/integrations-openai-ai-server/audio";
 import { getPromptContext } from "./prompts.js";
 
@@ -381,6 +382,95 @@ router.post(
     });
   }
 );
+
+router.post("/v1/sessions/:id/motivational-message", requireAuth, async (req, res) => {
+  const [session] = await db
+    .select()
+    .from(sessionsTable)
+    .where(and(eq(sessionsTable.id, req.params.id), eq(sessionsTable.userId, req.user!.userId)))
+    .limit(1);
+  if (!session) return res.status(404).json({ error: "Session not found" });
+  if (session.processingStatus !== "complete") return res.status(400).json({ error: "Session not complete" });
+
+  let feedback: Record<string, unknown> = {};
+  try { feedback = JSON.parse(session.overallFeedback ?? "{}"); } catch {}
+
+  if (feedback.motivationalMessage) {
+    return res.json({ message: feedback.motivationalMessage });
+  }
+
+  // Fetch completed session history for context
+  const history = await db
+    .select({ id: sessionsTable.id, compositeScore: sessionsTable.compositeScore, createdAt: sessionsTable.createdAt })
+    .from(sessionsTable)
+    .where(and(eq(sessionsTable.userId, req.user!.userId), eq(sessionsTable.processingStatus, "complete")))
+    .orderBy(sessionsTable.createdAt);
+
+  const sessionIndex = history.findIndex(s => s.id === session.id);
+  const sessionNumber = sessionIndex >= 0 ? sessionIndex + 1 : 1;
+  const prevSession = sessionIndex > 0 ? history[sessionIndex - 1] : null;
+  const previousScore = prevSession?.compositeScore ? parseFloat(prevSession.compositeScore) : null;
+  const currentScore = session.compositeScore ? parseFloat(session.compositeScore) : null;
+  const delta = currentScore !== null && previousScore !== null ? currentScore - previousScore : null;
+
+  const tier = session.compositeTier || "Developing";
+  const summaryStrengths: string[] = Array.isArray(feedback.summaryStrengths) ? feedback.summaryStrengths as string[] : [];
+  const summaryImprovements: string[] = Array.isArray(feedback.summaryImprovements) ? feedback.summaryImprovements as string[] : [];
+
+  const deltaDescription = delta === null
+    ? null
+    : delta >= 1.0 ? "significant upward shift — their presence noticeably moved"
+    : delta >= 0.5 ? "solid improvement — meaningful upward movement"
+    : delta >= 0.1 ? "steady gain — held their level and edged forward"
+    : delta >= -0.1 ? "held steady — consistent with last session"
+    : "slight dip — common when experimenting with new techniques";
+
+  const sessionContext = [
+    sessionNumber === 1 ? "This is their first ever recording on the platform." : null,
+    sessionNumber === 2 ? "This is the first time they have come back — a significant step most people skip." : null,
+    deltaDescription ? `Score trend since last session: ${deltaDescription}.` : null,
+    summaryStrengths.length > 0 ? `Strengths in this session: ${summaryStrengths.join("; ")}.` : null,
+    summaryImprovements.length > 0 ? `Areas being worked on: ${summaryImprovements.join("; ")}.` : null,
+    session.promptText ? `They were practicing: "${session.promptText}".` : null,
+  ].filter(Boolean).join("\n");
+
+  const prompt = `You are writing a short personal motivational note for someone who just completed session ${sessionNumber} on Gravitas, an AI executive presence coaching platform.
+
+Context about this session:
+${sessionContext}
+Their overall presence tier: ${tier}
+
+Write exactly 2–3 sentences as their warm, direct executive coach. Rules:
+- If the score moved up significantly (significant or solid improvement), open with "Congratulations!" and make it genuinely joyful and celebratory — exclamation marks are welcome.
+- If this is their first session, acknowledge the real courage it takes to record yourself and commit to this.
+- If this is their second session, celebrate that they came back — most people think about it and never do.
+- Where you can, reference their actual strengths or improvement areas to make it feel specific to this session.
+- Never mention specific numbers, scores, percentages, or point values.
+- No hollow corporate language. Sound like a real human who is genuinely invested in their growth.
+- Maximum 3 sentences. Output only the message text, nothing else.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 200,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const message = response.content[0].type === "text" ? response.content[0].text.trim() : null;
+    if (!message) return res.status(500).json({ error: "Empty response from AI" });
+
+    feedback.motivationalMessage = message;
+    await db
+      .update(sessionsTable)
+      .set({ overallFeedback: JSON.stringify(feedback) })
+      .where(eq(sessionsTable.id, session.id));
+
+    return res.json({ message });
+  } catch (err) {
+    req.log.error({ err }, "Failed to generate motivational message");
+    return res.status(500).json({ error: "Failed to generate message" });
+  }
+});
 
 router.get("/v1/sessions/:id/status", requireAuth, async (req, res) => {
   const [session] = await db

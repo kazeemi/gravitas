@@ -152,6 +152,7 @@ export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [allSessions, setAllSessions] = useState<SessionSummary[]>([]);
+  const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedDimKey, setExpandedDimKey] = useState<string | null>(null);
@@ -170,6 +171,17 @@ export default function SessionDetailPage() {
   useEffect(() => {
     api.sessions.list().then(data => setAllSessions(data.sessions)).catch(() => {});
   }, []);
+
+  // For sessions without a stored motivational message, generate one via AI
+  useEffect(() => {
+    if (!session || !id) return;
+    let feedback: Record<string, unknown> = {};
+    try { feedback = JSON.parse(session.overallFeedback ?? "{}"); } catch {}
+    if (feedback.motivationalMessage) return; // already stored — no need to generate
+    api.sessions.generateMotivationalMessage(id)
+      .then(data => setGeneratedMessage(data.message))
+      .catch(() => {}); // silently fall back to static message
+  }, [session, id]);
 
   if (loading) {
     return (
@@ -312,7 +324,7 @@ export default function SessionDetailPage() {
 
             {/* Motivational message */}
             <p className="mt-4 text-sm leading-relaxed" style={{ color: "#6B6560" }}>
-              {overallFeedback.motivationalMessage || getContextualFallbackMessage(session.id, derivedSessionNumber, tier, score, derivedPreviousScore)}
+              {overallFeedback.motivationalMessage || generatedMessage || getContextualFallbackMessage(session.id, derivedSessionNumber, tier, score, derivedPreviousScore)}
             </p>
 
             {/* Notices */}

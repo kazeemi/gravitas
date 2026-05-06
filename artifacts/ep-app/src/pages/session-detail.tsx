@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { api, type SessionDetail, type DimensionScore } from "@/lib/api";
+import { api, type SessionDetail, type DimensionScore, type SessionSummary } from "@/lib/api";
 import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, PILLARS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,17 +69,74 @@ function getImprovementBullets(fb: OverallFeedback): string[] {
   return [];
 }
 
-function getFallbackMotivationalMessage(tier: string): string {
-  switch (tier) {
-    case "Distinguished":
-      return "You keep coming back and it keeps showing — this is what sustained development actually looks like.";
-    case "Strong":
-      return "Showing up consistently is what separates people who talk about developing themselves from those who actually do it.";
-    case "Developing":
-      return "Coming back is the practice — and you keep showing up.";
-    default:
-      return "Showing up when it's hard is exactly the work. You're doing it.";
-  }
+function hashStr(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+function pick<T>(arr: T[], seed: string): T {
+  return arr[hashStr(seed) % arr.length];
+}
+
+function getContextualFallbackMessage(
+  sessionId: string,
+  sessionNumber: number,
+  tier: string,
+  currentScore: number | null,
+  previousScore: number | null,
+): string {
+  const delta = currentScore !== null && previousScore !== null ? currentScore - previousScore : null;
+  const isNeedsFocus = tier === "Needs Focus";
+
+  const FIRST_SESSION = [
+    "This is where it starts — and you just made the move most people only think about.",
+    "Starting is the hardest part, and you did it. Everything that follows builds on this.",
+    "The first recording is the real barrier. You're past it — now the work begins.",
+  ];
+
+  const BIG_WIN = [
+    "That is a real jump — whatever you have been doing, it is working. Keep going.",
+    "Your presence has shifted significantly. You can feel it, and so can we. Keep the momentum.",
+    "That kind of progress does not happen by accident. You earned it.",
+    "Something has clicked — and it is showing up in a big way. This is what the work looks like.",
+  ];
+
+  const SOLID_WIN = [
+    "Something has shifted since your last session — and it is showing up clearly.",
+    "The work is registering. Your presence is building in a way that is hard to miss.",
+    "You came back and it moved. That is the whole point — consistency translates.",
+    "Real progress. The gap between where you started and where you are now is growing.",
+  ];
+
+  const CAME_BACK_2 = [
+    "You came back. That matters more than most people realise — the habit starts here.",
+    "Two sessions in. Most people never get here. You did, and that gap matters.",
+    "Coming back for a second session puts you ahead of most people who think about doing this.",
+    "The hardest part after starting is returning. You did both.",
+  ];
+
+  const AFFIRMING = [
+    "Showing up when it is hard is exactly the work. You are doing it.",
+    "Every session you come back to is a session that compounds later. This one counts.",
+    "This session gives you a clear direction. That clarity is worth something.",
+    "Coming back takes more resolve than people give it credit for. You showed up.",
+  ];
+
+  const CONSISTENCY = [
+    "The consistency is the work — and you keep doing it.",
+    "Every session you show up for builds on the last. This one counts.",
+    "You keep coming back and it keeps showing — this is what development actually looks like.",
+    "The pattern is there. Every recording compounds. Keep going.",
+    "Most people stop here. You did not. That is the difference.",
+  ];
+
+  if (sessionNumber === 1) return pick(FIRST_SESSION, sessionId);
+  if (isNeedsFocus || (delta !== null && delta <= -0.5)) return pick(AFFIRMING, sessionId);
+  if (delta !== null && delta >= 1.0) return pick(BIG_WIN, sessionId);
+  if (delta !== null && delta >= 0.5) return pick(SOLID_WIN, sessionId);
+  if (sessionNumber === 2) return pick(CAME_BACK_2, sessionId);
+  return pick(CONSISTENCY, sessionId);
 }
 
 function getSummaryLabels(tier: string): { left: string; right: string } {
@@ -94,6 +151,7 @@ function getSummaryLabels(tier: string): { left: string; right: string } {
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<SessionDetail | null>(null);
+  const [allSessions, setAllSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedDimKey, setExpandedDimKey] = useState<string | null>(null);
@@ -108,6 +166,10 @@ export default function SessionDetailPage() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    api.sessions.list().then(data => setAllSessions(data.sessions)).catch(() => {});
+  }, []);
 
   if (loading) {
     return (
@@ -152,6 +214,16 @@ export default function SessionDetailPage() {
     : 0;
   const hasLowEngagement = transcriptWordCount < 50 && transcriptWordCount > 0;
   const gatingNote = overallFeedback?.gatingNote;
+
+  // Derive session number and previous score from session history for the fallback message
+  const completedByDate = [...allSessions]
+    .filter(s => s.processingStatus === "complete" && s.compositeScore)
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const sessionIndex = completedByDate.findIndex(s => s.id === id);
+  const derivedSessionNumber = sessionIndex >= 0 ? sessionIndex + 1 : 1;
+  const derivedPreviousScore = sessionIndex > 0 && completedByDate[sessionIndex - 1].compositeScore
+    ? parseFloat(completedByDate[sessionIndex - 1].compositeScore!)
+    : null;
 
   const tier = session.compositeTier || "Developing";
   const labels = getSummaryLabels(tier);
@@ -240,7 +312,7 @@ export default function SessionDetailPage() {
 
             {/* Motivational message */}
             <p className="mt-4 text-sm leading-relaxed" style={{ color: "#6B6560" }}>
-              {overallFeedback.motivationalMessage || getFallbackMotivationalMessage(tier)}
+              {overallFeedback.motivationalMessage || getContextualFallbackMessage(session.id, derivedSessionNumber, tier, score, derivedPreviousScore)}
             </p>
 
             {/* Notices */}

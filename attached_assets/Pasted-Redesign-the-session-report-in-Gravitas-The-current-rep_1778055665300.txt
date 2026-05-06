@@ -1,0 +1,67 @@
+Redesign the session report in Gravitas.
+The current report is a flat scrollable document. The new report is a layered experience — a glanceable summary at the top, dimension cards grouped under pillar headers in the middle, and optional detail collapsed at the bottom. Designed for a busy professional who may read only the top card, but can go deeper on any dimension they choose.
+
+SECTION 1 — TOP CARD: Composite score and session summary
+Display at the very top, always visible, never collapsed.
+Show the composite score as a large number with its tier label in the corresponding colour:
+* Needs Focus (1.0–3.9): grey
+* Developing (4.0–6.4): amber
+* Strong (6.5–8.4): terracotta
+* Distinguished (8.5–10.0): midnight
+Below the score, one line of session metadata: date, mode, duration, prompt used.
+Below that, two labelled sections side by side. Labels are determined by composite score tier:
+* Distinguished: "What makes you exceptional" / "What would make you even greater"
+* Strong: "What makes you great" / "What would make you even greater"
+* Developing: "What's working well" / "What's worth working on"
+* Needs Focus: "What's already there" / "What needs your attention most"
+Each section contains up to 3 bullet points. Each bullet maps to a named dimension or pillar. Each bullet is one sentence maximum. No repetition across the two sections.
+For Strong and Distinguished composites, development bullets must acknowledge relative context — these are the gaps within an otherwise strong session, not absolute failures. The language should reflect that.
+If the overall composite is Needs Focus and the session data does not support 3 genuine strength bullets, reduce the strengths section to however many genuine positives exist — 2, 1, or none. If none exist, replace the strengths section entirely with one honest framing line: "This session gives you a clear starting point. That clarity is useful." Do not pad with fabricated encouragement.
+Priority Action — below the two sections:
+For Developing, Strong, and Distinguished composites: show one Priority Action. A single specific instruction the user can act on before their next session, derived from their lowest-scoring or highest-impact dimension.
+For Needs Focus composites: show up to 3 Priority Actions, labelled sequentially as "Start here", "Then here", "Then here." Precede them with one framing line: "There is a lot to build on here — and that is okay. The most effective approach is one thing at a time. Work through these in order."
+
+SECTION 2 — PILLAR HEADERS WITH DIMENSION CARDS
+Below the top card, show the four pillars in order: Voice Quality, Vocal Delivery, Thought Clarity, Physical Delivery.
+Each pillar is a header showing the pillar name and its average score. The score is written in the colour corresponding to its tier — not a coloured background, just the score text in the appropriate tier colour. The pillar header itself is not clickable.
+Under each pillar header, show one card per dimension in that pillar. Cards are always visible. 
+Each card shows by default: dimension name and score. The score number itself is displayed in the colour corresponding to its tier — no dot, no badge, just the number in colour:
+* Needs Focus: grey
+* Developing: amber
+* Strong: terracotta
+* Distinguished: midnight
+Each dimension card is tappable and expands inline to show the full feedback. Only one card can be expanded at a time — tapping a second collapses the first.
+
+Expanded card content:
+For Strong and Distinguished dimensions:
+* One sentence: what is working and why it is landing for the listener
+* One sentence: what the next level looks like, framed as elevation not correction
+* No action item
+For Developing and Needs Focus dimensions scoring 2.1 or above:
+* Default to leading with one genuine positive before the development feedback — but only if the session data supports it. If nothing genuine is present, skip it and lead with the development feedback directly. Never fabricate a positive.
+* One sentence on what is happening and what impact it is having on the listener
+* One sentence on the way forward
+* One action item, or a reference to a shared action if applicable
+For Needs Focus dimensions scoring 2.0 or below:
+* Do not lead with a strength. Lead directly with what the recording shows.
+* One sentence on what is happening and what impact it is having on the listener
+* One sentence on the way forward — honest, direct, and forward-looking
+* One action item, or a reference to a shared action if applicable
+* Tone should be kind and developmental, never harsh — but never falsely encouraging
+On shared action items:
+If the same action genuinely addresses more than one dimension, repeat the action in full in each relevant dimension card — but frame it as a cross-dimension insight each time. The language should signal that the tool has noticed a pattern. For example: "As noted in your Pace feedback, this action applies here too — one change will move both dimensions at once." Never invent a separate action if the same one applies. Focused effort on one thing having disproportionate impact across multiple dimensions is a useful and motivating insight for the user — surface it explicitly.
+
+SECTION 3 — SESSION METRICS: Collapsed by default
+A collapsed section below the dimension cards labelled "Session metrics." Tapping expands to show: speaking pace in WPM, filler word rate, vocabulary variety, long pauses, duration, and benchmark comparisons for each metric. Not visible by default.
+
+SECTION 4 — TRANSCRIPT: Collapsed by default
+A collapsed section below session metrics labelled "Your transcript." Tapping expands to show the full session transcript in plain text. No formatting, no highlights.
+
+FEEDBACK GENERATION RULES — apply to every report without exception:
+Default to strengths first. State what is working before what needs work — unless the session data does not support a genuine positive, in which case skip it entirely. Never fabricate encouragement that is not supported by what the recording actually shows.
+Acknowledge context for high-scoring sessions. Development feedback in Strong and Distinguished sessions must be framed as relative gaps within an otherwise strong performance — not as absolute failures. A dimension scoring 7 in a Strong session should not be framed the same way as a dimension scoring 7 in a Needs Focus session.
+One action per dimension maximum. Developing and Needs Focus dimensions get one action or a reference to a shared action. Strong and Distinguished dimensions get no action item.
+Shared actions are a feature, not a limitation. When one action addresses multiple dimensions, say so clearly and frame it as a pattern the tool has identified. Repeat the action in full in each relevant card but always with cross-dimension framing. Never invent artificial variation.
+No duplication of observations between the summary and dimension cards. The summary is the headline. The dimension card is the depth. They complement each other — they do not repeat the same observation in the same words.
+Coaching tone throughout. Direct, warm, specific, evidence-based. Every sentence should feel written for this person about this session. Never clinical, never generic, never copy-pasted in tone. The user should finish reading any part of this report feeling seen, not assessed.
+Never fabricate. Every observation, positive or developmental, must be supported by something that actually happened in the recording. If the data does not support a claim, do not make it.

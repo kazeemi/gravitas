@@ -317,9 +317,14 @@ interface AIDimensionEval {
 }
 
 interface AIEvalResult {
-  overallStrengths: string;
-  overallImprovements: string;
-  overallNextStep: string;
+  summaryStrengths: string[];
+  summaryImprovements: string[];
+  priorityAction: string | null;
+  priorityActions: string[];
+  // Legacy fields (kept for backward-compat in case AI returns old format)
+  overallStrengths?: string;
+  overallImprovements?: string;
+  overallNextStep?: string;
   dimensions: Record<string, AIDimensionEval>;
 }
 
@@ -688,7 +693,7 @@ PROMPT THEY WERE RESPONDING TO:
 "${input.promptText || "Open-ended speaking exercise"}"
 
 CONTEXT CLASSIFICATION (determines pace standard):
-Category ${context.category} — ${context.label}
+${context.label}
 Ideal pace for this context: ${context.idealWpmMin}–${context.idealWpmMax} words per minute
 ${isRecitation ? `\n⚠️ RECITATION CONTEXT DETECTED: The speaker's prompt indicates they were reading or reciting a pre-written literary or published text. Do NOT penalise structure for lacking original architecture — evaluate only how delivery served the text's structure. Do NOT penalise confidence_language for the text's word choices — evaluate only vocal conviction and commitment. Do NOT penalise conciseness for the text's natural length.` : ""}
 
@@ -734,16 +739,21 @@ DIMENSIONS TO EVALUATE:
 ${dimensionList}
 
 PACE CONTEXT NOTE:
-This prompt was classified as "${context.label}" (Category ${context.category}).
+This prompt was classified as "${context.label}".
 Ideal pace: ${context.idealWpmMin}–${context.idealWpmMax} words per minute.
 Speaker's pace: ${wordsPerMinute} wpm (${wordsPerMinute < context.idealWpmMin ? `${context.idealWpmMin - wordsPerMinute} wpm BELOW ideal` : wordsPerMinute > context.idealWpmMax ? `${wordsPerMinute - context.idealWpmMax} wpm ABOVE ideal` : "within ideal range"}).
 State this classification and ideal range explicitly in the pace dimension feedback.
 
 Return a JSON object (no markdown, no code fences):
 {
-  "overallStrengths": "2–3 sentences on genuine strengths observed in this specific session, with named evidence. If no genuine strengths, say so directly.",
-  "overallImprovements": "2–3 sentences on the most important improvements. Name what specifically happened and why it matters to the listener. Be direct and warm — not clinical.",
-  "overallNextStep": "The single most impactful action before the next session (1 sentence, concrete and specific). Do not reference external apps or tools. Never suggest a target duration under 60 seconds.",
+  "summaryStrengths": [
+    "<one sentence. Names the specific dimension or what happened. Evidence-based. Up to 3 items. Empty array if no genuine positives.>"
+  ],
+  "summaryImprovements": [
+    "<one sentence. Names the specific dimension. For Strong/Distinguished sessions: frame as relative gap, not absolute failure. Up to 3 items.>"
+  ],
+  "priorityAction": "<for Developing/Strong/Distinguished sessions: one specific, concrete instruction — the single highest-impact thing to practise in the next recording session. For Needs Focus sessions: null.>",
+  "priorityActions": ["<Start here: [specific action]>", "<Then here: [specific action]>", "<Then here: [specific action]>"],
   "dimensions": {
     ${dimensions
       .map(
@@ -782,10 +792,10 @@ function buildFallbackEvaluation(
 ): AIEvalResult {
   const baseScore = wordCount < 30 ? 2 : wordCount < 80 ? 3 : 4;
   const result: AIEvalResult = {
-    overallStrengths: "Unable to generate AI feedback at this time.",
-    overallImprovements:
-      "Please ensure your response fully addresses the prompt with sufficient depth.",
-    overallNextStep: "Record a session of at least 90 seconds with a structured response.",
+    summaryStrengths: [],
+    summaryImprovements: ["Full AI feedback could not be generated — please try recording again."],
+    priorityAction: "Record a session of at least 90 seconds addressing the prompt directly.",
+    priorityActions: [],
     dimensions: {},
   };
   for (const d of dimensions) {
@@ -827,7 +837,6 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
 
     const rawMetrics: Record<string, unknown> = {
       durationSeconds: input.durationSeconds,
-      contextCategory: context.category,
       contextLabel: context.label,
       aiRawScore: aiDim.score,
     };
@@ -861,7 +870,6 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       rawMetrics.wordsPerMinute = paceDuration > 0
         ? Math.round((wordCount / paceDuration) * 60)
         : 0;
-      rawMetrics.contextCategory = context.category;
       rawMetrics.idealWpmMin = context.idealWpmMin;
       rawMetrics.idealWpmMax = context.idealWpmMax;
       if (input.wpmWindows && input.wpmWindows.length > 0) {
@@ -926,12 +934,37 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       ? `A pattern worth noting: several of the signals in this session — ${needsFocusTriggers.map(d => innerWorkTriggerLabels[d]).join(", ")} — can point to something beneath the technique. The outer dimensions are the observable layer, but they are often shaped by inner foundations: how we hold ourselves in relation to the room, the stakes, and our own authority. If you find these patterns persisting across sessions, working with a coach on that inner layer can create change that technique practice alone may not reach.`
       : null;
 
+  const needsFocusComposite = compositeTier === "Needs Focus";
+  const summaryStrengths = aiResult.summaryStrengths?.length
+    ? aiResult.summaryStrengths
+    : [];
+  const summaryImprovements = aiResult.summaryImprovements?.length
+    ? aiResult.summaryImprovements
+    : (aiResult.overallImprovements ? [aiResult.overallImprovements] : []);
+  const priorityActions = needsFocusComposite ? (aiResult.priorityActions || []) : [];
+  const priorityAction = needsFocusComposite
+    ? null
+    : (aiResult.priorityAction || aiResult.overallNextStep || null);
+
   const overallFeedback = JSON.stringify({
-    strengths: aiResult.overallStrengths,
-    improvements: aiResult.overallImprovements,
-    nextStep: aiResult.overallNextStep,
+    summaryStrengths,
+    summaryImprovements,
+    priorityAction,
+    priorityActions,
+    needsFocusPreamble:
+      needsFocusComposite && priorityActions.length > 0
+        ? "There is a lot to build on here — and that is okay. The most effective approach is one thing at a time. Work through these in order."
+        : null,
+    noStrengthsLine:
+      needsFocusComposite && summaryStrengths.length === 0
+        ? "This session gives you a clear starting point. That clarity is useful."
+        : null,
     gatingNote,
     innerWorkEscalation,
+    // Legacy fields preserved for old-format fallback in frontend
+    strengths: aiResult.overallStrengths || null,
+    improvements: aiResult.overallImprovements || null,
+    nextStep: aiResult.overallNextStep || null,
   });
 
   return {

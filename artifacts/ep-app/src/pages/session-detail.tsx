@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { api, type SessionDetail, type DimensionScore } from "@/lib/api";
-import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, DIMENSION_DESCRIPTIONS, PILLARS } from "@/lib/tier-colors";
+import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, PILLARS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeftIcon,
+  ChevronDownIcon,
   MicIcon,
   VideoIcon,
   AlertTriangleIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
-  ZapIcon,
   InfoIcon,
   DownloadIcon,
 } from "lucide-react";
@@ -18,7 +16,20 @@ import { format } from "date-fns";
 import { useAuth } from "@/lib/auth-context";
 import { downloadSessionPdf } from "@/lib/export-pdf";
 
+function scoreToTier(score: number): string {
+  if (score < 4) return "Needs Focus";
+  if (score < 6.5) return "Developing";
+  if (score < 8.5) return "Strong";
+  return "Distinguished";
+}
+
 interface OverallFeedback {
+  summaryStrengths?: string[];
+  summaryImprovements?: string[];
+  priorityAction?: string | null;
+  priorityActions?: string[];
+  needsFocusPreamble?: string | null;
+  noStrengthsLine?: string | null;
   strengths?: string;
   improvements?: string;
   nextStep?: string;
@@ -35,12 +46,42 @@ function parseOverallFeedback(raw: string | null): OverallFeedback | null {
   }
 }
 
+function sentencesToBullets(text: string, max = 3): string[] {
+  if (!text) return [];
+  const sentences = text.match(/[^.!?]+[.!?]+/g);
+  if (sentences && sentences.length > 1) {
+    return sentences.map(s => s.trim()).filter(Boolean).slice(0, max);
+  }
+  return [text.trim()];
+}
+
+function getStrengthBullets(fb: OverallFeedback): string[] {
+  if (fb.summaryStrengths && fb.summaryStrengths.length > 0) return fb.summaryStrengths.slice(0, 3);
+  if (fb.strengths && !fb.strengths.startsWith("Unable to")) return sentencesToBullets(fb.strengths);
+  return [];
+}
+
+function getImprovementBullets(fb: OverallFeedback): string[] {
+  if (fb.summaryImprovements && fb.summaryImprovements.length > 0) return fb.summaryImprovements.slice(0, 3);
+  if (fb.improvements) return sentencesToBullets(fb.improvements);
+  return [];
+}
+
+function getSummaryLabels(tier: string): { left: string; right: string } {
+  switch (tier) {
+    case "Distinguished": return { left: "What makes you exceptional", right: "What would make you even greater" };
+    case "Strong": return { left: "What makes you great", right: "What would make you even greater" };
+    case "Developing": return { left: "What's working well", right: "What's worth working on" };
+    default: return { left: "What's already there", right: "What needs your attention most" };
+  }
+}
+
 export default function SessionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showTranscript, setShowTranscript] = useState(false);
+  const [expandedDimKey, setExpandedDimKey] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
@@ -84,33 +125,42 @@ export default function SessionDetailPage() {
     return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
   });
 
-  // Group dimensions by pillar
   const dimensionsByPillar = PILLARS.map(pillar => ({
     pillar,
     dimensions: sortedDimensions.filter(d => pillar.dimensions.includes(d.dimensionKey)),
   })).filter(g => g.dimensions.length > 0);
 
+  const noAudioDetected = session.dimensionScores.length === 0 && !session.compositeScore;
   const hasSilences = (session.silenceEvents ?? 0) > 0;
   const transcriptWordCount = session.transcript
     ? session.transcript.trim().split(/\s+/).filter(Boolean).length
     : 0;
   const hasLowEngagement = transcriptWordCount < 50 && transcriptWordCount > 0;
-  const noAudioDetected = session.dimensionScores.length === 0 && !session.compositeScore;
   const gatingNote = overallFeedback?.gatingNote;
 
+  const tier = session.compositeTier || "Developing";
+  const labels = getSummaryLabels(tier);
+  const isNeedsFocus = tier === "Needs Focus";
+  const strengthBullets = overallFeedback ? getStrengthBullets(overallFeedback) : [];
+  const improvementBullets = overallFeedback ? getImprovementBullets(overallFeedback) : [];
+  const priorityActions = overallFeedback?.priorityActions || [];
+  const effectivePriorityAction =
+    overallFeedback?.priorityAction ||
+    (!isNeedsFocus ? overallFeedback?.nextStep : null);
+
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-10">
-      <div className="flex items-center justify-between">
+    <div className="max-w-2xl mx-auto pb-12">
+      {/* Navigation */}
+      <div className="flex items-center justify-between mb-6">
         <button
           onClick={() => setLocation("/dashboard")}
           className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
         >
           <ChevronLeftIcon className="h-4 w-4" />
-          Back to Dashboard
+          Back
         </button>
         <button
           onClick={() => downloadSessionPdf(session, user?.name ?? null)}
-          title="Download PDF report"
           className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
         >
           <DownloadIcon className="h-3.5 w-3.5" />
@@ -118,234 +168,255 @@ export default function SessionDetailPage() {
         </button>
       </div>
 
-      {/* Session header card */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              {session.mode === "audio" ? (
-                <MicIcon className="h-4 w-4" />
-              ) : (
-                <VideoIcon className="h-4 w-4" />
-              )}
-              <span className="capitalize">{session.mode} session</span>
-              <span>·</span>
-              <span>{format(new Date(session.createdAt), "MMM d, yyyy")}</span>
-              {session.durationSeconds && (
-                <>
-                  <span>·</span>
-                  <span>
-                    {Math.floor(session.durationSeconds / 60)}m {session.durationSeconds % 60}s
-                  </span>
-                </>
-              )}
-              {methodologyVersion && (
-                <>
-                  <span>·</span>
-                  <span className="text-xs bg-gray-100 rounded px-1.5 py-0.5 font-mono">v{methodologyVersion}</span>
-                </>
-              )}
-            </div>
-            {session.promptText && (
-              <p className="mt-2 font-medium text-gray-800">{session.promptText}</p>
-            )}
+      {/* No audio detected */}
+      {noAudioDetected && (
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <div className="flex items-center gap-2 text-sm text-gray-400 mb-3">
+            {session.mode === "audio" ? <MicIcon className="h-4 w-4" /> : <VideoIcon className="h-4 w-4" />}
+            <span className="capitalize">{session.mode}</span>
+            <span>·</span>
+            <span>{format(new Date(session.createdAt), "MMM d, yyyy")}</span>
           </div>
-          {score !== null && colors && !noAudioDetected && (
-            <div className="text-right flex-shrink-0 ml-4">
-              <p className="text-3xl font-bold" style={{ color: colors.hex }}>
-                {score.toFixed(1)}
-              </p>
-              <span
-                className="mt-1 inline-block rounded px-2 py-0.5 text-xs font-medium text-white"
-                style={{ backgroundColor: colors.hex }}
-              >
-                {session.compositeTier}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Notices */}
-        {noAudioDetected && (
-          <div className="mt-4 flex items-start gap-2 rounded border border-red-200 bg-red-50 p-3">
+          <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
             <AlertTriangleIcon className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
             <div className="text-xs text-red-700">
               <p className="font-medium">No audio was detected in this recording.</p>
-              <p className="mt-1">Your microphone was active but no speech reached the server. Please try again — speak clearly from the very start of the recording, and make sure your browser has microphone permission.</p>
+              <p className="mt-1">Your microphone was active but no speech reached the server. Please try again — speak clearly from the very start and ensure your browser has microphone permission.</p>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {isLegacySession && !noAudioDetected && (
-          <div className="mt-4 flex items-start gap-2 rounded border border-gray-200 bg-gray-50 p-3">
-            <InfoIcon className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-gray-600">
-              <span className="font-medium">Scored under methodology v{methodologyVersion}.</span> This session used an earlier scoring model with different dimensions and tier thresholds. Scores are not directly comparable to sessions scored under v4.0.
-            </p>
-          </div>
-        )}
+      {/* SECTION 1 — Top summary card */}
+      {!noAudioDetected && score !== null && colors && overallFeedback && (
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
 
-        {gatingNote && !noAudioDetected && (
-          <div className="mt-4 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3">
-            <InfoIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-amber-800">{gatingNote}</p>
-          </div>
-        )}
-
-        {!noAudioDetected && (session.audioQualityFlag || session.faceCoverageFlag) && (
-          <div className="mt-4 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3">
-            <AlertTriangleIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-amber-700">
-              {session.audioQualityFlag && "Audio quality issues detected — scores may be less accurate. "}
-              {session.faceCoverageFlag && "Face was not consistently visible — video scores may be less accurate."}
-            </p>
-          </div>
-        )}
-
-        {!noAudioDetected && hasSilences && (
-          <div className="mt-3 flex items-start gap-2 rounded border border-amber-200 bg-amber-50 p-3">
-            <AlertTriangleIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-amber-700">
-              {session.silenceEvents} long pause{session.silenceEvents !== 1 ? "s" : ""} detected (pauses over 4 seconds). This can disrupt listener engagement and affects your pacing score.
-            </p>
-          </div>
-        )}
-
-        {hasLowEngagement && (
-          <div className="mt-3 flex items-start gap-2 rounded border border-orange-200 bg-orange-50 p-3">
-            <AlertTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-orange-700">
-              <span className="font-medium">Limited response detected</span> — only ~{transcriptWordCount} words were transcribed. Scores on Structure, Conciseness, and Confidence Language may not be representative. Try recording a fuller response next time.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Overall coaching summary */}
-      {overallFeedback && !noAudioDetected && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-          <h2 className="font-semibold text-gray-900 text-lg">Overall coaching summary</h2>
-          {overallFeedback.strengths && (
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
-                  <TrendingUpIcon className="h-3.5 w-3.5 text-green-600" />
-                </div>
-              </div>
+          {/* Score + metadata */}
+          <div className="px-6 pt-6 pb-5">
+            <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-green-700 mb-1">
-                  Strengths
+                <p className="text-6xl font-bold leading-none tracking-tight" style={{ color: colors.hex }}>
+                  {score.toFixed(1)}
                 </p>
-                <p className="text-sm text-gray-700 leading-relaxed">{overallFeedback.strengths}</p>
+                <p className="mt-2 text-xs font-semibold uppercase tracking-widest" style={{ color: colors.hex }}>
+                  {tier}
+                </p>
               </div>
+              <div className="text-right flex-shrink-0 min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 justify-end flex-wrap">
+                  {session.mode === "audio" ? <MicIcon className="h-3.5 w-3.5" /> : <VideoIcon className="h-3.5 w-3.5" />}
+                  <span className="capitalize">{session.mode}</span>
+                  <span>·</span>
+                  <span>{format(new Date(session.createdAt), "MMM d, yyyy")}</span>
+                  {session.durationSeconds && (
+                    <>
+                      <span>·</span>
+                      <span>{Math.floor(session.durationSeconds / 60)}m {session.durationSeconds % 60}s</span>
+                    </>
+                  )}
+                </div>
+                {session.promptText && (
+                  <p className="mt-1 text-xs text-gray-500 max-w-[220px] text-right leading-snug line-clamp-2">
+                    {session.promptText}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Notices */}
+            {isLegacySession && (
+              <div className="mt-4 flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3">
+                <InfoIcon className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-gray-600">
+                  <span className="font-medium">Scored under v{methodologyVersion}.</span> Scores are not directly comparable to v4.0 sessions.
+                </p>
+              </div>
+            )}
+            {gatingNote && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <InfoIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-800">{gatingNote}</p>
+              </div>
+            )}
+            {(session.audioQualityFlag || session.faceCoverageFlag) && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <AlertTriangleIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">
+                  {session.audioQualityFlag && "Audio quality issues detected — scores may be less accurate. "}
+                  {session.faceCoverageFlag && "Face not consistently visible — video scores may be less accurate."}
+                </p>
+              </div>
+            )}
+            {hasSilences && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <AlertTriangleIcon className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-amber-700">
+                  {session.silenceEvents} extended pause{session.silenceEvents !== 1 ? "s" : ""} detected — these disrupt listener engagement and affect your pacing score.
+                </p>
+              </div>
+            )}
+            {hasLowEngagement && (
+              <div className="mt-3 flex items-start gap-2 rounded-lg border border-orange-200 bg-orange-50 p-3">
+                <AlertTriangleIcon className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-orange-700">
+                  <span className="font-medium">Limited response</span> — only ~{transcriptWordCount} words transcribed. Content dimension scores may not be fully representative.
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Two-column summary */}
+          <div className="border-t border-gray-100 grid grid-cols-2 gap-px bg-gray-100">
+            <div className="bg-white px-5 py-5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+                {labels.left}
+              </p>
+              {overallFeedback.noStrengthsLine ? (
+                <p className="text-sm text-gray-500 italic leading-relaxed">{overallFeedback.noStrengthsLine}</p>
+              ) : strengthBullets.length > 0 ? (
+                <ul className="space-y-2.5">
+                  {strengthBullets.map((bullet, i) => (
+                    <li key={i} className="flex gap-2.5 text-sm text-gray-700 leading-snug">
+                      <span className="flex-shrink-0 mt-[5px] h-1.5 w-1.5 rounded-full bg-gray-300" />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No strengths identified for this session.</p>
+              )}
+            </div>
+
+            <div className="bg-white px-5 py-5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+                {labels.right}
+              </p>
+              {improvementBullets.length > 0 ? (
+                <ul className="space-y-2.5">
+                  {improvementBullets.map((bullet, i) => (
+                    <li key={i} className="flex gap-2.5 text-sm text-gray-700 leading-snug">
+                      <span className="flex-shrink-0 mt-[5px] h-1.5 w-1.5 rounded-full bg-gray-300" />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No specific development areas identified.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Priority action(s) */}
+          {(effectivePriorityAction || (isNeedsFocus && priorityActions.length > 0)) && (
+            <div className="border-t border-gray-100 px-6 py-5 bg-[#FBF7F2]">
+              {isNeedsFocus && priorityActions.length > 0 ? (
+                <>
+                  {overallFeedback.needsFocusPreamble && (
+                    <p className="text-xs text-gray-500 mb-4 leading-relaxed italic">
+                      {overallFeedback.needsFocusPreamble}
+                    </p>
+                  )}
+                  <div className="space-y-3">
+                    {priorityActions.map((action, i) => (
+                      <div key={i} className="flex gap-3">
+                        <span className="flex-shrink-0 h-5 w-5 rounded-full bg-[#F0953E]/20 flex items-center justify-center text-xs font-bold text-[#C84A18]">
+                          {i + 1}
+                        </span>
+                        <p className="text-sm text-gray-700 leading-snug">{action}</p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : effectivePriorityAction ? (
+                <>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#C84A18] mb-2">
+                    Priority Action
+                  </p>
+                  <p className="text-sm text-gray-700 leading-relaxed">{effectivePriorityAction}</p>
+                </>
+              ) : null}
             </div>
           )}
-          {overallFeedback.improvements && (
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                <div className="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center">
-                  <TrendingDownIcon className="h-3.5 w-3.5 text-amber-600" />
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-1">
-                  Areas to improve
-                </p>
-                <p className="text-sm text-gray-700 leading-relaxed">{overallFeedback.improvements}</p>
-              </div>
-            </div>
-          )}
-          {overallFeedback.nextStep && (
-            <div className="flex gap-3">
-              <div className="flex-shrink-0 mt-0.5">
-                <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center">
-                  <ZapIcon className="h-3.5 w-3.5 text-blue-600" />
-                </div>
-              </div>
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-1">
-                  Priority next step
-                </p>
-                <p className="text-sm text-gray-700 leading-relaxed">{overallFeedback.nextStep}</p>
-              </div>
-            </div>
-          )}
+
+          {/* Inner work escalation */}
           {overallFeedback.innerWorkEscalation && (
-            <div className="mt-2 rounded-md border border-purple-100 bg-purple-50 px-4 py-3">
-              <p className="text-sm text-purple-900 leading-relaxed">{overallFeedback.innerWorkEscalation}</p>
+            <div className="border-t border-gray-100 px-6 py-4 bg-gray-50">
+              <p className="text-xs text-gray-500 leading-relaxed">{overallFeedback.innerWorkEscalation}</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Dimension feedback — grouped by pillar */}
-      {!noAudioDetected && sortedDimensions.length > 0 && (
-        <div className="space-y-6">
-          <h2 className="font-semibold text-gray-900">Dimension feedback</h2>
-          {dimensionsByPillar.map(({ pillar, dimensions }) => (
-            <div key={pillar.name} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
-                  {pillar.name}
-                </h3>
-                <div className="flex-1 h-px bg-gray-100" />
+      {/* SECTION 2 — Pillar headers + dimension cards */}
+      {!noAudioDetected && dimensionsByPillar.length > 0 && (
+        <div className="mt-6 space-y-7">
+          {dimensionsByPillar.map(({ pillar, dimensions }) => {
+            const avgScore = dimensions.reduce((sum, d) => sum + d.score, 0) / dimensions.length;
+            const avgColors = getTierColors(scoreToTier(avgScore));
+            return (
+              <div key={pillar.name}>
+                <div className="flex items-baseline justify-between px-1 mb-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                    {pillar.name}
+                  </h3>
+                  <span className="text-sm font-bold tabular-nums" style={{ color: avgColors.hex }}>
+                    {avgScore.toFixed(1)}
+                  </span>
+                </div>
+                <div className="h-px bg-gray-100 mb-3" />
+                <div className="space-y-2">
+                  {dimensions.map(d => (
+                    <DimensionCard
+                      key={d.id}
+                      score={d}
+                      isExpanded={expandedDimKey === d.dimensionKey}
+                      onToggle={() =>
+                        setExpandedDimKey(expandedDimKey === d.dimensionKey ? null : d.dimensionKey)
+                      }
+                    />
+                  ))}
+                </div>
               </div>
-              {dimensions.map((d) => (
-                <DimensionCard key={d.id} score={d} />
-              ))}
-            </div>
-          ))}
-          {/* Legacy sessions: any dimensions not in the pillar groupings */}
+            );
+          })}
+
+          {/* Ungrouped dimensions (legacy sessions) */}
           {(() => {
             const allPillarDims = PILLARS.flatMap(p => p.dimensions);
             const ungrouped = sortedDimensions.filter(d => !allPillarDims.includes(d.dimensionKey));
             if (ungrouped.length === 0) return null;
             return (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-baseline justify-between px-1 mb-2">
                   <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">Other</h3>
-                  <div className="flex-1 h-px bg-gray-100" />
                 </div>
-                {ungrouped.map(d => <DimensionCard key={d.id} score={d} />)}
+                <div className="h-px bg-gray-100 mb-3" />
+                <div className="space-y-2">
+                  {ungrouped.map(d => (
+                    <DimensionCard
+                      key={d.id}
+                      score={d}
+                      isExpanded={expandedDimKey === d.dimensionKey}
+                      onToggle={() =>
+                        setExpandedDimKey(expandedDimKey === d.dimensionKey ? null : d.dimensionKey)
+                      }
+                    />
+                  ))}
+                </div>
               </div>
             );
           })()}
         </div>
       )}
 
-      {!noAudioDetected && <SessionMetrics session={session} />}
+      {/* SECTION 3 — Session metrics (collapsed) */}
+      {!noAudioDetected && <CollapsibleMetrics session={session} />}
 
-      {!noAudioDetected && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6">
-          {session.transcript ? (
-            <>
-              <button
-                onClick={() => setShowTranscript(!showTranscript)}
-                className="flex items-center justify-between w-full text-left"
-              >
-                <h2 className="font-semibold text-gray-900">Session transcript</h2>
-                <span className="text-xs text-gray-400">{showTranscript ? "Hide" : "Show"}</span>
-              </button>
-              {showTranscript && (
-                <div className="mt-4 rounded border border-gray-100 bg-gray-50 p-4">
-                  <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {session.transcript}
-                  </p>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <h2 className="font-semibold text-gray-900 mb-2">Session transcript</h2>
-              <p className="text-sm text-gray-400">
-                No transcript was generated for this session. Feedback is based on audio signal analysis only. For a transcript, try recording again in a quiet environment and speak clearly throughout.
-              </p>
-            </>
-          )}
-        </div>
-      )}
+      {/* SECTION 4 — Transcript (collapsed) */}
+      {!noAudioDetected && <CollapsibleTranscript session={session} />}
 
-      <div className="flex gap-3">
+      {/* Action buttons */}
+      <div className="mt-6 flex gap-3">
         <Button variant="outline" onClick={() => setLocation("/record")}>
           New session
         </Button>
@@ -365,135 +436,139 @@ export default function SessionDetailPage() {
   );
 }
 
-function SessionMetrics({ session }: { session: SessionDetail }) {
+function DimensionCard({
+  score,
+  isExpanded,
+  onToggle,
+}: {
+  score: DimensionScore;
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const colors = getTierColors(score.tier);
+  const label = DIMENSION_LABELS[score.dimensionKey] || score.dimensionKey;
+  const isHighScoring = score.score >= 6.5;
+  const isVeryLow = score.score <= 2.0;
+
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+      <button
+        className="flex items-center justify-between w-full px-4 py-3.5 text-left hover:bg-gray-50/40 transition-colors"
+        onClick={onToggle}
+        aria-expanded={isExpanded}
+      >
+        <span className="text-sm font-medium text-[#0F1B2D]">{label}</span>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <span className="text-sm font-bold tabular-nums" style={{ color: colors.hex }}>
+            {score.score}
+          </span>
+          <ChevronDownIcon
+            className={`h-4 w-4 text-gray-300 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+          />
+        </div>
+      </button>
+
+      {isExpanded && (
+        <div className="border-t border-gray-100 px-4 pb-4 pt-3">
+          <div className="space-y-2.5">
+            {/* Strength: shown for all except very-low scoring dims */}
+            {score.strengthText && !isVeryLow && (
+              <p className="text-sm text-gray-700 leading-relaxed">{score.strengthText}</p>
+            )}
+            {/* Gap / development observation: always shown */}
+            {score.gapText && (
+              <p className="text-sm text-gray-600 leading-relaxed">{score.gapText}</p>
+            )}
+            {/* Action: hidden for Strong and Distinguished dimensions */}
+            {score.nextStepText && !isHighScoring && (
+              <div className="mt-3 rounded-md bg-[#FBF7F2] border border-[#F0953E]/20 px-3.5 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#C84A18] mb-1.5">
+                  Action
+                </p>
+                <p className="text-sm text-gray-700 leading-relaxed">{score.nextStepText}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CollapsibleMetrics({ session }: { session: SessionDetail }) {
+  const [isOpen, setIsOpen] = useState(false);
+
   const duration = session.durationSeconds ?? 0;
   const transcript = session.transcript ?? "";
-
   const words = transcript.trim() ? transcript.trim().split(/\s+/).filter(Boolean) : [];
   const wordCount = words.length > 0 ? words.length : null;
-
-  const wpm =
-    wordCount !== null && duration > 0
-      ? Math.round((wordCount / duration) * 60)
-      : null;
-
+  const wpm = wordCount !== null && duration > 0 ? Math.round((wordCount / duration) * 60) : null;
   const fillerCount = transcript
-    ? (transcript.match(
-        /\b(um+|uh+|like|you know|so,?|basically|literally|actually|right\?|i mean|kind of|sort of|you see)\b/gi
-      ) || []).length
+    ? (transcript.match(/\b(um+|uh+|like|you know|so,?|basically|literally|actually|right\?|i mean|kind of|sort of|you see)\b/gi) || []).length
     : null;
-
-  const durationMinutes = duration / 60;
   const fillerRate =
-    fillerCount !== null && durationMinutes > 0
-      ? parseFloat((fillerCount / durationMinutes).toFixed(1))
+    fillerCount !== null && duration > 0
+      ? parseFloat((fillerCount / (duration / 60)).toFixed(1))
+      : null;
+  const silences = session.silenceEvents ?? 0;
+  const lexicalVariance =
+    wordCount !== null && wordCount > 0
+      ? Math.round(
+          (new Set(words.map(w => w.toLowerCase().replace(/[^a-z]/g, ""))).size / wordCount) * 100
+        )
       : null;
 
-  const silences = session.silenceEvents ?? 0;
-
-  const lexicalVariance = wordCount !== null && wordCount > 0
-    ? Math.round((new Set(words.map(w => w.toLowerCase().replace(/[^a-z]/g, ""))).size / wordCount) * 100)
-    : null;
-
-  // v4.0: look up acoustic metrics from the new dimension keys
+  const paceDim = session.dimensionScores?.find(d => d.dimensionKey === "pace");
   const intonationDim = session.dimensionScores?.find(d => d.dimensionKey === "intonation");
   const breathDim = session.dimensionScores?.find(d => d.dimensionKey === "breath_control");
-  const paceDim = session.dimensionScores?.find(d => d.dimensionKey === "pace");
-
-  // Also check legacy key names for backward compat with v3 sessions
   const legacyPaceRhythm = session.dimensionScores?.find(d => d.dimensionKey === "pace_rhythm");
   const legacyVocalClarity = session.dimensionScores?.find(d => d.dimensionKey === "vocal_clarity");
-
   const pitchSource = intonationDim ?? legacyPaceRhythm;
   const breathSource = breathDim ?? legacyVocalClarity;
 
-  const pitchVariationScore: number | null = pitchSource?.rawMetrics
-    ? (typeof (pitchSource.rawMetrics as Record<string, unknown>).pitchVariationScore === "number"
-      ? (pitchSource.rawMetrics as Record<string, unknown>).pitchVariationScore as number
-      : null)
-    : null;
+  function getRaw<T>(dim: typeof paceDim, key: string, type: string): T | null {
+    const val = dim?.rawMetrics ? (dim.rawMetrics as Record<string, unknown>)[key] : undefined;
+    return typeof val === type ? (val as T) : null;
+  }
 
-  const breathingScore: number | null = breathSource?.rawMetrics
-    ? (typeof (breathSource.rawMetrics as Record<string, unknown>).breathingScore === "number"
-      ? (breathSource.rawMetrics as Record<string, unknown>).breathingScore as number
-      : null)
-    : null;
-
-  // Context classification from pace raw metrics (v4.0+)
-  const contextCategory: number | null = paceDim?.rawMetrics
-    ? (typeof (paceDim.rawMetrics as Record<string, unknown>).contextCategory === "number"
-      ? (paceDim.rawMetrics as Record<string, unknown>).contextCategory as number
-      : null)
-    : null;
-  const contextLabel: string | null = paceDim?.rawMetrics
-    ? (typeof (paceDim.rawMetrics as Record<string, unknown>).contextLabel === "string"
-      ? (paceDim.rawMetrics as Record<string, unknown>).contextLabel as string
-      : null)
-    : null;
-  const idealWpmMin: number | null = paceDim?.rawMetrics
-    ? (typeof (paceDim.rawMetrics as Record<string, unknown>).idealWpmMin === "number"
-      ? (paceDim.rawMetrics as Record<string, unknown>).idealWpmMin as number
-      : null)
-    : null;
-  const idealWpmMax: number | null = paceDim?.rawMetrics
-    ? (typeof (paceDim.rawMetrics as Record<string, unknown>).idealWpmMax === "number"
-      ? (paceDim.rawMetrics as Record<string, unknown>).idealWpmMax as number
-      : null)
-    : null;
+  const pitchVariationScore = getRaw<number>(pitchSource, "pitchVariationScore", "number");
+  const breathingScore = getRaw<number>(breathSource, "breathingScore", "number");
+  const contextLabel = getRaw<string>(paceDim, "contextLabel", "string");
+  const idealWpmMin = getRaw<number>(paceDim, "idealWpmMin", "number");
+  const idealWpmMax = getRaw<number>(paceDim, "idealWpmMax", "number");
 
   type Status = "good" | "warn" | "poor";
 
-  function wpmStatus(v: number): Status {
+  const STATUS_COLORS: Record<Status, string> = {
+    good: "text-[#C84A18]",
+    warn: "text-[#F0953E]",
+    poor: "text-[#78736A]",
+  };
+
+  const wpmStatus = (v: number): Status => {
     if (idealWpmMin !== null && idealWpmMax !== null) {
       if (v >= idealWpmMin && v <= idealWpmMax) return "good";
-      const deviation = v < idealWpmMin ? idealWpmMin - v : v - idealWpmMax;
-      if (deviation <= 20) return "warn";
-      return "poor";
+      return Math.abs(v < idealWpmMin ? idealWpmMin - v : v - idealWpmMax) <= 20 ? "warn" : "poor";
     }
-    // Fallback: generic range
     if (v >= 120 && v <= 160) return "good";
-    if ((v >= 100 && v < 120) || (v > 160 && v <= 185)) return "warn";
-    return "poor";
-  }
+    return (v >= 100 && v < 120) || (v > 160 && v <= 185) ? "warn" : "poor";
+  };
 
-  function fillerRateStatus(v: number): Status {
-    if (v < 1) return "good";
-    if (v < 3) return "warn";
-    return "poor";
-  }
-
-  function silenceStatus(v: number): Status {
-    if (v === 0) return "good";
-    if (v <= 2) return "warn";
-    return "poor";
-  }
-
-  function score5Status(v: number): Status {
-    if (v >= 4) return "good";
-    if (v === 3) return "warn";
-    return "poor";
-  }
+  const score5Status = (v: number): Status => (v >= 4 ? "good" : v === 3 ? "warn" : "poor");
 
   const PITCH_LABELS: Record<number, string> = {
     1: "Completely flat / monotone",
-    2: "Minimal pitch variation",
+    2: "Minimal variation",
     3: "Some variation — inconsistent",
     4: "Good natural variation",
     5: "Excellent dynamic range",
   };
-
   const BREATH_LABELS: Record<number, string> = {
-    1: "Severe breathlessness / audible gasping",
+    1: "Severe breathlessness",
     2: "Noticeably shallow or strained",
-    3: "Adequate — some strain detectable",
+    3: "Adequate — some strain",
     4: "Mostly controlled and relaxed",
-    5: "Excellent — relaxed, effortless control",
-  };
-
-  const STATUS_COLORS: Record<Status, { text: string }> = {
-    good: { text: "text-[#C84A18]" },
-    warn: { text: "text-[#F0953E]" },
-    poor: { text: "text-[#78736A]" },
+    5: "Excellent relaxed control",
   };
 
   const metrics: {
@@ -505,35 +580,32 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
   }[] = [];
 
   if (duration > 0) {
-    const m = Math.floor(duration / 60);
-    const s = duration % 60;
     metrics.push({
       label: "Duration",
-      value: `${m}m ${s}s`,
+      value: `${Math.floor(duration / 60)}m ${duration % 60}s`,
       benchmark: "≥ 1 minute",
       status: duration >= 60 ? "good" : "poor",
     });
   }
-
   if (wpm !== null) {
-    const benchmarkLabel = idealWpmMin !== null && idealWpmMax !== null
-      ? `${idealWpmMin}–${idealWpmMax} WPM${contextLabel ? ` (${contextLabel})` : ""}`
-      : "120–160 WPM";
     metrics.push({
       label: "Speaking pace",
       value: `${wpm} WPM`,
-      benchmark: benchmarkLabel,
+      benchmark:
+        idealWpmMin !== null && idealWpmMax !== null
+          ? `${idealWpmMin}–${idealWpmMax} WPM${contextLabel ? ` (${contextLabel})` : ""}`
+          : "120–160 WPM",
       status: wpmStatus(wpm),
-      note: idealWpmMin !== null && idealWpmMax !== null
-        ? (wpm < idealWpmMin
-            ? `Below ideal for this context — try increasing your pace`
+      note:
+        idealWpmMin !== null && idealWpmMax !== null
+          ? wpm < idealWpmMin
+            ? "Below ideal for this context"
             : wpm > idealWpmMax
-            ? `Above ideal for this context — consider slowing down on key points`
-            : "Within the ideal range for this context")
-        : (wpm < 120 ? "Too slow — may lose listener attention" : wpm > 160 ? "Too fast — may reduce comprehension" : "Within ideal range"),
+            ? "Above ideal — consider slowing down on key points"
+            : "Within the ideal range for this context"
+          : undefined,
     });
   }
-
   if (pitchVariationScore !== null) {
     metrics.push({
       label: "Pitch variation",
@@ -542,138 +614,106 @@ function SessionMetrics({ session }: { session: SessionDetail }) {
       status: score5Status(pitchVariationScore),
     });
   }
-
   if (breathingScore !== null) {
     metrics.push({
       label: "Breath control",
       value: `${breathingScore}/5 — ${BREATH_LABELS[breathingScore] ?? ""}`,
-      benchmark: "4–5 (controlled, relaxed breath support)",
+      benchmark: "4–5 (controlled, relaxed)",
       status: score5Status(breathingScore),
     });
   }
-
   if (fillerRate !== null) {
     metrics.push({
       label: "Filler word rate",
       value: fillerCount === 0 ? "None detected" : `${fillerRate}/min (${fillerCount} total)`,
       benchmark: "< 1 per minute",
-      status: fillerRateStatus(fillerRate),
-      note: fillerCount === 0 ? "No fillers detected in transcript" : undefined,
+      status: fillerRate < 1 ? "good" : fillerRate < 3 ? "warn" : "poor",
     });
   }
-
   if (lexicalVariance !== null && wordCount !== null && wordCount >= 50) {
     metrics.push({
       label: "Vocabulary variety",
       value: `${lexicalVariance}% unique words`,
       benchmark: "> 70% (rich, non-repetitive language)",
       status: lexicalVariance > 70 ? "good" : lexicalVariance >= 55 ? "warn" : "poor",
-      note: lexicalVariance <= 55
-        ? "High word repetition — vary your phrasing to sound more dynamic"
-        : lexicalVariance <= 70
-        ? "Moderate vocabulary — some repetition present"
-        : "Strong vocabulary variety",
     });
   }
-
   metrics.push({
     label: "Long pauses (4s+)",
-    value: silences === 0 ? "None" : silences.toString(),
+    value: silences === 0 ? "None" : String(silences),
     benchmark: "0 unplanned pauses",
-    status: silenceStatus(silences),
-    note: silences > 0 ? "Pauses over 4 seconds disrupt listener engagement" : "No long pauses detected",
+    status: silences === 0 ? "good" : silences <= 2 ? "warn" : "poor",
   });
 
   if (metrics.length === 0) return null;
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6">
-      <h2 className="font-semibold text-gray-900 mb-1">Session metrics</h2>
-      <p className="text-xs text-gray-400 mb-4">Quantitative measurements compared to best-practice benchmarks</p>
-      <div className="divide-y divide-gray-100">
-        {metrics.map((m) => {
-          const c = STATUS_COLORS[m.status];
-          return (
-            <div key={m.label} className="py-3 first:pt-0 last:pb-0 space-y-0.5">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="text-sm font-medium text-gray-800 shrink-0">{m.label}</p>
-                <p className={`text-sm font-semibold ${c.text} text-right min-w-0 break-words`}>{m.value}</p>
+    <div className="mt-4 rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full px-5 py-4 text-left"
+      >
+        <div>
+          <p className="text-sm font-semibold text-[#0F1B2D]">Session metrics</p>
+          <p className="text-xs text-gray-400 mt-0.5">Pace, pitch, breath, vocabulary</p>
+        </div>
+        <ChevronDownIcon
+          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      {isOpen && (
+        <div className="border-t border-gray-100 px-5 pb-5">
+          <div className="divide-y divide-gray-100 mt-1">
+            {metrics.map(m => (
+              <div key={m.label} className="py-3 first:pt-2 last:pb-0">
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-sm font-medium text-gray-800 shrink-0">{m.label}</p>
+                  <p className={`text-sm font-semibold ${STATUS_COLORS[m.status]} text-right`}>
+                    {m.value}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-400">Benchmark: {m.benchmark}</p>
+                {m.note && <p className="text-xs text-gray-400">{m.note}</p>}
               </div>
-              <p className="text-xs text-gray-400">Benchmark: {m.benchmark}</p>
-              {m.note && (
-                <p className="text-xs text-gray-400">{m.note}</p>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function DimensionCard({ score }: { score: DimensionScore }) {
-  const colors = getTierColors(score.tier);
-  const label = DIMENSION_LABELS[score.dimensionKey] || score.dimensionKey;
-  const description = DIMENSION_DESCRIPTIONS[score.dimensionKey];
-
+function CollapsibleTranscript({ session }: { session: SessionDetail }) {
+  const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h3 className="font-semibold text-base text-[#0F1B2D]">{label}</h3>
-          {description && (
-            <p className="mt-0.5 text-sm text-gray-600 leading-snug">{description}</p>
+    <div className="mt-4 rounded-xl border border-gray-200 bg-white overflow-hidden">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full px-5 py-4 text-left"
+      >
+        <div>
+          <p className="text-sm font-semibold text-[#0F1B2D]">Your transcript</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {session.transcript ? "Full session transcript" : "No transcript available"}
+          </p>
+        </div>
+        <ChevronDownIcon
+          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      {isOpen && (
+        <div className="border-t border-gray-100 px-5 pb-5">
+          {session.transcript ? (
+            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap mt-4">
+              {session.transcript}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-400 mt-4">
+              No transcript was generated for this session. Feedback is based on audio signal analysis only.
+            </p>
           )}
         </div>
-        <div className="flex flex-shrink-0 items-center gap-2">
-          <span className="text-xl font-bold" style={{ color: colors.hex }}>
-            {score.score}
-          </span>
-          <span
-            className="rounded px-2 py-0.5 text-xs font-medium"
-            style={{
-              backgroundColor: colors.hex,
-              color: "#fff",
-            }}
-          >
-            {score.tier}
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-3 h-1.5 rounded-full bg-gray-100">
-        <div
-          className="h-1.5 rounded-full transition-all"
-          style={{ width: `${score.score * 10}%`, backgroundColor: colors.hex }}
-        />
-      </div>
-
-      <div className="mt-4 space-y-2">
-        {score.strengthText && (
-          <div className="flex gap-2">
-            <span className="mt-0.5 h-4 w-4 flex-shrink-0 rounded-full bg-green-100 flex items-center justify-center">
-              <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
-            </span>
-            <p className="text-sm text-gray-700">{score.strengthText}</p>
-          </div>
-        )}
-        {score.gapText && (
-          <div className="flex gap-2">
-            <span className="mt-0.5 h-4 w-4 flex-shrink-0 rounded-full bg-amber-100 flex items-center justify-center">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-            </span>
-            <p className="text-sm text-gray-700">{score.gapText}</p>
-          </div>
-        )}
-        {score.nextStepText && (
-          <div className="flex gap-2">
-            <span className="mt-0.5 h-4 w-4 flex-shrink-0 rounded-full bg-blue-100 flex items-center justify-center">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-            </span>
-            <p className="text-sm text-gray-700">{score.nextStepText}</p>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

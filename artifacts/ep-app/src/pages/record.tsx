@@ -149,6 +149,10 @@ export default function RecordPage() {
   const quotaAutoStopRef = useRef(false);
 
   useEffect(() => {
+    refreshUser().catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (modeParam) setMode(modeParam);
   }, [modeParam]);
 

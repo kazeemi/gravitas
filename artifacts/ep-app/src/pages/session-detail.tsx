@@ -372,7 +372,7 @@ export default function SessionDetailPage() {
           {/* Two-column summary */}
           <div className="border-t border-gray-100 grid grid-cols-2 gap-px bg-gray-100">
             <div className="bg-white px-5 py-5">
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#2e2d29" }}>
                 {labels.left}
               </p>
               {overallFeedback.noStrengthsLine ? (
@@ -392,7 +392,7 @@ export default function SessionDetailPage() {
             </div>
 
             <div className="bg-white px-5 py-5">
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">
+              <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: "#2e2d29" }}>
                 {labels.right}
               </p>
               {improvementBullets.length > 0 ? (
@@ -460,7 +460,7 @@ export default function SessionDetailPage() {
             return (
               <div key={pillar.name}>
                 <div className="flex items-baseline justify-between px-1 mb-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#2e2d29" }}>
                     {pillar.name}
                   </h3>
                   <span className="text-sm font-bold tabular-nums" style={{ color: avgColors.hex }}>
@@ -492,7 +492,7 @@ export default function SessionDetailPage() {
             return (
               <div>
                 <div className="flex items-baseline justify-between px-1 mb-2">
-                  <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400">Other</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#2e2d29" }}>Other</h3>
                 </div>
                 <div className="h-px bg-gray-100 mb-3" />
                 <div className="space-y-2">

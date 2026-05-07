@@ -440,14 +440,16 @@ Context about this session:
 ${sessionContext}
 Their overall presence tier: ${tier}
 
-Write exactly 2–3 sentences as their warm, direct executive coach. Rules:
-- If the score moved up significantly (significant or solid improvement), open with "Congratulations!" and make it genuinely joyful and celebratory — exclamation marks are welcome.
-- If this is their first session, acknowledge the real courage it takes to record yourself and commit to this.
-- If this is their second session, celebrate that they came back — most people think about it and never do.
-- Where you can, reference their actual strengths or improvement areas to make it feel specific to this session.
-- Never mention specific numbers, scores, percentages, or point values.
-- No hollow corporate language. Sound like a real human who is genuinely invested in their growth.
-- Maximum 3 sentences. Output only the message text, nothing else.`;
+Write a short note (strictly under 50 words) as their warm, direct executive coach. Tone rules — match the tone to BOTH the tier AND the score trend together:
+- "Congratulations!" and genuine excitement: ONLY if tier is Strong or Distinguished AND score moved up significantly. Do not celebrate if the tier is Developing or Needs Focus, even with improvement.
+- Developing tier with improvement: encouraging and grounded — acknowledge the progress is real without overstating it.
+- Developing or Needs Focus tier: realistic, focused on the direction, never hollow praise.
+- First session: acknowledge it takes something to put yourself on camera.
+- Second session: note that coming back is the part most people skip.
+- Reference their actual strengths or improvement areas where relevant — keep it specific.
+- Never mention numbers, scores, percentages, or tier names.
+- No flowery language or excessive metaphors. Direct and human.
+- Under 50 words. Output only the message text, nothing else.`;
 
   try {
     const response = await anthropic.messages.create({

@@ -11,6 +11,7 @@ import {
   AlertTriangleIcon,
   InfoIcon,
   DownloadIcon,
+  XIcon,
 } from "lucide-react";
 import { format } from "date-fns";
 import { useAuth } from "@/lib/auth-context";
@@ -153,6 +154,7 @@ export default function SessionDetailPage() {
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [allSessions, setAllSessions] = useState<SessionSummary[]>([]);
   const [generatedMessage, setGeneratedMessage] = useState<string | null>(null);
+  const [promptModalOpen, setPromptModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedDimKey, setExpandedDimKey] = useState<string | null>(null);
@@ -248,6 +250,7 @@ export default function SessionDetailPage() {
     (!isNeedsFocus ? overallFeedback?.nextStep : null);
 
   return (
+    <>
     <div className="max-w-2xl mx-auto pb-12">
       {/* Navigation */}
       <div className="flex items-center justify-between mb-6">
@@ -315,9 +318,19 @@ export default function SessionDetailPage() {
                   )}
                 </div>
                 {session.promptText && (
-                  <p className="mt-1 text-xs text-gray-500 max-w-[220px] text-right leading-snug line-clamp-2">
-                    {session.promptText}
-                  </p>
+                  <div className="mt-1 text-right">
+                    <p className="text-xs text-gray-500 max-w-[220px] leading-snug line-clamp-2 inline">
+                      {session.promptText}
+                    </p>
+                    {session.promptText.length > 80 && (
+                      <button
+                        onClick={() => setPromptModalOpen(true)}
+                        className="ml-1 text-xs text-gray-400 hover:text-gray-700 underline underline-offset-2 whitespace-nowrap transition-colors"
+                      >
+                        more
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -561,6 +574,34 @@ export default function SessionDetailPage() {
         </div>
       )}
     </div>
+
+    {/* Prompt full-text modal */}
+    {promptModalOpen && session?.promptText && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: "rgba(15,27,45,0.5)" }}
+        onClick={() => setPromptModalOpen(false)}
+      >
+        <div
+          className="relative w-full max-w-lg rounded-2xl bg-white p-7 shadow-2xl"
+          onClick={e => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setPromptModalOpen(false)}
+            className="absolute top-4 right-4 p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <XIcon className="h-4 w-4" />
+          </button>
+          <p className="text-xs font-semibold uppercase tracking-widest mb-4" style={{ color: "#2e2d29" }}>
+            Practice prompt
+          </p>
+          <p className="text-sm leading-relaxed" style={{ color: "#0F1B2D" }}>
+            {session.promptText}
+          </p>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

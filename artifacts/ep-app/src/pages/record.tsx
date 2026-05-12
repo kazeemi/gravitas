@@ -922,7 +922,6 @@ export default function RecordPage() {
                   >
                     ← Previous
                   </button>
-                  <span className="text-xs text-gray-400">{promptIndex + 1} / {prompts.length}</span>
                   <button
                     onClick={goNextPrompt}
                     className="text-xs font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2"

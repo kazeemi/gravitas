@@ -53,4 +53,3 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.production]
-ADMIN_SETUP_EMAIL = "ka.azeemi@gmail.com"

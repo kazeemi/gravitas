@@ -1,6 +1,13 @@
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE.replace(/\/admin$/, "")}/api`;
 
+function clearAuthAndRedirect() {
+  localStorage.removeItem("admin_token");
+  localStorage.removeItem("admin_user");
+  const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+  window.location.href = `${base}/login`;
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const token = localStorage.getItem("admin_token");
   const res = await fetch(`${API}${path}`, {
@@ -14,6 +21,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      clearAuthAndRedirect();
+    }
     throw new Error(body.error ?? `HTTP ${res.status}`);
   }
   return res.json();

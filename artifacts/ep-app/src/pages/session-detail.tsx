@@ -544,7 +544,7 @@ export default function SessionDetailPage() {
                 "The insight from this session is most valuable when tested immediately — record again now and see what shifts."}
             </p>
             <button
-              onClick={() => setLocation("/record")}
+              onClick={() => setLocation(session.promptText ? `/record?prompt=${encodeURIComponent(session.promptText)}` : "/record")}
               className="w-full rounded-lg py-3.5 text-sm font-bold tracking-wide transition-colors"
               style={{ background: "#F0953E", color: "#fff" }}
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C84A18"; }}

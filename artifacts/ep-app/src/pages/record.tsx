@@ -156,11 +156,24 @@ export default function RecordPage() {
     if (modeParam) setMode(modeParam);
   }, [modeParam]);
 
+  const promptParam = params.get("prompt");
+
   useEffect(() => {
     api.prompts.list().then(data => {
       if (data.prompts.length > 0) {
         setPrompts(data.prompts);
-        setPromptIndex(Math.floor(Math.random() * data.prompts.length));
+        if (promptParam) {
+          const matchIdx = data.prompts.findIndex(p => p.text === promptParam);
+          if (matchIdx !== -1) {
+            setPromptIndex(matchIdx);
+          } else {
+            // Prompt was a custom one — pre-fill the custom input
+            setCustomPrompt(promptParam);
+            setPromptIndex(Math.floor(Math.random() * data.prompts.length));
+          }
+        } else {
+          setPromptIndex(Math.floor(Math.random() * data.prompts.length));
+        }
       }
     }).catch(() => {});
   }, []);

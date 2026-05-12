@@ -100,16 +100,26 @@ export const api = {
         form.append("videoFrames", JSON.stringify(data.videoFrames));
       }
       const token = getToken();
+      const controller = new AbortController();
+      const uploadTimeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
       return fetch(`${API_BASE}/v1/sessions/${id}/upload`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,
+        signal: controller.signal,
       }).then(async res => {
+        clearTimeout(uploadTimeout);
         if (!res.ok) {
           const body = await res.json().catch(() => ({ error: "Unknown error" }));
           throw new Error(body.error || `HTTP ${res.status}`);
         }
         return res.json();
+      }).catch(err => {
+        clearTimeout(uploadTimeout);
+        if (err instanceof Error && err.name === "AbortError") {
+          throw new Error("Upload timed out — your connection may be slow or the file is too large. Please try again.");
+        }
+        throw err;
       });
     },
     status: (id: string) =>

@@ -687,7 +687,17 @@ export default function RecordPage() {
         setProcessingStep(1);
       }
 
+      const pollStart = Date.now();
+      const POLL_TIMEOUT_MS = 8 * 60 * 1000; // 8 minutes
       pollRef.current = window.setInterval(async () => {
+        if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
+          clearInterval(pollRef.current!);
+          if (processingStepRef.current) clearInterval(processingStepRef.current);
+          setError("Analysis is taking longer than expected. This may be a temporary issue — please check your history in a few minutes, or try recording again.");
+          setStep("recording");
+          setRecordingState("paused");
+          return;
+        }
         try {
           const status = await api.sessions.status(sessionId);
           if (status.processingStatus === "complete") {

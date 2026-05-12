@@ -23,6 +23,24 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 
+  // On startup, mark any sessions stuck in "processing" as "error".
+  // These are orphaned by a previous server crash or SIGTERM mid-scoring.
+  import("./lib/db.js").then(async ({ db }) => {
+    const { sessionsTable } = await import("@workspace/db");
+    const { eq } = await import("drizzle-orm");
+    const stuck = await db
+      .update(sessionsTable)
+      .set({
+        processingStatus: "error",
+        processingError: "Analysis was interrupted by a server restart. Please record again.",
+      })
+      .where(eq(sessionsTable.processingStatus, "processing"))
+      .returning({ id: sessionsTable.id });
+    if (stuck.length > 0) {
+      logger.warn({ count: stuck.length, ids: stuck.map(s => s.id) }, "Recovered stuck processing sessions on startup");
+    }
+  }).catch(e => logger.error({ err: e }, "Startup session recovery failed"));
+
   // One-time admin account bootstrap: if ADMIN_SETUP_EMAIL is set,
   // grant is_admin=true and set the password for that account.
   // Remove ADMIN_SETUP_EMAIL from env after first successful deploy.

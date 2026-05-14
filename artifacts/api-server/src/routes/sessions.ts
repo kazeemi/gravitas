@@ -301,8 +301,7 @@ router.post(
             eq(sessionsTable.userId, session.userId),
             eq(sessionsTable.processingStatus, "complete"),
           ))
-          .orderBy(desc(sessionsTable.createdAt))
-          .limit(10);
+          .orderBy(desc(sessionsTable.createdAt));
 
         const sessionNumber = prevCompletedSessions.length + 1;
         const previousCompositeScore =

@@ -897,6 +897,7 @@ export default function RecordPage() {
       {step === "setup" && (
         <div className="space-y-6">
           <div className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-4 space-y-2">
+            <p className="text-sm font-semibold text-gray-900">A few things to remember</p>
             <p className="text-sm text-gray-700 leading-relaxed">
               You don't need a script — in fact, please don't use one. This is your space to communicate as you would in real life: a meeting, a pitch, an interview, a conversation.
             </p>
@@ -905,6 +906,9 @@ export default function RecordPage() {
             </p>
             <p className="text-sm text-gray-700 leading-relaxed">
               We need at least one minute of recording to provide meaningful feedback to elevate your executive presence.
+            </p>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Your recording is deleted as soon as your feedback is ready. We never store it.
             </p>
           </div>
 

@@ -1376,7 +1376,11 @@ export default function RecordPage() {
               <div className="text-center space-y-1.5">
                 <p className="text-base font-semibold text-gray-900">{stepLabel}</p>
                 <p className="text-xs text-gray-400">This may take {estimateLabel}</p>
-                <p className="text-xs text-gray-400">You can close this tab — your results will be waiting in your history.</p>
+                {processingStep === 0 ? (
+                  <p className="text-xs text-gray-400">Please stay while your recording uploads — just a moment.</p>
+                ) : (
+                  <p className="text-xs text-gray-400">Your results are on their way — worth staying for. <span className="text-gray-300">If you need to leave, they'll be saved to your history.</span></p>
+                )}
               </div>
             </div>
 

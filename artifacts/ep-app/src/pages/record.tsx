@@ -155,6 +155,7 @@ export default function RecordPage() {
   const [insightIdx, setInsightIdx] = useState(0);
   const [insightFade, setInsightFade] = useState(true);
   const [tipsOpen, setTipsOpen] = useState(false);
+  const [showLeaveHint, setShowLeaveHint] = useState(false);
 
   // Holds the raw recording blob + metadata between "recording" and "processing"
   // so the user can optionally download before analysis begins
@@ -806,6 +807,15 @@ export default function RecordPage() {
     return () => clearInterval(interval);
   }, [step]);
 
+  useEffect(() => {
+    if (step !== "processing" || processingStep === 0) {
+      setShowLeaveHint(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowLeaveHint(true), 60000);
+    return () => clearTimeout(timer);
+  }, [step, processingStep]);
+
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
@@ -1379,7 +1389,10 @@ export default function RecordPage() {
                 {processingStep === 0 ? (
                   <p className="text-xs text-gray-400">Please stay while your recording uploads — just a moment.</p>
                 ) : (
-                  <p className="text-xs text-gray-400">Your results are on their way — worth staying for. <span className="text-gray-300">If you need to leave, they'll be saved to your history.</span></p>
+                  <p className="text-xs text-gray-400">Your results are on their way — worth staying for.</p>
+                )}
+                {showLeaveHint && processingStep > 0 && (
+                  <p className="text-xs text-gray-300">If you need to leave, they'll be saved to your history.</p>
                 )}
               </div>
             </div>

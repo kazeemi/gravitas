@@ -896,22 +896,16 @@ export default function RecordPage() {
       )}
       {step === "setup" && (
         <div className="space-y-6">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-4 space-y-3">
-            <p className="text-sm font-semibold text-gray-900">Before you record</p>
-            <ul className="space-y-2">
-              <li className="flex items-start gap-2 text-sm text-gray-700">
-                <span className="mt-0.5 text-amber-500 font-bold flex-shrink-0">·</span>
-                <span><strong>Speak naturally — no script needed.</strong> This tool is designed for real professional moments, not rehearsed material. Respond as you would in an actual meeting, presentation, or conversation.</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-gray-700">
-                <span className="mt-0.5 text-amber-500 font-bold flex-shrink-0">·</span>
-                <span><strong>Minimum 1 minute, maximum 10 minutes.</strong> Shorter recordings don't give the AI enough to work with. Aim for at least 60 seconds of continuous speech.</span>
-              </li>
-              <li className="flex items-start gap-2 text-sm text-gray-700">
-                <span className="mt-0.5 text-amber-500 font-bold flex-shrink-0">·</span>
-                <span><strong>Your content is not judged.</strong> Analysis focuses entirely on how you communicate — your delivery, structure, and vocal presence — not the subject matter of what you say.</span>
-              </li>
-            </ul>
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-4 space-y-2">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              You don't need a script — in fact, please don't use one. This is your space to communicate as you would in real life: a meeting, a pitch, an interview, a conversation.
+            </p>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              We'll reflect back how you show up, not judge what you say.
+            </p>
+            <p className="text-sm text-gray-700 leading-relaxed">
+              We need at least one minute of recording to provide meaningful feedback to elevate your executive presence.
+            </p>
           </div>
 
           <div>

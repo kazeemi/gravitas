@@ -979,7 +979,7 @@ export default function RecordPage() {
                   </div>
                 )}
                 <p
-                  className="text-[1.4rem] font-semibold italic leading-snug text-white"
+                  className="text-[1.4rem] font-semibold leading-snug text-white"
                   style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
                 >
                   {prompt.text}

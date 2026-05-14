@@ -86,16 +86,28 @@ const MIN_DURATION = 60;
 const MAX_DURATION = 600; // 10 minutes
 
 const INSIGHTS = [
-  "The first 8 seconds set the tone — how you open shapes everything that follows.",
-  "Pace variation, not just speed, is one of the strongest signals of confidence.",
-  "Structured thinkers are perceived as 40% more credible — even when saying the same thing.",
+  "Pace variation — speeding up, then slowing down — is one of the clearest signals of a confident speaker.",
   "Pausing before a key point signals authority. Most speakers rush exactly when they should slow down.",
-  "Vocal tone carries up to 38% of your first impression — often more than your words.",
-  "Executive presence compounds. Every session you do builds on the last.",
-  "The most effective speakers hit 130–150 words per minute — fast enough to hold attention, slow enough to be absorbed.",
+  "How you open shapes everything that follows. Listeners decide early whether to lean in or tune out.",
   "Filler words are almost always a symptom of pace. Speaking a little slower naturally reduces them.",
-  "Research shows listeners form judgments about speaker credibility within the first 30 seconds.",
-  "Breath control is the foundation of every other vocal quality — it's where confidence begins.",
+  "Vocal tone is doing more work than most speakers realise — it shapes how a message lands before the words register.",
+  "Executive presence compounds. Every session builds on the last, even when progress isn't immediately visible.",
+  "The clearest speakers aren't always the most knowledgeable — they're the ones who organise before they speak.",
+  "Breath control is the foundation of every other vocal quality. It's where steadiness begins.",
+  "Listeners trust what sounds deliberate. Deliberateness comes from structure, not volume.",
+  "Upward inflection at the end of a statement quietly undermines it. Statements land better as statements.",
+  "The most common mistake in high-stakes conversations is trying to cover too much. One clear idea beats three vague ones.",
+  "Eye contact in video calls lands differently than in person — looking at the camera reads as direct even when it feels unnatural.",
+  "Confidence language is mostly about what you remove: qualifiers, hedges, and apologies before the point.",
+  "Presence isn't charisma. It's the quality of attention you give and the clarity you bring — both are trainable.",
+  "A well-placed pause does more than filler words ever can. It signals that what comes next matters.",
+  "The gap between knowing what to say and actually saying it clearly is what consistent practice closes.",
+  "Projection isn't about being loud. It's about speaking as if the back of the room deserves the message too.",
+  "Gestures that match your words reinforce them. Gestures that contradict your words cancel them out.",
+  "Posture before you speak matters as much as what you say. How you settle into a moment sets the room's expectations.",
+  "Most people speak at a comfortable pace for themselves — not for the person listening. Slowing down is an act of consideration.",
+  "Credibility is often lost in the hedges: 'I think', 'sort of', 'maybe', 'just'. The idea was strong before those words arrived.",
+  "Recording yourself is uncomfortable because you're finally hearing what your listeners hear. That discomfort is the work.",
 ];
 
 export default function RecordPage() {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { api, type SessionDetail, type DimensionScore, type SessionSummary } from "@/lib/api";
 import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, PILLARS } from "@/lib/tier-colors";
@@ -158,6 +158,9 @@ export default function SessionDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [expandedDimKey, setExpandedDimKey] = useState<string | null>(null);
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const [revealed, setRevealed] = useState(false);
+  const rafRef = useRef<number | null>(null);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
@@ -184,6 +187,30 @@ export default function SessionDetailPage() {
       .then(data => setGeneratedMessage(data.message))
       .catch(() => {}); // silently fall back to static message
   }, [session, id]);
+
+  // Score reveal animation
+  useEffect(() => {
+    if (!session?.compositeScore) return;
+    const target = parseFloat(session.compositeScore);
+    const revealTimer = setTimeout(() => setRevealed(true), 150);
+    const startTime = performance.now();
+    const duration = 1400;
+    const animate = (now: number) => {
+      const t = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      setAnimatedScore(parseFloat((eased * target).toFixed(1)));
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      } else {
+        setAnimatedScore(target);
+      }
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      clearTimeout(revealTimer);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [session?.compositeScore]);
 
   if (loading) {
     return (
@@ -297,10 +324,16 @@ export default function SessionDetailPage() {
           <div className="px-6 pt-6 pb-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-6xl font-bold leading-none tracking-tight" style={{ color: colors.hex }}>
-                  {score.toFixed(1)}
+                <p
+                  className="text-6xl font-bold leading-none tracking-tight transition-all duration-300"
+                  style={{ color: colors.hex }}
+                >
+                  {animatedScore.toFixed(1)}
                 </p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-widest" style={{ color: colors.hex }}>
+                <p
+                  className="mt-2 text-xs font-semibold uppercase tracking-widest transition-opacity duration-500"
+                  style={{ color: colors.hex, opacity: revealed ? 1 : 0 }}
+                >
                   {tier}
                 </p>
               </div>
@@ -482,7 +515,7 @@ export default function SessionDetailPage() {
                 </div>
                 <div className="h-px bg-gray-100 mb-3" />
                 <div className="space-y-2">
-                  {dimensions.map(d => (
+                  {dimensions.map((d, i) => (
                     <DimensionCard
                       key={d.id}
                       score={d}
@@ -490,6 +523,8 @@ export default function SessionDetailPage() {
                       onToggle={() =>
                         setExpandedDimKey(expandedDimKey === d.dimensionKey ? null : d.dimensionKey)
                       }
+                      revealed={revealed}
+                      index={i}
                     />
                   ))}
                 </div>
@@ -509,7 +544,7 @@ export default function SessionDetailPage() {
                 </div>
                 <div className="h-px bg-gray-100 mb-3" />
                 <div className="space-y-2">
-                  {ungrouped.map(d => (
+                  {ungrouped.map((d, i) => (
                     <DimensionCard
                       key={d.id}
                       score={d}
@@ -517,6 +552,8 @@ export default function SessionDetailPage() {
                       onToggle={() =>
                         setExpandedDimKey(expandedDimKey === d.dimensionKey ? null : d.dimensionKey)
                       }
+                      revealed={revealed}
+                      index={i}
                     />
                   ))}
                 </div>
@@ -609,10 +646,14 @@ function DimensionCard({
   score,
   isExpanded,
   onToggle,
+  revealed,
+  index,
 }: {
   score: DimensionScore;
   isExpanded: boolean;
   onToggle: () => void;
+  revealed: boolean;
+  index: number;
 }) {
   const colors = getTierColors(score.tier);
   const label = DIMENSION_LABELS[score.dimensionKey] || score.dimensionKey;
@@ -636,6 +677,16 @@ function DimensionCard({
           />
         </div>
       </button>
+      <div className="h-0.5 w-full bg-gray-50 overflow-hidden">
+        <div
+          className="h-full transition-all duration-700 ease-out"
+          style={{
+            width: revealed ? `${Math.min(100, score.score * 10)}%` : "0%",
+            transitionDelay: `${index * 60}ms`,
+            backgroundColor: colors.hex,
+          }}
+        />
+      </div>
 
       {isExpanded && (
         <div className="border-t border-gray-100 px-4 pb-4 pt-3">

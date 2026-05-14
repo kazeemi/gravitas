@@ -85,6 +85,19 @@ type RecordingState = "idle" | "recording" | "paused";
 const MIN_DURATION = 60;
 const MAX_DURATION = 600; // 10 minutes
 
+const INSIGHTS = [
+  "The first 8 seconds set the tone — how you open shapes everything that follows.",
+  "Pace variation, not just speed, is one of the strongest signals of confidence.",
+  "Structured thinkers are perceived as 40% more credible — even when saying the same thing.",
+  "Pausing before a key point signals authority. Most speakers rush exactly when they should slow down.",
+  "Vocal tone carries up to 38% of your first impression — often more than your words.",
+  "Executive presence compounds. Every session you do builds on the last.",
+  "The most effective speakers hit 130–150 words per minute — fast enough to hold attention, slow enough to be absorbed.",
+  "Filler words are almost always a symptom of pace. Speaking a little slower naturally reduces them.",
+  "Research shows listeners form judgments about speaker credibility within the first 30 seconds.",
+  "Breath control is the foundation of every other vocal quality — it's where confidence begins.",
+];
+
 export default function RecordPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
@@ -113,6 +126,8 @@ export default function RecordPage() {
   const [processingStep, setProcessingStep] = useState(0); // 0–3 for step labels
   const [progressPct, setProgressPct] = useState(0);       // 0–100 smooth progress bar
   const processingStepRef = useRef<number | null>(null);
+  const [insightIdx, setInsightIdx] = useState(0);
+  const [insightFade, setInsightFade] = useState(true);
 
   // Holds the raw recording blob + metadata between "recording" and "processing"
   // so the user can optionally download before analysis begins
@@ -752,6 +767,18 @@ export default function RecordPage() {
     };
   }, [stopTimer, releaseStream, stopLevelMonitor, stopFrameCapture]);
 
+  useEffect(() => {
+    if (step !== "processing") return;
+    const interval = setInterval(() => {
+      setInsightFade(false);
+      setTimeout(() => {
+        setInsightIdx(i => (i + 1) % INSIGHTS.length);
+        setInsightFade(true);
+      }, 400);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [step]);
+
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
@@ -1259,49 +1286,91 @@ export default function RecordPage() {
         </div>
       )}
       {step === "processing" && (() => {
-        const steps = mode === "video"
-          ? ["Uploading recording", "Transcribing speech", "Analyzing delivery & visual presence", "Generating coaching feedback"]
-          : ["Uploading recording", "Transcribing speech", "Analyzing delivery", "Generating coaching feedback"];
+        const dimNames = mode === "video"
+          ? ["Articulation", "Projection", "Vocal Tone", "Vocal Steadiness", "Intonation", "Pace", "Pausing", "Breath Control", "Confidence Language", "Structure", "Conciseness", "Eye Contact", "Facial Expression", "Gestures", "Posture"]
+          : ["Articulation", "Projection", "Vocal Tone", "Vocal Steadiness", "Intonation", "Pace", "Pausing", "Breath Control", "Confidence Language", "Structure", "Conciseness"];
+
+        const estimateSecs = mode === "video"
+          ? Math.min(180, Math.round(90 + pendingDuration * 0.4))
+          : Math.min(120, Math.round(60 + pendingDuration * 0.3));
+        const estimateMins = Math.ceil(estimateSecs / 60);
+        const estimateLabel = estimateSecs < 90
+          ? `about ${estimateSecs} seconds`
+          : `${estimateMins} minute${estimateMins > 1 ? "s" : ""}`;
+
+        const stepLabel =
+          processingStep === 0 ? "Uploading your recording…"
+          : processingStep === 1 ? "Transcribing your speech…"
+          : processingStep === 2 ? (mode === "video" ? "Analyzing delivery & presence…" : "Analyzing your delivery…")
+          : "Generating your coaching feedback…";
+
+        const litCount =
+          processingStep <= 1 ? 0
+          : processingStep === 2 ? Math.floor(dimNames.length * 0.55)
+          : processingStep === 3 ? Math.floor(dimNames.length * 0.9)
+          : dimNames.length;
+
         return (
-          <div className="py-10 space-y-8">
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs text-gray-400 mb-1">
-                <span>Analyzing…</span>
-                <span>{progressPct}%</span>
+          <div className="py-8 space-y-7">
+            {/* Animated orb */}
+            <div className="flex flex-col items-center gap-5 pt-2">
+              <div className="relative flex items-center justify-center h-24 w-24">
+                <div className="absolute h-24 w-24 rounded-full bg-[#F0953E]/10 animate-ping" style={{ animationDuration: "2.2s" }} />
+                <div className="absolute h-16 w-16 rounded-full bg-[#F0953E]/15 animate-ping" style={{ animationDuration: "2.2s", animationDelay: "0.4s" }} />
+                <div className="relative h-10 w-10 rounded-full bg-[#0F1B2D] flex items-center justify-center shadow-lg">
+                  <div className="h-3 w-3 rounded-full bg-[#F0953E] animate-pulse" />
+                </div>
               </div>
+              <div className="text-center space-y-1.5">
+                <p className="text-base font-semibold text-gray-900">{stepLabel}</p>
+                <p className="text-xs text-gray-400">Usually ready in {estimateLabel}</p>
+                <p className="text-xs text-gray-400">You can close this tab — your results will be waiting in your history.</p>
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="space-y-1.5">
               <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gray-900 transition-all duration-500 ease-out"
+                  className="h-full rounded-full bg-[#0F1B2D] transition-all duration-500 ease-out"
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
+              <p className="text-right text-xs text-gray-400 font-mono">{progressPct}%</p>
             </div>
-            <div className="space-y-3">
-              {steps.map((label, i) => {
-                const done = processingStep > i;
-                const active = processingStep === i;
-                return (
-                  <div key={label} className="flex items-center gap-3">
-                    <div className={`flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-                      done ? "bg-[#C84A18] text-white" : active ? "bg-[#0F1B2D] text-white" : "bg-gray-100 text-gray-400"
-                    }`}>
-                      {done ? (
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <span>{i + 1}</span>
-                      )}
-                    </div>
-                    <span className={`text-sm ${done ? "text-gray-400 line-through" : active ? "text-gray-900 font-medium" : "text-gray-400"}`}>
-                      {label}
-                      {active && <span className="ml-1 inline-block animate-pulse">…</span>}
+
+            {/* Rotating insight */}
+            <div className="rounded-xl border border-[#F0953E]/20 bg-[#FBF7F2] px-5 py-4 min-h-[80px] flex flex-col justify-center">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C84A18] mb-1.5">Did you know</p>
+              <p
+                className="text-sm text-gray-700 leading-relaxed"
+                style={{ opacity: insightFade ? 1 : 0, transition: "opacity 0.4s ease" }}
+              >
+                {INSIGHTS[insightIdx]}
+              </p>
+            </div>
+
+            {/* Dimension chips */}
+            {processingStep >= 2 && (
+              <div className="space-y-2.5">
+                <p className="text-xs text-gray-400">Dimensions being scored</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dimNames.map((name, i) => (
+                    <span
+                      key={name}
+                      className="px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300"
+                      style={{
+                        transitionDelay: `${i * 80}ms`,
+                        backgroundColor: i < litCount ? "#0F1B2D" : "#F3F4F6",
+                        color: i < litCount ? "white" : "#9CA3AF",
+                      }}
+                    >
+                      {name}
                     </span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-xs text-center text-gray-400">Taking a moment to give you feedback worth reading. Thank you for your patience.</p>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         );
       })()}

@@ -896,6 +896,24 @@ export default function RecordPage() {
       )}
       {step === "setup" && (
         <div className="space-y-6">
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-4 space-y-3">
+            <p className="text-sm font-semibold text-gray-900">Before you record</p>
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="mt-0.5 text-amber-500 font-bold flex-shrink-0">·</span>
+                <span><strong>Speak naturally — no script needed.</strong> This tool is designed for real professional moments, not rehearsed material. Respond as you would in an actual meeting, presentation, or conversation.</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="mt-0.5 text-amber-500 font-bold flex-shrink-0">·</span>
+                <span><strong>Minimum 1 minute, maximum 10 minutes.</strong> Shorter recordings don't give the AI enough to work with. Aim for at least 60 seconds of continuous speech.</span>
+              </li>
+              <li className="flex items-start gap-2 text-sm text-gray-700">
+                <span className="mt-0.5 text-amber-500 font-bold flex-shrink-0">·</span>
+                <span><strong>Your content is not judged.</strong> Analysis focuses entirely on how you communicate — your delivery, structure, and vocal presence — not the subject matter of what you say.</span>
+              </li>
+            </ul>
+          </div>
+
           <div>
             <label className="text-sm font-medium text-gray-700">Session type</label>
             <div className="mt-2 grid grid-cols-2 gap-3">
@@ -989,13 +1007,15 @@ export default function RecordPage() {
             Start recording
           </Button>
 
-          <p className="text-center text-xs text-gray-400">Minimum 1 minute · maximum 10 minutes.</p>
-
-          <p className="text-center text-xs text-gray-400">
-            Your recording is deleted immediately after scoring. No one at Gravitas or your organization has access to your audio or video.
-            <br />
-            During beta only, Gravitas may review session transcripts to validate scoring accuracy.
-          </p>
+          <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 space-y-1.5">
+            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Privacy & AI</p>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Your recording is processed by AI and <strong className="text-gray-700">deleted immediately after scoring</strong> — it is never stored, shared with your organization, or accessible to anyone at Gravitas.
+            </p>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              During beta only, Gravitas may review session <em>transcripts</em> (not recordings) to validate scoring accuracy. This does not affect your results.
+            </p>
+          </div>
         </div>
       )}
       {step === "recording" && (

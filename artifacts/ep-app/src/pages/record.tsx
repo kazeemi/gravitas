@@ -1302,12 +1302,13 @@ export default function RecordPage() {
           ? ["Articulation", "Projection", "Vocal Tone", "Vocal Steadiness", "Intonation", "Pace", "Pausing", "Breath Control", "Confidence Language", "Structure", "Conciseness", "Eye Contact", "Facial Expression", "Gestures", "Posture"]
           : ["Articulation", "Projection", "Vocal Tone", "Vocal Steadiness", "Intonation", "Pace", "Pausing", "Breath Control", "Confidence Language", "Structure", "Conciseness"];
 
-        const estimateSecs = mode === "video"
+        const estimateSecsRaw = mode === "video"
           ? Math.min(180, Math.round(90 + pendingDuration * 0.4))
           : Math.min(120, Math.round(60 + pendingDuration * 0.3));
+        const estimateSecs = Math.ceil(estimateSecsRaw / 10) * 10;
         const estimateMins = Math.ceil(estimateSecs / 60);
         const estimateLabel = estimateSecs < 90
-          ? `about ${estimateSecs} seconds`
+          ? `${estimateSecs} seconds`
           : `${estimateMins} minute${estimateMins > 1 ? "s" : ""}`;
 
         const stepLabel =
@@ -1335,7 +1336,7 @@ export default function RecordPage() {
               </div>
               <div className="text-center space-y-1.5">
                 <p className="text-base font-semibold text-gray-900">{stepLabel}</p>
-                <p className="text-xs text-gray-400">Usually ready in {estimateLabel}</p>
+                <p className="text-xs text-gray-400">This may take {estimateLabel}</p>
                 <p className="text-xs text-gray-400">You can close this tab — your results will be waiting in your history.</p>
               </div>
             </div>

@@ -352,7 +352,7 @@ export default function SessionDetailPage() {
                 </div>
                 {session.promptText && (
                   <div className="mt-1 text-right">
-                    <p className="text-xs text-gray-500 max-w-[220px] leading-snug line-clamp-2 inline">
+                    <p className="text-xs text-gray-500 max-w-[220px] leading-snug line-clamp-2">
                       {session.promptText}
                     </p>
                     {session.promptText.length > 80 && (

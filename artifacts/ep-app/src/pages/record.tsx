@@ -1056,7 +1056,10 @@ export default function RecordPage() {
                   We'll reflect back how you show up, not judge what you say.
                 </p>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  We need at least one minute of recording to provide meaningful feedback. Feel free to take a few moments to think through and structure a response before hitting Record.
+                  We need at least one minute of recording to provide meaningful feedback.
+                </p>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Feel free to take a few moments to think through and structure a response before hitting Record.
                 </p>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   Your recording is deleted as soon as your feedback is ready. We never store it.

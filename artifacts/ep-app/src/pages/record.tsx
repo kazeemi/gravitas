@@ -1413,7 +1413,7 @@ export default function RecordPage() {
                       className="px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300"
                       style={{
                         transitionDelay: `${i * 80}ms`,
-                        backgroundColor: i < litCount ? "#0F1B2D" : "#F3F4F6",
+                        background: i < litCount ? "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" : "#F3F4F6",
                         color: i < litCount ? "white" : "#9CA3AF",
                       }}
                     >

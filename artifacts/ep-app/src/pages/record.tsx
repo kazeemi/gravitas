@@ -13,9 +13,23 @@ import {
   CheckCircleIcon,
   AlertCircleIcon,
   AlertTriangleIcon,
+  ChevronDownIcon,
 } from "lucide-react";
 
 const BETA_LIMIT_SECONDS = 1200;
+
+function getCategoryLabel(text?: string): string {
+  if (!text) return "Practice";
+  const t = text.toLowerCase();
+  if (t.includes("interview") || t.includes("hire") || t.includes("candidate")) return "Interview";
+  if (t.includes("pitch") || t.includes("investor") || t.includes("raise") || t.includes("funding")) return "Pitch";
+  if (t.includes("board") || t.includes("stakeholder") || t.includes("executive")) return "Executive";
+  if (t.includes("technical") || t.includes("demo") || t.includes("product") || t.includes("engineer")) return "Product";
+  if (t.includes("leadership") || t.includes("lead") || t.includes("team") || t.includes("manag") || t.includes("philosophy")) return "Leadership";
+  if (t.includes("conflict") || t.includes("feedback") || t.includes("difficult") || t.includes("conversation")) return "Interpersonal";
+  if (t.includes("crisis") || t.includes("issue") || t.includes("problem") || t.includes("mistake")) return "Crisis";
+  return "Practice";
+}
 
 const SILENCE_THRESHOLD = 8;      // avg amplitude (0–255) below which = silence
 const SILENCE_WARN_SECS = 10;     // seconds of continuous silence before warning
@@ -140,6 +154,7 @@ export default function RecordPage() {
   const processingStepRef = useRef<number | null>(null);
   const [insightIdx, setInsightIdx] = useState(0);
   const [insightFade, setInsightFade] = useState(true);
+  const [tipsOpen, setTipsOpen] = useState(false);
 
   // Holds the raw recording blob + metadata between "recording" and "processing"
   // so the user can optionally download before analysis begins
@@ -942,102 +957,149 @@ export default function RecordPage() {
         </div>
       )}
       {step === "setup" && (
-        <div className="space-y-6">
-          <div className="rounded-lg border border-gray-200 bg-gray-50 px-5 py-4 space-y-2">
-            <p className="text-sm font-semibold text-gray-900">A few things to remember</p>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              You don't need a script — in fact, please don't use one. This is your space to communicate as you would in real life: a meeting, a pitch, an interview, a conversation.
-            </p>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              We'll reflect back how you show up, not judge what you say.
-            </p>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              We need at least one minute of recording to provide meaningful feedback to elevate your executive presence.
-            </p>
-            <p className="text-sm text-gray-700 leading-relaxed">
-              Your recording is deleted as soon as your feedback is ready. We never store it.
-            </p>
-          </div>
+        <div className="space-y-4">
 
-          <div>
-            <label className="text-sm font-medium text-gray-700">Session type</label>
-            <div className="mt-2 grid grid-cols-2 gap-3">
-              {(["audio", "video"] as const).map(m => (
+          {/* ── Prompt hero card ── */}
+          {!customPrompt.trim() && prompt && (
+            <div className="relative overflow-hidden rounded-2xl bg-[#0F1B2D]">
+              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#F0953E] to-[#C84A18]" />
+              <div className="px-6 pt-6 pb-5">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="inline-flex items-center rounded-full border border-[#F0953E]/30 bg-[#F0953E]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-[#F0953E]">
+                    {getCategoryLabel(prompt.text)}
+                  </span>
+                  {prompts.length > 1 && (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={goPrevPrompt}
+                        className="h-7 w-7 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:border-white/50 hover:text-white transition-all text-base leading-none"
+                        aria-label="Previous prompt"
+                      >‹</button>
+                      <span className="text-[10px] text-white/30 tabular-nums w-10 text-center">
+                        {promptIndex + 1} / {prompts.length}
+                      </span>
+                      <button
+                        onClick={goNextPrompt}
+                        className="h-7 w-7 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:border-white/50 hover:text-white transition-all text-base leading-none"
+                        aria-label="Next prompt"
+                      >›</button>
+                    </div>
+                  )}
+                </div>
+                <p
+                  className="text-[1.4rem] font-semibold italic leading-snug text-white"
+                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                >
+                  {prompt.text}
+                </p>
+                <p className="mt-4 text-[11px] text-white/35 font-medium tracking-wide">
+                  {Math.floor(prompt.recommendedDurationSeconds / 60)}:{String(prompt.recommendedDurationSeconds % 60).padStart(2, "0")} min recommended
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Mode picker ── */}
+          <div className="grid grid-cols-2 gap-3">
+            {(["audio", "video"] as const).map(m => {
+              const isSelected = mode === m;
+              return (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className={`flex items-center gap-3 rounded border p-4 transition-colors ${
-                    mode === m ? "border-gray-900 bg-gray-50" : "border-gray-200"
+                  className={`relative overflow-hidden rounded-xl p-5 text-left transition-all duration-200 ${
+                    isSelected
+                      ? "shadow-md"
+                      : "border border-gray-200 bg-white hover:border-[#F0953E]/50 hover:bg-[#FBF7F2]"
                   }`}
+                  style={isSelected ? { background: "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" } : {}}
                 >
-                  {m === "audio" ? (
-                    <MicIcon className="h-5 w-5 text-gray-600" />
-                  ) : (
-                    <VideoIcon className="h-5 w-5 text-gray-600" />
-                  )}
-                  <div className="text-left">
-                    <p className="text-sm font-medium capitalize">{m}</p>
-                    <p className="text-xs text-gray-400">
-                      {m === "audio" ? "Voice & delivery" : "Voice & visual presence"}
-                    </p>
+                  <div className="mb-3 flex items-end gap-[3px] h-8">
+                    {m === "audio" ? (
+                      [0.45, 0.75, 1, 0.6, 0.85, 0.5, 0.7].map((h, i) => (
+                        <div
+                          key={i}
+                          className="w-1 rounded-full transition-colors duration-200 origin-bottom"
+                          style={{
+                            height: `${h * 100}%`,
+                            backgroundColor: isSelected ? "rgba(255,255,255,0.85)" : "#D1D5DB",
+                            animation: isSelected ? `waveBar 1.3s ease-in-out infinite` : "none",
+                            animationDelay: `${i * 0.12}s`,
+                          }}
+                        />
+                      ))
+                    ) : (
+                      <div className="relative flex items-center justify-center w-8 h-8">
+                        {isSelected && (
+                          <div className="absolute inset-0 rounded-full bg-white/25 animate-ping" style={{ animationDuration: "2.2s" }} />
+                        )}
+                        <VideoIcon className={`h-5 w-5 relative z-10 transition-colors ${isSelected ? "text-white" : "text-gray-400"}`} />
+                      </div>
+                    )}
                   </div>
+                  <p className={`text-sm font-semibold capitalize ${isSelected ? "text-white" : "text-gray-900"}`}>
+                    {m}
+                  </p>
+                  <p className={`text-xs mt-0.5 ${isSelected ? "text-white/75" : "text-gray-400"}`}>
+                    {m === "audio" ? "Voice & delivery" : "Voice & visual presence"}
+                  </p>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
-
+          {/* ── Custom prompt ── */}
           <div>
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">Practice prompt</label>
-              {!customPrompt.trim() && prompts.length > 0 && (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={goPrevPrompt}
-                    className="text-xs font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2"
-                  >
-                    ← Previous
-                  </button>
-                  <button
-                    onClick={goNextPrompt}
-                    className="text-xs font-medium text-gray-600 hover:text-gray-900 underline underline-offset-2"
-                  >
-                    Next →
-                  </button>
-                </div>
-              )}
-            </div>
-            {!customPrompt.trim() && prompt && (
-              <div className="mt-2 rounded border border-gray-200 bg-gray-50 p-4">
-                <p className="text-sm text-gray-700">{prompt.text}</p>
-                <p className="mt-2 text-xs text-gray-400">
-                  Recommended: {Math.floor(prompt.recommendedDurationSeconds / 60)}:
-                  {String(prompt.recommendedDurationSeconds % 60).padStart(2, "0")} min
+            <p className="text-xs font-medium text-gray-500 mb-1.5">
+              {customPrompt.trim() ? "Your topic (practice prompt hidden)" : "Or speak about your own topic:"}
+            </p>
+            <textarea
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              placeholder="Describe what you'll be speaking about…"
+              rows={2}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#F0953E] bg-white"
+            />
+            {customPrompt.trim() && (
+              <button
+                onClick={() => setCustomPrompt("")}
+                className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+              >
+                Clear and use practice prompt instead
+              </button>
+            )}
+          </div>
+
+          {/* ── Collapsible tips ── */}
+          <div className="rounded-xl border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => setTipsOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+            >
+              <span className="text-sm font-medium text-gray-700">Before you start</span>
+              <ChevronDownIcon
+                className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${tipsOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {tipsOpen && (
+              <div className="px-4 pb-4 space-y-2 border-t border-gray-100 pt-3">
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  You don't need a script — in fact, please don't use one. This is your space to communicate as you would in real life: a meeting, a pitch, an interview, a conversation.
+                </p>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  We'll reflect back how you show up, not judge what you say.
+                </p>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  We need at least one minute of recording to provide meaningful feedback.
+                </p>
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  Your recording is deleted as soon as your feedback is ready. We never store it.
                 </p>
               </div>
             )}
-            <div className="mt-3">
-              <p className="text-xs font-medium text-gray-500 mb-1">
-                {customPrompt.trim() ? "Your topic (practice prompt hidden)" : "Or write your own:"}
-              </p>
-              <textarea
-                value={customPrompt}
-                onChange={(e) => setCustomPrompt(e.target.value)}
-                placeholder="Describe what you'll be speaking about…"
-                rows={2}
-                className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
-              />
-              {customPrompt.trim() && (
-                <button
-                  onClick={() => setCustomPrompt("")}
-                  className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
-                >
-                  Clear and use practice prompt instead
-                </button>
-              )}
-            </div>
           </div>
 
+          {/* ── Quota warning ── */}
           {quotaRemaining < 60 && quotaRemaining > 0 && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
               <AlertTriangleIcon className="h-4 w-4 flex-shrink-0 text-amber-600 mt-0.5" />
@@ -1047,20 +1109,16 @@ export default function RecordPage() {
             </div>
           )}
 
+          {/* ── Start button ── */}
           <Button className="w-full gap-2" onClick={startRecording}>
             <PlayCircleIcon className="h-4 w-4" />
             Start recording
           </Button>
 
-          <div className="rounded-lg border border-gray-200 bg-white px-5 py-4 space-y-1.5">
-            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Privacy & AI</p>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              Your recording is processed by AI and <strong className="text-gray-700">deleted immediately after scoring</strong> — it is never stored, shared with your organization, or accessible to anyone at Gravitas.
-            </p>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              During beta only, Gravitas may review session <em>transcripts</em> (not recordings) to validate scoring accuracy. This does not affect your results.
-            </p>
-          </div>
+          {/* ── Privacy note ── */}
+          <p className="text-xs text-gray-400 leading-relaxed px-1">
+            Your recording is processed by AI and <strong className="text-gray-500">deleted immediately after scoring</strong> — never stored or shared. During beta, Gravitas may review transcripts (not recordings) to validate scoring accuracy.
+          </p>
         </div>
       )}
       {step === "recording" && (

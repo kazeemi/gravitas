@@ -1037,14 +1037,14 @@ export default function RecordPage() {
           </div>
 
           {/* ── Collapsible tips ── */}
-          <div className="rounded-xl border border-gray-200 overflow-hidden">
+          <div className="rounded-xl border border-[#F0953E]/40 overflow-hidden">
             <button
               onClick={() => setTipsOpen(o => !o)}
-              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between px-4 py-3 text-left bg-[#F0953E]/5 hover:bg-[#F0953E]/10 transition-colors"
             >
-              <span className="text-sm font-medium text-gray-700">Before you start</span>
+              <span className="text-sm font-medium text-[#C84A18]">Before you start</span>
               <ChevronDownIcon
-                className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${tipsOpen ? "rotate-180" : ""}`}
+                className={`h-4 w-4 text-[#F0953E] transition-transform duration-200 ${tipsOpen ? "rotate-180" : ""}`}
               />
             </button>
             {tipsOpen && (
@@ -1056,7 +1056,7 @@ export default function RecordPage() {
                   We'll reflect back how you show up, not judge what you say.
                 </p>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  We need at least one minute of recording to provide meaningful feedback.
+                  We need at least one minute of recording to provide meaningful feedback. Feel free to take a few moments to think through and structure a response before hitting Record.
                 </p>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   Your recording is deleted as soon as your feedback is ready. We never store it.
@@ -1076,10 +1076,14 @@ export default function RecordPage() {
           )}
 
           {/* ── Start button ── */}
-          <Button className="w-full gap-2" onClick={startRecording}>
+          <button
+            onClick={startRecording}
+            className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80"
+            style={{ background: "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" }}
+          >
             <PlayCircleIcon className="h-4 w-4" />
             Start recording
-          </Button>
+          </button>
 
           {/* ── Privacy note ── */}
           <p className="text-xs text-gray-400 leading-relaxed px-1">

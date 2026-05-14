@@ -964,28 +964,20 @@ export default function RecordPage() {
             <div className="relative overflow-hidden rounded-2xl bg-[#0F1B2D]">
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#F0953E] to-[#C84A18]" />
               <div className="px-6 pt-6 pb-5">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="inline-flex items-center rounded-full border border-[#F0953E]/30 bg-[#F0953E]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-[#F0953E]">
-                    {getCategoryLabel(prompt.text)}
-                  </span>
-                  {prompts.length > 1 && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={goPrevPrompt}
-                        className="h-7 w-7 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:border-white/50 hover:text-white transition-all text-base leading-none"
-                        aria-label="Previous prompt"
-                      >‹</button>
-                      <span className="text-[10px] text-white/30 tabular-nums w-10 text-center">
-                        {promptIndex + 1} / {prompts.length}
-                      </span>
-                      <button
-                        onClick={goNextPrompt}
-                        className="h-7 w-7 rounded-full border border-white/20 flex items-center justify-center text-white/50 hover:border-white/50 hover:text-white transition-all text-base leading-none"
-                        aria-label="Next prompt"
-                      >›</button>
-                    </div>
-                  )}
-                </div>
+                {prompts.length > 1 && (
+                  <div className="flex items-center justify-end gap-2 mb-4">
+                    <button
+                      onClick={goPrevPrompt}
+                      className="h-8 w-8 rounded-full border border-white/40 flex items-center justify-center text-white/80 hover:border-white hover:text-white hover:bg-white/10 transition-all text-lg leading-none"
+                      aria-label="Previous prompt"
+                    >‹</button>
+                    <button
+                      onClick={goNextPrompt}
+                      className="h-8 w-8 rounded-full border border-white/40 flex items-center justify-center text-white/80 hover:border-white hover:text-white hover:bg-white/10 transition-all text-lg leading-none"
+                      aria-label="Next prompt"
+                    >›</button>
+                  </div>
+                )}
                 <p
                   className="text-[1.4rem] font-semibold italic leading-snug text-white"
                   style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
@@ -1007,41 +999,15 @@ export default function RecordPage() {
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  className={`relative overflow-hidden rounded-xl p-5 text-left transition-all duration-200 ${
+                  className={`relative overflow-hidden rounded-xl px-5 py-3.5 text-left transition-all duration-200 ${
                     isSelected
                       ? "shadow-md"
                       : "border border-gray-200 bg-white hover:border-[#F0953E]/50 hover:bg-[#FBF7F2]"
                   }`}
                   style={isSelected ? { background: "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" } : {}}
                 >
-                  <div className="mb-3 flex items-end gap-[3px] h-8">
-                    {m === "audio" ? (
-                      [0.45, 0.75, 1, 0.6, 0.85, 0.5, 0.7].map((h, i) => (
-                        <div
-                          key={i}
-                          className="w-1 rounded-full transition-colors duration-200 origin-bottom"
-                          style={{
-                            height: `${h * 100}%`,
-                            backgroundColor: isSelected ? "rgba(255,255,255,0.85)" : "#D1D5DB",
-                            animation: isSelected ? `waveBar 1.3s ease-in-out infinite` : "none",
-                            animationDelay: `${i * 0.12}s`,
-                          }}
-                        />
-                      ))
-                    ) : (
-                      <div className="relative flex items-center justify-center w-8 h-8">
-                        {isSelected && (
-                          <div className="absolute inset-0 rounded-full bg-white/25 animate-ping" style={{ animationDuration: "2.2s" }} />
-                        )}
-                        <VideoIcon className={`h-5 w-5 relative z-10 transition-colors ${isSelected ? "text-white" : "text-gray-400"}`} />
-                      </div>
-                    )}
-                  </div>
                   <p className={`text-sm font-semibold capitalize ${isSelected ? "text-white" : "text-gray-900"}`}>
                     {m}
-                  </p>
-                  <p className={`text-xs mt-0.5 ${isSelected ? "text-white/75" : "text-gray-400"}`}>
-                    {m === "audio" ? "Voice & delivery" : "Voice & visual presence"}
                   </p>
                 </button>
               );

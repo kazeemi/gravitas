@@ -135,6 +135,7 @@ export default function RecordPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [promptIndex, setPromptIndex] = useState(0);
   const [customPrompt, setCustomPrompt] = useState("");
+  const [showCustomPrompt, setShowCustomPrompt] = useState(false);
   const [recordingContext, setRecordingContext] = useState("seated");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -1033,23 +1034,33 @@ export default function RecordPage() {
 
           {/* ── Custom prompt ── */}
           <div>
-            <p className="text-xs font-medium text-gray-500 mb-1.5">
-              {customPrompt.trim() ? "Your topic (practice prompt hidden)" : "Or speak about your own topic:"}
-            </p>
-            <textarea
-              value={customPrompt}
-              onChange={(e) => setCustomPrompt(e.target.value)}
-              placeholder="Describe what you'll be speaking about…"
-              rows={2}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#F0953E] bg-white"
-            />
-            {customPrompt.trim() && (
+            {!showCustomPrompt && !customPrompt.trim() ? (
               <button
-                onClick={() => setCustomPrompt("")}
-                className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                onClick={() => setShowCustomPrompt(true)}
+                className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
               >
-                Clear and use practice prompt instead
+                + Type your own question or topic
               </button>
+            ) : (
+              <>
+                <p className="text-xs font-medium text-gray-500 mb-1.5">
+                  {customPrompt.trim() ? "Your topic (practice prompt hidden)" : "Type your own question or topic:"}
+                </p>
+                <textarea
+                  autoFocus
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="Describe what you'll be speaking about…"
+                  rows={2}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#F0953E] bg-white"
+                />
+                <button
+                  onClick={() => { setCustomPrompt(""); setShowCustomPrompt(false); }}
+                  className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                >
+                  {customPrompt.trim() ? "Clear and use practice prompt instead" : "Cancel"}
+                </button>
+              </>
             )}
           </div>
 

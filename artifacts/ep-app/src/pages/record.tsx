@@ -203,23 +203,30 @@ export default function RecordPage() {
 
   useEffect(() => {
     api.prompts.list().then(data => {
-      if (data.prompts.length > 0) {
-        setPrompts(data.prompts);
-        if (promptParam) {
-          const matchIdx = data.prompts.findIndex(p => p.text === promptParam);
-          if (matchIdx !== -1) {
-            setPromptIndex(matchIdx);
-          } else {
-            // Prompt was a custom one — pre-fill the custom input
-            setCustomPrompt(promptParam);
-            setPromptIndex(Math.floor(Math.random() * data.prompts.length));
-          }
+      if (data.prompts.length === 0) return;
+      // Filter to interview prompts for the user's sector when in interview mode
+      let pool = data.prompts;
+      if (user?.interviewMode) {
+        const sector = user.interviewSector ?? "all";
+        const interviewPool = data.prompts.filter(
+          p => p.category === "Interview" && (p.sector === sector || p.sector === "all")
+        );
+        if (interviewPool.length > 0) pool = interviewPool;
+      }
+      setPrompts(pool);
+      if (promptParam) {
+        const matchIdx = pool.findIndex(p => p.text === promptParam);
+        if (matchIdx !== -1) {
+          setPromptIndex(matchIdx);
         } else {
-          setPromptIndex(Math.floor(Math.random() * data.prompts.length));
+          setCustomPrompt(promptParam);
+          setPromptIndex(Math.floor(Math.random() * pool.length));
         }
+      } else {
+        setPromptIndex(Math.floor(Math.random() * pool.length));
       }
     }).catch(() => {});
-  }, []);
+  }, [user?.interviewMode, user?.interviewSector]);
 
   const prompt = prompts[promptIndex] ?? null;
 

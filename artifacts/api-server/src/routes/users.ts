@@ -31,12 +31,16 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
 });
 
 router.post("/v1/users/me/onboarding", requireAuth, async (req, res) => {
-  const { roleTitle, communicationContext, goal, defaultRecordingContext } = req.body;
+  const { roleTitle, communicationContext, goal, defaultRecordingContext, interviewMode, interviewSector, interviewSectorCustom, interviewCompanies } = req.body;
   const [user] = await db.update(usersTable).set({
     roleTitle,
     communicationContext,
     goal,
     defaultRecordingContext,
+    interviewMode: typeof interviewMode === "boolean" ? interviewMode : false,
+    interviewSector: interviewSector ?? null,
+    interviewSectorCustom: interviewSectorCustom ?? null,
+    interviewCompanies: interviewCompanies ?? null,
     onboardingCompleted: true,
   }).where(eq(usersTable.id, req.user!.userId)).returning();
   if (!user) return res.status(404).json({ error: "User not found" });

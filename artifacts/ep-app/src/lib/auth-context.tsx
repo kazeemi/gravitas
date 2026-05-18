@@ -14,6 +14,10 @@ interface User {
   emailSummaries?: boolean;
   totalRecordingSeconds?: number;
   notifyOnUpgrade?: boolean;
+  interviewMode?: boolean;
+  interviewSector?: string | null;
+  interviewSectorCustom?: string | null;
+  interviewCompanies?: string | null;
 }
 
 interface AuthContextValue {

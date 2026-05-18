@@ -203,4 +203,5 @@ export interface Prompt {
   category: string;
   text: string;
   recommendedDurationSeconds: number;
+  sector?: string;
 }

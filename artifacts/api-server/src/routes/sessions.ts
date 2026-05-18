@@ -293,15 +293,22 @@ router.post(
           return;
         }
 
-        // Query session history for motivational message context
-        const prevCompletedSessions = await db
-          .select({ compositeScore: sessionsTable.compositeScore })
-          .from(sessionsTable)
-          .where(and(
-            eq(sessionsTable.userId, session.userId),
-            eq(sessionsTable.processingStatus, "complete"),
-          ))
-          .orderBy(desc(sessionsTable.createdAt));
+        // Query session history and user preferences in parallel
+        const [prevCompletedSessions, [sessionUser]] = await Promise.all([
+          db
+            .select({ compositeScore: sessionsTable.compositeScore })
+            .from(sessionsTable)
+            .where(and(
+              eq(sessionsTable.userId, session.userId),
+              eq(sessionsTable.processingStatus, "complete"),
+            ))
+            .orderBy(desc(sessionsTable.createdAt)),
+          db
+            .select({ interviewMode: usersTable.interviewMode })
+            .from(usersTable)
+            .where(eq(usersTable.id, session.userId))
+            .limit(1),
+        ]);
 
         const sessionNumber = prevCompletedSessions.length + 1;
         const previousCompositeScore =
@@ -333,6 +340,7 @@ router.post(
           promptContext: getPromptContext(session.promptText || "") || undefined,
           sessionNumber,
           previousCompositeScore,
+          interviewMode: sessionUser?.interviewMode ?? false,
         });
 
         await db.insert(dimensionScoresTable).values(

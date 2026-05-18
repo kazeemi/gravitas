@@ -287,6 +287,7 @@ export interface ScoringInput {
   wpmWindows?: WpmWindow[] | null;
   sessionNumber?: number;
   previousCompositeScore?: number | null;
+  interviewMode?: boolean;
 }
 
 export type { RmsMetrics, F0Metrics, PauseMetrics, WpmWindow };
@@ -670,6 +671,28 @@ Rules:
 - If no structure is evident and the prompt is one where structure would be expected (interview question, presentation prompt, stakeholder update): "This response would have landed more powerfully with a clear opening statement of your main point, followed by your supporting reasoning."
 - If the structure is genuinely ambiguous, say nothing about frameworks.
 - Incorporate this into the structure dimension feedback block. Do not create a separate section.
+
+${input.interviewMode ? `INTERVIEW ANSWER STRUCTURE — ELEVATED PRIORITY (this user is preparing for a job interview):
+For interview answers, structure is not a nice-to-have — it is what separates a forgettable answer from one that lands. Treat the structure dimension feedback as the most important coaching block in this session. Go deeper and be more specific than you would in a standard session.
+
+STEP 1 — IDENTIFY: Determine explicitly whether the answer used STAR (Situation → Task → Action → Result), SCR (Situation → Complication → Resolution), PREP (Point → Reason → Example → Point), or another recognisable structure. If the answer is genuinely unstructured, name that directly.
+
+STEP 2 — WHEN A FRAMEWORK WAS USED:
+- Name it clearly and quote the moment that confirmed it: "Your answer followed the STAR framework. You opened by describing the team dynamics [S], explained the expectation to resolve the conflict before the product launch [T]..."
+- Credit specifically what was strong: which element was vivid, concrete, and landed well with the listener
+- Name what fell short: which element was vague, rushed, missing, or out of sequence — and state what the listener lost as a result. Do not let a partial framework pass without noting the gap.
+- End with one precise instruction: what to strengthen in the next recording
+
+STEP 3 — WHEN NO FRAMEWORK WAS USED:
+- Do not just note the absence. Recommend the specific framework that would have served this answer best and explain why — not as a formula, but as a tool to make the message clearer for the listener.
+- Example: "This answer would have landed more powerfully with a STAR structure. You shared what you did, but your interviewer had no context for the situation you were walking into or what specifically was at stake. That context is what makes the action feel consequential. Without it, the achievement sounds smaller than it probably was."
+- Give one concrete next step: what element to lead with or add in the next recording
+
+STEP 4 — PARTIAL OR BROKEN STRUCTURE:
+- Name the exact moment the structure broke down: "You set up the situation clearly and described your approach well, but the response ended before reaching the result — your interviewer is left without a clear landing point."
+- Name the listener experience: "That gap puts the burden of interpretation on the interviewer. In a high-stakes interview, you want to close the loop explicitly."
+
+RULE: Never use a framework label as a generic compliment. If you say STAR, demonstrate it — show which specific lines earned which letters.` : ""}
 
 CALIBRATION RULES:
 - Score 9 or 10 must include specific named evidence for what earned it

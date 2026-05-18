@@ -190,6 +190,22 @@ export default function SessionRevealPage() {
     }, 240);
   };
 
+  const goPrev = () => {
+    if (slideIndex <= 0) return;
+    setSlideIn(false);
+    window.setTimeout(() => {
+      setSlideIndex(i => i - 1);
+      setMessageVisible(false);
+      setVisibleBullets(0);
+      setFocusVisible(false);
+      setPillarsRevealed(0);
+      setSelectedPillarIndex(0);
+      setExpandedDimKey(null);
+      setAnimatedScore(0);
+      setSlideIn(true);
+    }, 240);
+  };
+
   // ── Loading / error ──────────────────────────────────────────────────────
 
   if (loading) {
@@ -692,16 +708,31 @@ export default function SessionRevealPage() {
 
         {/* ── Footer nav ── */}
         <div className="flex items-center justify-between pt-5 flex-shrink-0">
-          <button
-            className="flex items-center gap-1 text-xs transition-colors"
-            style={{ color: "rgba(255,255,255,0.28)" }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.28)"; }}
-            onClick={() => setLocation(`/sessions/${id}/full`)}
-          >
-            Full report
-            <ArrowRightIcon className="h-3 w-3" />
-          </button>
+          {/* Left side: Back or Full report */}
+          <div className="flex items-center gap-4">
+            {slideIndex > 0 && (
+              <button
+                className="flex items-center gap-1 text-xs transition-colors"
+                style={{ color: "rgba(255,255,255,0.4)" }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.7)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.4)"; }}
+                onClick={goPrev}
+              >
+                <ArrowRightIcon className="h-3 w-3 rotate-180" />
+                Back
+              </button>
+            )}
+            <button
+              className="flex items-center gap-1 text-xs transition-colors"
+              style={{ color: "rgba(255,255,255,0.28)" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.55)"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = "rgba(255,255,255,0.28)"; }}
+              onClick={() => setLocation(`/sessions/${id}/full`)}
+            >
+              Full report
+              <ArrowRightIcon className="h-3 w-3" />
+            </button>
+          </div>
 
           {!isLastSlide ? (
             <button

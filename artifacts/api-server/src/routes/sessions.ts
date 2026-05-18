@@ -187,6 +187,27 @@ router.post(
         let pauseMetrics = null;
         let wpmWindows = null;
 
+        // Kick off video presence analysis immediately — it needs only the
+        // captured frames, not the audio buffer, so it can run in true parallel
+        // with transcription and delivery analysis instead of sequentially after.
+        const videoPresencePromise: Promise<VideoPresenceResult | null> =
+          session.mode === "video" && videoFrames.length > 0
+            ? analyzeVideoPresence(
+                videoFrames,
+                session.promptText || undefined,
+                session.recordingContext || "seated"
+              ).then(result => {
+                logger.info({ sessionId: session.id }, "video presence analysis complete");
+                return result;
+              }).catch(err => {
+                logger.error({ sessionId: session.id, err }, "video presence analysis failed");
+                return null;
+              })
+            : Promise.resolve(null);
+        if (session.mode === "video" && videoFrames.length === 0) {
+          logger.warn({ sessionId: session.id }, "video session but no frames received — visual dimensions will not be assessable");
+        }
+
         if (audioBuffer && audioBuffer.length > 0) {
           logger.info({ sessionId: session.id, rawBytes: audioBuffer.length }, "audio upload received — converting format");
 
@@ -243,22 +264,8 @@ router.post(
           logger.warn({ sessionId: session.id }, "no audio buffer received — skipping transcription");
         }
 
-        // Run video presence analysis in parallel with audio analysis for video sessions
-        if (session.mode === "video" && videoFrames.length > 0) {
-          try {
-            console.log(`Running video presence analysis on ${videoFrames.length} frames`);
-            videoPresenceAnalysis = await analyzeVideoPresence(
-              videoFrames,
-              session.promptText || undefined,
-              session.recordingContext || "seated"
-            );
-            console.log("Video presence analysis complete");
-          } catch (err) {
-            console.error("Video presence analysis failed:", err);
-          }
-        } else if (session.mode === "video") {
-          console.warn("Video session but no frames received — visual dimensions will not be assessable");
-        }
+        // Await the video presence promise that was started before audio analysis
+        videoPresenceAnalysis = await videoPresencePromise;
 
         // If no speech was detected AND no audio delivery analysis could be
         // produced, there is nothing to score. Save the session as complete

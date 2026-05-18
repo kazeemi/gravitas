@@ -124,6 +124,21 @@ const INSIGHTS = [
   "Recording yourself is uncomfortable because you're finally hearing what your listeners hear. That discomfort is the work.",
 ];
 
+const REFLECTIONS = [
+  "Replay your opening sentence. Was your main point clear within the first ten words?",
+  "Think about your pace. Did you stay measured throughout, or speed up under pressure?",
+  "Did your pauses feel intentional — or did silence make you uncomfortable?",
+  "How did you close? Did you land on a clear point, or did you trail off?",
+  "Were there words you reached for — qualifiers, hedges, filler — before your strongest ideas?",
+  "Where did you feel most confident in this session? What was different about that moment?",
+  "Was there a point where you lost your thread? What happened just before it?",
+  "Did your response actually answer what was asked, or did it drift to adjacent ideas?",
+  "How was your energy level — consistent throughout, or did it dip in the middle?",
+  "If someone had to summarise your main point in one sentence, could they?",
+  "Were you speaking at a pace that felt comfortable for you, or for the listener?",
+  "Did your closing feel earned, or did it arrive earlier than it should have?",
+];
+
 export default function RecordPage() {
   const search = useSearch();
   const params = new URLSearchParams(search);
@@ -155,6 +170,9 @@ export default function RecordPage() {
   const processingStepRef = useRef<number | null>(null);
   const [insightIdx, setInsightIdx] = useState(0);
   const [insightFade, setInsightFade] = useState(true);
+  const [showReflection, setShowReflection] = useState(false);
+  const [reflectionIdx, setReflectionIdx] = useState(0);
+  const [secondsRemaining, setSecondsRemaining] = useState<number | null>(null);
   const [tipsOpen, setTipsOpen] = useState(false);
   const [showLeaveHint, setShowLeaveHint] = useState(false);
 
@@ -714,19 +732,28 @@ export default function RecordPage() {
     // Uses an exponential curve that approaches 90% asymptotically — never
     // reaches it until the poll confirms the session is truly complete.
     const startTime = Date.now();
+    const estimatedSecs = durationSeconds <= 0 ? 75
+      : mode === "video"
+      ? Math.min(150, Math.round(75 + durationSeconds * 0.3))
+      : Math.min(100, Math.round(55 + durationSeconds * 0.25));
+    setSecondsRemaining(estimatedSecs);
     let currentStep = 0;
     processingStepRef.current = window.setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000; // seconds elapsed
 
-      // Exponential approach to 90%: p = 90 * (1 - e^(-t/50))
-      // At 20s ≈ 33%, at 40s ≈ 55%, at 70s ≈ 75%, asymptotes to 90%
-      const raw = 90 * (1 - Math.exp(-elapsed / 50));
+      // Exponential approach to 90%: p = 90 * (1 - e^(-t/40))
+      // At 15s ≈ 31%, at 30s ≈ 53%, at 55s ≈ 74%, asymptotes to 90%
+      const raw = 90 * (1 - Math.exp(-elapsed / 40));
       setProgressPct(Math.round(raw));
+
+      // Live countdown
+      const remaining = Math.max(0, Math.round(estimatedSecs - elapsed));
+      setSecondsRemaining(remaining);
 
       // Step labels advance at realistic time milestones (independent of bar)
       const nextStep =
-        elapsed > 40 ? 3 :  // Generating coaching feedback
-        elapsed > 20 ? 2 :  // Analyzing delivery
+        elapsed > 35 ? 3 :  // Writing coaching notes
+        elapsed > 15 ? 2 :  // Scoring dimensions
         elapsed > 5  ? 1 :  // Transcribing speech
         0;
       if (nextStep > currentStep) {
@@ -805,13 +832,21 @@ export default function RecordPage() {
 
   useEffect(() => {
     if (step !== "processing") return;
+    let cardCount = 0;
     const interval = setInterval(() => {
       setInsightFade(false);
       setTimeout(() => {
-        setInsightIdx(i => (i + 1) % INSIGHTS.length);
+        cardCount += 1;
+        const nextIsReflection = cardCount % 2 === 1;
+        setShowReflection(nextIsReflection);
+        if (nextIsReflection) {
+          setReflectionIdx(i => (i + 1) % REFLECTIONS.length);
+        } else {
+          setInsightIdx(i => (i + 1) % INSIGHTS.length);
+        }
         setInsightFade(true);
       }, 400);
-    }, 5500);
+    }, 6000);
     return () => clearInterval(interval);
   }, [step]);
 
@@ -1379,11 +1414,12 @@ export default function RecordPage() {
           ? `${estimateSecs} seconds`
           : `${estimateMins} minute${estimateMins > 1 ? "s" : ""}`;
 
+        const dimCount = dimNames.length;
         const stepLabel =
           processingStep === 0 ? "Uploading your recording…"
-          : processingStep === 1 ? "Transcribing your speech…"
-          : processingStep === 2 ? (mode === "video" ? "Analyzing delivery & presence…" : "Analyzing your delivery…")
-          : "Generating your coaching feedback…";
+          : processingStep === 1 ? "Converting speech to text…"
+          : processingStep === 2 ? `Scoring ${dimCount} dimensions of delivery${mode === "video" ? " and presence" : ""}…`
+          : "Writing your personalized coaching notes…";
 
         const litCount =
           processingStep <= 1 ? 0
@@ -1404,14 +1440,19 @@ export default function RecordPage() {
               </div>
               <div className="text-center space-y-1.5">
                 <p className="text-base font-semibold text-gray-900">{stepLabel}</p>
-                <p className="text-xs text-gray-400">This may take {estimateLabel}</p>
                 {processingStep === 0 ? (
                   <p className="text-xs text-gray-400">Please stay while your recording uploads — just a moment.</p>
+                ) : secondsRemaining !== null && secondsRemaining > 3 ? (
+                  <p className="text-xs text-gray-400 tabular-nums">
+                    ~{secondsRemaining >= 60
+                      ? `${Math.ceil(secondsRemaining / 60)} min`
+                      : `${secondsRemaining}s`} remaining
+                  </p>
                 ) : (
-                  <p className="text-xs text-gray-400">Your results are on their way — worth staying for.</p>
+                  <p className="text-xs text-gray-400">Almost done…</p>
                 )}
                 {showLeaveHint && processingStep > 0 && (
-                  <p className="text-xs text-gray-300">If you need to leave, they'll be saved to your history.</p>
+                  <p className="text-xs text-gray-300">If you need to leave, your results will be saved to history.</p>
                 )}
               </div>
             </div>
@@ -1427,14 +1468,16 @@ export default function RecordPage() {
               <p className="text-right text-xs text-gray-400 font-mono">{progressPct}%</p>
             </div>
 
-            {/* Rotating insight */}
+            {/* Rotating insight / self-reflection card */}
             <div className="rounded-xl border border-[#F0953E]/20 bg-[#FBF7F2] px-5 py-4 min-h-[80px] flex flex-col justify-center">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C84A18] mb-1.5">Did you know</p>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C84A18] mb-1.5">
+                {showReflection ? "Reflect on this" : "Did you know"}
+              </p>
               <p
                 className="text-sm text-gray-700 leading-relaxed"
                 style={{ opacity: insightFade ? 1 : 0, transition: "opacity 0.4s ease" }}
               >
-                {INSIGHTS[insightIdx]}
+                {showReflection ? REFLECTIONS[reflectionIdx] : INSIGHTS[insightIdx]}
               </p>
             </div>
 

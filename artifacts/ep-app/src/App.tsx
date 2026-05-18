@@ -12,6 +12,7 @@ import DashboardPage from "@/pages/dashboard";
 import RecordPage from "@/pages/record";
 import HistoryPage from "@/pages/history";
 import SessionDetailPage from "@/pages/session-detail";
+import SessionRevealPage from "@/pages/session-reveal";
 import ProgressPage from "@/pages/progress";
 import SettingsPage from "@/pages/settings";
 import WelcomePage from "@/pages/welcome";
@@ -77,8 +78,11 @@ function AppRouter() {
       <Route path="/history">
         <ProtectedRoute component={HistoryPage} />
       </Route>
-      <Route path="/sessions/:id">
+      <Route path="/sessions/:id/full">
         <ProtectedRoute component={SessionDetailPage} />
+      </Route>
+      <Route path="/sessions/:id">
+        <ProtectedRoute component={SessionRevealPage} />
       </Route>
       <Route path="/progress">
         <ProtectedRoute component={ProgressPage} />

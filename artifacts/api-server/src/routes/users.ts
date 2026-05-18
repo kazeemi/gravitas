@@ -14,7 +14,7 @@ router.get("/v1/users/me", requireAuth, async (req, res) => {
 });
 
 router.patch("/v1/users/me", requireAuth, async (req, res) => {
-  const { name, roleTitle, communicationContext, goal, defaultRecordingContext, emailSummaries, hasSeenWelcome, notifyOnUpgrade } = req.body;
+  const { name, roleTitle, communicationContext, goal, defaultRecordingContext, emailSummaries, hasSeenWelcome, notifyOnUpgrade, interviewMode, interviewSector, interviewSectorCustom, interviewCompanies } = req.body;
   const updates: Partial<typeof usersTable.$inferInsert> = {};
   if (name !== undefined) updates.name = name;
   if (roleTitle !== undefined) updates.roleTitle = roleTitle;
@@ -24,6 +24,10 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
   if (emailSummaries !== undefined) updates.emailSummaries = emailSummaries;
   if (hasSeenWelcome !== undefined) updates.hasSeenWelcome = hasSeenWelcome;
   if (notifyOnUpgrade !== undefined) updates.notifyOnUpgrade = notifyOnUpgrade;
+  if (interviewMode !== undefined) updates.interviewMode = interviewMode;
+  if (interviewSector !== undefined) updates.interviewSector = interviewSector;
+  if (interviewSectorCustom !== undefined) updates.interviewSectorCustom = interviewSectorCustom;
+  if (interviewCompanies !== undefined) updates.interviewCompanies = interviewCompanies;
   const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, req.user!.userId)).returning();
   if (!user) return res.status(404).json({ error: "User not found" });
   const { passwordHash: _ph, ...safe } = user;

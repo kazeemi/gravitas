@@ -100,10 +100,10 @@ export interface Pillar {
 
 export const PILLARS: Pillar[] = [
   {
-    name: "Voice Quality",
-    dimensions: ["articulation", "projection", "vocal_tone", "vocal_steadiness"],
-    videoWeight: 0.20,
-    audioWeight: 0.25,
+    name: "Thought Clarity",
+    dimensions: ["confidence_language", "structure", "conciseness"],
+    videoWeight: 0.35,
+    audioWeight: 0.45,
   },
   {
     name: "Vocal Delivery",
@@ -112,10 +112,10 @@ export const PILLARS: Pillar[] = [
     audioWeight: 0.30,
   },
   {
-    name: "Thought Clarity",
-    dimensions: ["confidence_language", "structure", "conciseness"],
-    videoWeight: 0.35,
-    audioWeight: 0.45,
+    name: "Voice Quality",
+    dimensions: ["articulation", "projection", "vocal_tone", "vocal_steadiness"],
+    videoWeight: 0.20,
+    audioWeight: 0.25,
   },
   {
     name: "Physical Delivery",

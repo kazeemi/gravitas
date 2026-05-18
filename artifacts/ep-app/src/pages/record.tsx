@@ -977,37 +977,70 @@ export default function RecordPage() {
       {step === "setup" && (
         <div className="space-y-4">
 
-          {/* ── Prompt hero card ── */}
-          {!customPrompt.trim() && prompt && (
-            <div className="relative overflow-hidden rounded-2xl bg-[#0F1B2D]">
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#F0953E] to-[#C84A18]" />
-              <div className="px-6 pt-6 pb-5">
-                {prompts.length > 1 && (
-                  <div className="flex items-center justify-end gap-2 mb-4">
-                    <button
-                      onClick={goPrevPrompt}
-                      className="h-8 w-8 rounded-full border border-white/40 flex items-center justify-center text-white/80 hover:border-white hover:text-white hover:bg-white/10 transition-all text-lg leading-none"
-                      aria-label="Previous prompt"
-                    >‹</button>
-                    <button
-                      onClick={goNextPrompt}
-                      className="h-8 w-8 rounded-full border border-white/40 flex items-center justify-center text-white/80 hover:border-white hover:text-white hover:bg-white/10 transition-all text-lg leading-none"
-                      aria-label="Next prompt"
-                    >›</button>
-                  </div>
-                )}
-                <p
-                  className="text-[1.4rem] font-semibold leading-snug text-white"
-                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-                >
-                  {prompt.text}
-                </p>
-                <p className="mt-4 text-[11px] text-white/35 font-medium tracking-wide">
-                  {Math.floor(prompt.recommendedDurationSeconds / 60)}:{String(prompt.recommendedDurationSeconds % 60).padStart(2, "0")} min recommended
-                </p>
+          {/* ── Prompt / custom entry (unified block) ── */}
+          <div>
+            {showCustomPrompt || customPrompt.trim() ? (
+              <div className="relative overflow-hidden rounded-2xl bg-[#0F1B2D]">
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#F0953E] to-[#C84A18]" />
+                <div className="px-6 pt-6 pb-5">
+                  <textarea
+                    autoFocus
+                    value={customPrompt}
+                    onChange={(e) => setCustomPrompt(e.target.value)}
+                    placeholder="Type your question or topic…"
+                    rows={3}
+                    className="w-full bg-transparent text-[1.4rem] font-semibold leading-snug text-white placeholder:text-white/25 focus:outline-none resize-none"
+                    style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                  />
+                  <button
+                    onClick={() => { setCustomPrompt(""); setShowCustomPrompt(false); }}
+                    className="mt-3 text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
+                  >
+                    ← Use a practice prompt instead
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              prompt && (
+                <div className="relative overflow-hidden rounded-2xl bg-[#0F1B2D]">
+                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#F0953E] to-[#C84A18]" />
+                  <div className="px-6 pt-6 pb-5">
+                    {prompts.length > 1 && (
+                      <div className="flex items-center justify-end gap-2 mb-4">
+                        <button
+                          onClick={goPrevPrompt}
+                          className="h-8 w-8 rounded-full border border-white/40 flex items-center justify-center text-white/80 hover:border-white hover:text-white hover:bg-white/10 transition-all text-lg leading-none"
+                          aria-label="Previous prompt"
+                        >‹</button>
+                        <button
+                          onClick={goNextPrompt}
+                          className="h-8 w-8 rounded-full border border-white/40 flex items-center justify-center text-white/80 hover:border-white hover:text-white hover:bg-white/10 transition-all text-lg leading-none"
+                          aria-label="Next prompt"
+                        >›</button>
+                      </div>
+                    )}
+                    <p
+                      className="text-[1.4rem] font-semibold leading-snug text-white"
+                      style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                    >
+                      {prompt.text}
+                    </p>
+                    <p className="mt-4 text-[11px] text-white/35 font-medium tracking-wide">
+                      {Math.floor(prompt.recommendedDurationSeconds / 60)}:{String(prompt.recommendedDurationSeconds % 60).padStart(2, "0")} min recommended
+                    </p>
+                  </div>
+                  <div className="px-6 pb-4">
+                    <button
+                      onClick={() => setShowCustomPrompt(true)}
+                      className="text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
+                    >
+                      + Type your own question or topic
+                    </button>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
 
           {/* ── Mode picker ── */}
           <div className="grid grid-cols-2 gap-3">
@@ -1030,38 +1063,6 @@ export default function RecordPage() {
                 </button>
               );
             })}
-          </div>
-
-          {/* ── Custom prompt ── */}
-          <div>
-            {!showCustomPrompt && !customPrompt.trim() ? (
-              <button
-                onClick={() => setShowCustomPrompt(true)}
-                className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2 transition-colors"
-              >
-                + Type your own question or topic
-              </button>
-            ) : (
-              <>
-                <p className="text-xs font-medium text-gray-500 mb-1.5">
-                  {customPrompt.trim() ? "Your topic (practice prompt hidden)" : "Type your own question or topic:"}
-                </p>
-                <textarea
-                  autoFocus
-                  value={customPrompt}
-                  onChange={(e) => setCustomPrompt(e.target.value)}
-                  placeholder="Describe what you'll be speaking about…"
-                  rows={2}
-                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#F0953E] bg-white"
-                />
-                <button
-                  onClick={() => { setCustomPrompt(""); setShowCustomPrompt(false); }}
-                  className="mt-1 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
-                >
-                  {customPrompt.trim() ? "Clear and use practice prompt instead" : "Cancel"}
-                </button>
-              </>
-            )}
           </div>
 
           {/* ── Collapsible tips ── */}

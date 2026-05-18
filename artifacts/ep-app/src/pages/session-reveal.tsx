@@ -703,6 +703,7 @@ export default function SessionRevealPage() {
                   No dimension scores available for this session.
                 </p>
               )}
+            </div>
           </div>
         )}
 

@@ -565,182 +565,128 @@ export default function SessionRevealPage() {
               Your results
             </p>
 
-            {/* Horizontal pillar tabs — appear one at a time */}
-            <div className="grid grid-cols-2 gap-2 flex-shrink-0">
+            {/* Vertical pillar list — each animates in one at a time */}
+            <div className="flex-1 overflow-y-auto space-y-6">
               {dimensionsByPillar.map(({ pillar, dimensions }, pi) => {
                 const avgScore = dimensions.reduce((s, d) => s + d.score, 0) / dimensions.length;
                 const pillarTier = scoreToTier(avgScore);
                 const pillarColors = getTierColors(pillarTier);
-                const isSelected = selectedPillarIndex === pi;
-                const isRevealed = pillarsRevealed > pi;
-                const weight = Math.round(
-                  (session.mode === "video" ? pillar.videoWeight : pillar.audioWeight) * 100
-                );
 
                 return (
-                  <button
+                  <div
                     key={pillar.name}
-                    onClick={() => {
-                      setSelectedPillarIndex(pi);
-                      setExpandedDimKey(null);
-                    }}
-                    className="rounded-xl px-4 py-3.5 text-left transition-all"
                     style={{
-                      opacity: isRevealed ? 1 : 0,
-                      transform: isRevealed ? "none" : "translateY(12px) scale(0.97)",
-                      transition: "opacity 0.4s ease, transform 0.4s ease, background 0.2s ease, border-color 0.2s ease",
-                      background: isSelected ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
-                      border: isSelected
-                        ? `1px solid ${pillarColors.hex}50`
-                        : "1px solid rgba(255,255,255,0.07)",
+                      opacity: pillarsRevealed > pi ? 1 : 0,
+                      transform: pillarsRevealed > pi ? "none" : "translateY(14px)",
+                      transition: "opacity 0.4s ease, transform 0.4s ease",
                     }}
                   >
-                    <p
-                      className="text-[10px] font-semibold uppercase tracking-widest mb-2 leading-tight"
-                      style={{ color: isSelected ? pillarColors.hex : "rgba(255,255,255,0.35)" }}
-                    >
-                      {pillar.name}
-                    </p>
-                    <p
-                      className="text-2xl font-bold tabular-nums leading-none"
-                      style={{ color: pillarColors.hex }}
-                    >
-                      {avgScore.toFixed(1)}
-                    </p>
-                    {weight > 0 && (
+                    {/* Pillar header */}
+                    <div className="flex items-center justify-between mb-2">
                       <p
-                        className="text-[9px] mt-1.5"
-                        style={{ color: "rgba(255,255,255,0.22)" }}
+                        className="text-xs font-bold uppercase tracking-widest"
+                        style={{ color: "rgba(255,255,255,0.5)" }}
                       >
-                        {weight}% weight
+                        {pillar.name}
                       </p>
-                    )}
-                  </button>
+                      <span
+                        className="text-base font-bold tabular-nums"
+                        style={{ color: pillarColors.hex }}
+                      >
+                        {avgScore.toFixed(1)}
+                      </span>
+                    </div>
+                    <div className="mb-2" style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
+
+                    {/* Dimension rows */}
+                    <div className="space-y-1.5">
+                      {dimensions.map(d => {
+                        const dColors = getTierColors(d.tier);
+                        const isExpanded = expandedDimKey === d.dimensionKey;
+                        const label = DIMENSION_LABELS[d.dimensionKey] || d.dimensionKey;
+
+                        return (
+                          <div key={d.dimensionKey}>
+                            <button
+                              className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-colors"
+                              style={{
+                                background: isExpanded ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)",
+                                border: isExpanded ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
+                              }}
+                              onClick={() => setExpandedDimKey(isExpanded ? null : d.dimensionKey)}
+                            >
+                              <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>
+                                {label}
+                              </span>
+                              <div className="flex items-center gap-2.5 flex-shrink-0 ml-3">
+                                <span className="text-sm font-bold tabular-nums" style={{ color: dColors.hex }}>
+                                  {d.score.toFixed(1)}
+                                </span>
+                                <span
+                                  className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded"
+                                  style={{ background: `${dColors.hex}22`, color: dColors.hex }}
+                                >
+                                  {d.tier}
+                                </span>
+                                {isExpanded
+                                  ? <ChevronUpIcon className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.3)" }} />
+                                  : <ChevronDownIcon className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.3)" }} />}
+                              </div>
+                            </button>
+
+                            {isExpanded && (
+                              <div
+                                className="mx-1 mb-1 px-5 py-5 rounded-xl space-y-4"
+                                style={{
+                                  background: "rgba(255,255,255,0.04)",
+                                  border: "1px solid rgba(255,255,255,0.07)",
+                                }}
+                              >
+                                {d.strengthText && (
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#F0953E" }}>
+                                      What landed
+                                    </p>
+                                    <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.68)" }}>
+                                      {d.strengthText}
+                                    </p>
+                                  </div>
+                                )}
+                                {d.gapText && (
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#C84A18" }}>
+                                      What to sharpen
+                                    </p>
+                                    <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.68)" }}>
+                                      {d.gapText}
+                                    </p>
+                                  </div>
+                                )}
+                                {d.nextStepText && (
+                                  <div>
+                                    <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>
+                                      Next recording
+                                    </p>
+                                    <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.52)" }}>
+                                      {d.nextStepText}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 );
               })}
-            </div>
 
-            {/* Dimensions for selected pillar */}
-            {activePillar && (
-              <div className="flex-1 overflow-y-auto space-y-1.5">
-                {/* Pillar dimensions heading */}
-                <p
-                  className="text-xs font-semibold uppercase tracking-widest mb-3"
-                  style={{ color: "rgba(255,255,255,0.3)" }}
-                >
-                  {activePillar.pillar.name} — dimensions
+              {dimensionsByPillar.length === 0 && (
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.35)", fontStyle: "italic" }}>
+                  No dimension scores available for this session.
                 </p>
-
-                {activePillar.dimensions.map(d => {
-                  const dColors = getTierColors(d.tier);
-                  const isExpanded = expandedDimKey === d.dimensionKey;
-                  const label = DIMENSION_LABELS[d.dimensionKey] || d.dimensionKey;
-
-                  return (
-                    <div key={d.dimensionKey}>
-                      <button
-                        className="w-full flex items-center justify-between px-4 py-3 rounded-xl text-left transition-colors"
-                        style={{
-                          background: isExpanded ? "rgba(255,255,255,0.09)" : "rgba(255,255,255,0.04)",
-                          border: isExpanded ? "1px solid rgba(255,255,255,0.1)" : "1px solid transparent",
-                        }}
-                        onClick={() => setExpandedDimKey(isExpanded ? null : d.dimensionKey)}
-                      >
-                        <span
-                          className="text-sm font-medium"
-                          style={{ color: "rgba(255,255,255,0.8)" }}
-                        >
-                          {label}
-                        </span>
-                        <div className="flex items-center gap-2.5 flex-shrink-0 ml-3">
-                          <span
-                            className="text-sm font-bold tabular-nums"
-                            style={{ color: dColors.hex }}
-                          >
-                            {d.score.toFixed(1)}
-                          </span>
-                          <span
-                            className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded"
-                            style={{ background: `${dColors.hex}22`, color: dColors.hex }}
-                          >
-                            {d.tier}
-                          </span>
-                          {isExpanded
-                            ? <ChevronUpIcon className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.3)" }} />
-                            : <ChevronDownIcon className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.3)" }} />}
-                        </div>
-                      </button>
-
-                      {/* Expanded coaching card */}
-                      {isExpanded && (
-                        <div
-                          className="mx-1 mb-1.5 px-5 py-5 rounded-xl space-y-4"
-                          style={{
-                            background: "rgba(255,255,255,0.04)",
-                            border: "1px solid rgba(255,255,255,0.07)",
-                          }}
-                        >
-                          {d.strengthText && (
-                            <div>
-                              <p
-                                className="text-xs font-semibold uppercase tracking-widest mb-2"
-                                style={{ color: "#F0953E" }}
-                              >
-                                What landed
-                              </p>
-                              <p
-                                className="text-sm leading-relaxed"
-                                style={{ color: "rgba(255,255,255,0.68)" }}
-                              >
-                                {d.strengthText}
-                              </p>
-                            </div>
-                          )}
-                          {d.gapText && (
-                            <div>
-                              <p
-                                className="text-xs font-semibold uppercase tracking-widest mb-2"
-                                style={{ color: "#C84A18" }}
-                              >
-                                What to sharpen
-                              </p>
-                              <p
-                                className="text-sm leading-relaxed"
-                                style={{ color: "rgba(255,255,255,0.68)" }}
-                              >
-                                {d.gapText}
-                              </p>
-                            </div>
-                          )}
-                          {d.nextStepText && (
-                            <div>
-                              <p
-                                className="text-xs font-semibold uppercase tracking-widest mb-2"
-                                style={{ color: "rgba(255,255,255,0.3)" }}
-                              >
-                                Next recording
-                              </p>
-                              <p
-                                className="text-sm leading-relaxed"
-                                style={{ color: "rgba(255,255,255,0.52)" }}
-                              >
-                                {d.nextStepText}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {dimensionsByPillar.length === 0 && (
-              <p className="text-sm" style={{ color: "rgba(255,255,255,0.35)", fontStyle: "italic" }}>
-                No dimension scores available for this session.
-              </p>
-            )}
+              )}
           </div>
         )}
 

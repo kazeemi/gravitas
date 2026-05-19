@@ -14,7 +14,11 @@ router.get("/v1/users/me", requireAuth, async (req, res) => {
 });
 
 router.patch("/v1/users/me", requireAuth, async (req, res) => {
-  const { name, roleTitle, communicationContext, goal, defaultRecordingContext, emailSummaries, hasSeenWelcome, notifyOnUpgrade, interviewMode, interviewSector, interviewSectorCustom, interviewCompanies } = req.body;
+  const {
+    name, roleTitle, communicationContext, goal, defaultRecordingContext,
+    emailSummaries, hasSeenWelcome, notifyOnUpgrade,
+    interviewMode, interviewSector, interviewSectorCustom, interviewCompanies,
+  } = req.body;
   const updates: Partial<typeof usersTable.$inferInsert> = {};
   if (name !== undefined) updates.name = name;
   if (roleTitle !== undefined) updates.roleTitle = roleTitle;
@@ -35,18 +39,55 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
 });
 
 router.post("/v1/users/me/onboarding", requireAuth, async (req, res) => {
-  const { roleTitle, communicationContext, goal, defaultRecordingContext, interviewMode, interviewSector, interviewSectorCustom, interviewCompanies } = req.body;
+  const {
+    // legacy + common
+    roleTitle, communicationContext, goal, defaultRecordingContext,
+    interviewMode, interviewSector, interviewSectorCustom, interviewCompanies,
+    // v2 professional profile
+    careerStage, educationLevel, workExperienceYears,
+    // v2 primary goal path
+    primaryGoal,
+    // v2 interview path
+    interviewRole, interviewRoleCustom, interviewTimeline, interviewStage,
+    interviewDate, hasConfirmedInterview,
+    // v2 workplace path
+    workEnvironment, workCurrentRole, workCurrentRoleCustom, highStakesContexts,
+    // v2 self-assessment
+    selfAssessmentThoughtClarity, selfAssessmentVocalDelivery,
+    selfAssessmentVoiceQuality, selfAssessmentPhysicalDelivery,
+  } = req.body;
+
   const [user] = await db.update(usersTable).set({
-    roleTitle,
-    communicationContext,
-    goal,
-    defaultRecordingContext,
-    interviewMode: typeof interviewMode === "boolean" ? interviewMode : false,
+    roleTitle: roleTitle ?? null,
+    communicationContext: communicationContext ?? null,
+    goal: goal ?? null,
+    defaultRecordingContext: defaultRecordingContext ?? null,
+    interviewMode: typeof interviewMode === "boolean" ? interviewMode : primaryGoal === "interview_prep",
     interviewSector: interviewSector ?? null,
     interviewSectorCustom: interviewSectorCustom ?? null,
     interviewCompanies: interviewCompanies ?? null,
+    // v2 fields
+    careerStage: careerStage ?? null,
+    educationLevel: educationLevel ?? null,
+    workExperienceYears: workExperienceYears ?? null,
+    primaryGoal: primaryGoal ?? null,
+    interviewRole: interviewRole ?? null,
+    interviewRoleCustom: interviewRoleCustom ?? null,
+    interviewTimeline: interviewTimeline ?? null,
+    interviewStage: interviewStage ?? null,
+    interviewDate: interviewDate ?? null,
+    hasConfirmedInterview: typeof hasConfirmedInterview === "boolean" ? hasConfirmedInterview : null,
+    workEnvironment: workEnvironment ?? null,
+    workCurrentRole: workCurrentRole ?? null,
+    workCurrentRoleCustom: workCurrentRoleCustom ?? null,
+    highStakesContexts: highStakesContexts ?? null,
+    selfAssessmentThoughtClarity: typeof selfAssessmentThoughtClarity === "number" ? selfAssessmentThoughtClarity : null,
+    selfAssessmentVocalDelivery: typeof selfAssessmentVocalDelivery === "number" ? selfAssessmentVocalDelivery : null,
+    selfAssessmentVoiceQuality: typeof selfAssessmentVoiceQuality === "number" ? selfAssessmentVoiceQuality : null,
+    selfAssessmentPhysicalDelivery: typeof selfAssessmentPhysicalDelivery === "number" ? selfAssessmentPhysicalDelivery : null,
     onboardingCompleted: true,
   }).where(eq(usersTable.id, req.user!.userId)).returning();
+
   if (!user) return res.status(404).json({ error: "User not found" });
   const { passwordHash: _ph, ...safe } = user;
   return res.json(safe);

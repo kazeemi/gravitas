@@ -1,0 +1,270 @@
+2. PROFESSIONAL PROFILE
+Question 1
+“Which best describes your current stage?”
+Type: Single Select
+Options:
+* Undergraduate Student
+* Master’s / MBA Student
+* Early Career Professional (0–3 years)
+* Mid-Level Professional (4–8 years)
+* Senior Professional (9–15 years)
+* Executive / Leadership (15+ years)
+
+Question 2
+“What is your highest level of education?”
+Type: Single Select
+Options:
+* High School
+* Undergraduate Degree
+* Master’s Degree
+* MBA
+* Doctorate / PhD
+* Other Professional Qualification
+* Prefer not to say
+
+Question 3
+“How many years of full-time work experience do you have?”
+Type: Single Select
+Options:
+* 0
+* 1–3 years
+* 4–7 years
+* 8–12 years
+* 13–20 years
+* 20+ years
+
+3. PRIMARY GOAL
+Question 4
+“Where would you most like to elevate your executive presence?”
+Type: Single Select
+Options:
+* Interview Preparation
+* Workplace Presence
+
+FLOW A — INTERVIEW PREPARATION
+(Only shown if user selects “Interview Preparation”)
+
+4A. INTERVIEW CONTEXT
+Question 5
+“Which industry is your interview for?”
+Type: Single Select
+Options:
+* Consulting
+* Banking & Finance
+* Technology
+* Other
+If “Other” selected:
+* Manual text field
+
+5A. TARGET COMPANY
+Question 6
+“Which company are you interviewing with?”
+Type: Multiple Selection
+
+IF CONSULTING SELECTED:
+Options:
+* McKinsey & Company
+* Bain & Company
+* Boston Consulting Group
+* Oliver Wyman
+* Strategy&
+* Other
+If “Other” selected:
+* Manual text field
+
+IF BANKING & FINANCE SELECTED:
+Options:
+* Goldman Sachs
+* J.P. Morgan
+* Morgan Stanley
+* BlackRock
+* Citi
+* Other
+If “Other” selected:
+* Manual text field
+
+IF TECHNOLOGY SELECTED:
+Options:
+* Google
+* Microsoft
+* Amazon
+* Meta
+* Apple
+* Other
+If “Other” selected:
+* Manual text field
+
+IF OTHER INDUSTRY SELECTED:
+* Manual text field: “Please enter the company name”
+
+6A. TARGET ROLE
+Question 7
+“Which role are you interviewing for?”
+Type: Single Select
+IF CONSULTING SELECTED:
+Options:
+* Business Analyst / Associate
+* Consultant
+* Engagement Manager
+* Associate Partner / Partner 
+* Other
+If “Other” selected:
+* Manual text field
+
+IF BANKING & FINANCE SELECTED:
+Options:
+* Analyst
+* Associate
+* VP / Director
+* Investment Banking
+* Asset Management
+* Other
+If “Other” selected:
+* Manual text field
+
+IF TECHNOLOGY SELECTED:
+Options:
+* Product Manager
+* Strategy & Operations
+* Program Manager
+* Leadership Role
+* Technical Role
+* Other
+If “Other” selected:
+* Manual text field
+
+IF OTHER INDUSTRY SELECTED:
+* Manual text field: “Please enter your target role”
+
+7A. INTERVIEW TIMELINE
+Question 8
+“Do you have a confirmed interview date?”
+Type: Single Select
+Options:
+* Yes
+* No
+
+IF YES SELECTED:
+Question 9
+“Select your interview date”
+Type: Date Picker
+
+Question 10
+“What stage are you currently at?”
+Type: Single Select
+Options:
+* Actively applying
+* Recruiter Screen
+* First Round
+* Final Round
+* Prefer not to say
+
+IF NO SELECTED:
+Question 11
+“What best describes your timeline?”
+Type: Single Select
+Options:
+* Interview within 2 weeks
+* Interview within 1 month
+* Interview within 3 months
+* Exploring opportunities
+* General preparation
+
+8A. EXECUTIVE PRESENCE SELF-ASSESSMENT
+Section Intro
+“Before we begin, we’d like to understand how you currently perceive your executive presence. Please rate yourself across the following dimensions. There are no right or wrong answers — this helps personalize your experience and track your growth over time.”
+Sliding Scale from 1 - 10. 
+
+Question 12
+“Thought Clarity”
+Description: “How clearly and confidently you organize and express your thinking.”
+
+Question 13
+“Vocal Delivery”
+Description: “How effectively you use pace, pauses, and vocal variation to communicate presence.”
+
+Question 14
+“Voice Quality”
+Description: “How grounded, steady, and authoritative your voice sounds to others.”
+
+Question 15
+“Physical Delivery”
+Description: “How your body language and nonverbal presence support your message.”
+
+FLOW B — WORKPLACE PRESENCE
+(Only shown if user selects “Workplace Presence”)
+
+4B. PROFESSIONAL CONTEXT
+Question 5
+“Which environment best reflects your current work?”
+Type: Single Select
+Options:
+* Corporate
+* Consulting / Advisory
+* Finance
+* Technology
+* Government / Public Sector
+* Entrepreneurship / Startup
+* Academia / Research
+* Other
+If “Other” selected:
+* Manual text field
+
+5B. CURRENT ROLE
+Question 6
+“Which best describes your current role?”
+Type: Single Select
+Options:
+* Individual Contributor
+* Team Manager
+* Senior Manager
+* Director / VP
+* Executive / C-Suite
+* Founder / Entrepreneur
+* Consultant / Advisor
+* Other
+If “Other” selected:
+* Manual text field
+
+6B. HIGH-STAKES CONTEXTS
+Question 7
+“Where does executive presence matter most for you?”
+Type: Multiple Select
+Options:
+* Leadership Meetings
+* Presentations
+* Team Management
+* Client / Stakeholder Interactions
+* Public Speaking
+* Difficult Conversations
+* Networking & Relationship Building
+* Board / Executive Interactions
+* Cross-Functional Collaboration
+* Media / External Presence
+
+7B. EXECUTIVE PRESENCE SELF-ASSESSMENT
+Section Intro
+“Before we begin, we’d like to understand how you currently perceive your executive presence. Please rate yourself across the following dimensions. There are no right or wrong answers — this helps personalize your experience and track your growth over time.”
+Sliding Scale from 1 - 10. 
+
+Question 8
+“Thought Clarity”
+Description: “How clearly and confidently you organize and express your thinking.”
+
+Question 9
+“Vocal Delivery”
+Description: “How effectively you use pace, pauses, and vocal variation to communicate presence.”
+
+Question 10
+“Voice Quality”
+Description: “How grounded, steady, and authoritative your voice sounds to others.”
+
+Question 11
+“Physical Delivery”
+Description: “How your body language and nonverbal presence support your message.”
+
+
+FINAL STEP — BASELINE RECORDING - take users to the Record page for Executive Presence Baselining - do not show prompt change options - they have to do this first. They can also use this opportunity to learn how the recording works. 
+Section Title
+Prompt: Executive Presence Baseline: Tell us about yourself, your professional background, and what brought you here.
+Recording Length: 1–2 minutes

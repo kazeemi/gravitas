@@ -219,6 +219,7 @@ export default function RecordPage() {
   }, [modeParam]);
 
   const promptParam = params.get("prompt");
+  const baselineMode = params.get("baseline") === "1";
 
   useEffect(() => {
     api.prompts.list().then(data => {
@@ -1018,21 +1019,37 @@ export default function RecordPage() {
               <div className="relative overflow-hidden rounded-2xl bg-[#0F1B2D]">
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#F0953E] to-[#C84A18]" />
                 <div className="px-6 pt-6 pb-5">
-                  <textarea
-                    autoFocus
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    placeholder="Type your question or topic…"
-                    rows={3}
-                    className="w-full bg-transparent text-[1.4rem] font-semibold leading-snug text-white placeholder:text-white/25 focus:outline-none resize-none"
-                    style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-                  />
-                  <button
-                    onClick={() => { setCustomPrompt(""); setShowCustomPrompt(false); }}
-                    className="mt-3 text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
-                  >
-                    ← Use a practice prompt instead
-                  </button>
+                  {baselineMode && (
+                    <p className="text-[10px] uppercase tracking-widest text-[#F0953E]/80 font-medium mb-3" style={{ fontFamily: "'DM Mono', monospace" }}>
+                      Baseline Recording
+                    </p>
+                  )}
+                  {baselineMode ? (
+                    <p
+                      className="text-[1.4rem] font-semibold leading-snug text-white"
+                      style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                    >
+                      {customPrompt}
+                    </p>
+                  ) : (
+                    <textarea
+                      autoFocus
+                      value={customPrompt}
+                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      placeholder="Type your question or topic…"
+                      rows={3}
+                      className="w-full bg-transparent text-[1.4rem] font-semibold leading-snug text-white placeholder:text-white/25 focus:outline-none resize-none"
+                      style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                    />
+                  )}
+                  {!baselineMode && (
+                    <button
+                      onClick={() => { setCustomPrompt(""); setShowCustomPrompt(false); }}
+                      className="mt-3 text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
+                    >
+                      ← Use a practice prompt instead
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -1064,14 +1081,16 @@ export default function RecordPage() {
                       {Math.floor(prompt.recommendedDurationSeconds / 60)}:{String(prompt.recommendedDurationSeconds % 60).padStart(2, "0")} min recommended
                     </p>
                   </div>
-                  <div className="px-6 pb-4">
-                    <button
-                      onClick={() => setShowCustomPrompt(true)}
-                      className="text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
-                    >
-                      + Type your own question or topic
-                    </button>
-                  </div>
+                  {!baselineMode && (
+                    <div className="px-6 pb-4">
+                      <button
+                        onClick={() => setShowCustomPrompt(true)}
+                        className="text-[11px] text-white/40 hover:text-white/70 underline underline-offset-2 transition-colors"
+                      >
+                        + Type your own question or topic
+                      </button>
+                    </div>
+                  )}
                 </div>
               )
             )}

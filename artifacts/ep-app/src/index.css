@@ -454,3 +454,43 @@
     inset: -1px;
   }
 }
+/* Range input (self-assessment sliders in onboarding) */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F0953E;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(240,149,62,0.4);
+  margin-top: -7px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #F0953E;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(240,149,62,0.4);
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: #0F1B2D15;
+}

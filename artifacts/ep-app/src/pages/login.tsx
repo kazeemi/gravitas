@@ -105,7 +105,7 @@ export default function LoginPage() {
               Beta
             </span>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Executive Presence AI Coach</p>
+          <p className="mt-1 text-sm text-muted-foreground">Executive Presence, Elevated.</p>
           <p className="text-xs text-muted-foreground">Sign in to your account</p>
         </div>
 

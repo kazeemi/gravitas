@@ -82,28 +82,6 @@ const HIGH_STAKES_CONTEXTS = [
   "Media / External Presence",
 ];
 
-const SELF_ASSESSMENT_DIMS = [
-  {
-    key: "thoughtClarity" as const,
-    label: "Thought Clarity",
-    description: "How clearly and confidently you organize and express your thinking.",
-  },
-  {
-    key: "vocalDelivery" as const,
-    label: "Vocal Delivery",
-    description: "How effectively you use pace, pauses, and vocal variation to communicate presence.",
-  },
-  {
-    key: "voiceQuality" as const,
-    label: "Voice Quality",
-    description: "How grounded, steady, and authoritative your voice sounds to others.",
-  },
-  {
-    key: "physicalDelivery" as const,
-    label: "Physical Delivery",
-    description: "How your body language and nonverbal presence support your message.",
-  },
-];
 
 // ── Step definitions ──────────────────────────────────────────────────────────
 
@@ -111,17 +89,17 @@ type StepId =
   | "education" | "experience" | "primary_goal"
   | "industry" | "company" | "role" | "interview_confirmed" | "interview_detail"
   | "environment" | "current_role" | "high_stakes"
-  | "self_assessment" | "baseline";
+  | "baseline";
 
 type Path = "interview" | "workplace" | null;
 
 function getStepList(path: Path): StepId[] {
   const common: StepId[] = ["experience", "education", "primary_goal"];
   if (path === "interview") {
-    return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", "self_assessment", "baseline"];
+    return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", "baseline"];
   }
   if (path === "workplace") {
-    return [...common, "environment", "current_role", "high_stakes", "self_assessment", "baseline"];
+    return [...common, "environment", "current_role", "high_stakes", "baseline"];
   }
   return common;
 }
@@ -205,52 +183,6 @@ function CheckCard({
   );
 }
 
-function SliderRow({
-  label,
-  description,
-  value,
-  onChange,
-}: {
-  label: string;
-  description: string;
-  value: number;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div className="space-y-2">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <p className="text-sm font-semibold text-[#0F1B2D]">{label}</p>
-          <p className="text-xs text-[#0F1B2D]/50 mt-0.5">{description}</p>
-        </div>
-        <span
-          className="text-lg font-bold tabular-nums ml-4 flex-shrink-0"
-          style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}
-        >
-          {value}
-        </span>
-      </div>
-      <div className="relative">
-        <input
-          type="range"
-          min={1}
-          max={10}
-          step={1}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
-          style={{
-            background: `linear-gradient(to right, #F0953E ${((value - 1) / 9) * 100}%, #0F1B2D15 ${((value - 1) / 9) * 100}%)`,
-          }}
-        />
-        <div className="flex justify-between mt-1">
-          <span className="text-[10px] text-[#0F1B2D]/35">1</span>
-          <span className="text-[10px] text-[#0F1B2D]/35">10</span>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function BackButton({ onClick }: { onClick: () => void }) {
   return (
@@ -311,19 +243,12 @@ export default function OnboardingPage() {
   const [workCurrentRoleCustom, setWorkCurrentRoleCustom] = useState("");
   const [highStakesContexts, setHighStakesContexts] = useState<string[]>([]);
 
-  // Self-assessment
-  const [selfAssessment, setSelfAssessment] = useState({
-    thoughtClarity: 5,
-    vocalDelivery: 5,
-    voiceQuality: 5,
-    physicalDelivery: 5,
-  });
 
   // ── Step navigation ─────────────────────────────────────────────────────────
 
   const steps = getStepList(path);
   const currentIndex = steps.indexOf(currentStep);
-  const displayTotal = path === "interview" ? 10 : path === "workplace" ? 8 : 10;
+  const displayTotal = path === "interview" ? 9 : path === "workplace" ? 7 : 9;
   const displayIndex = currentIndex + 1;
 
   const goNext = () => {
@@ -381,10 +306,6 @@ export default function OnboardingPage() {
         workCurrentRole: path === "workplace" ? (workCurrentRole || null) : null,
         workCurrentRoleCustom: path === "workplace" && workCurrentRole === "Other" ? (workCurrentRoleCustom.trim() || null) : null,
         highStakesContexts: path === "workplace" && highStakesContexts.length > 0 ? highStakesContexts.join("; ") : null,
-        selfAssessmentThoughtClarity: selfAssessment.thoughtClarity,
-        selfAssessmentVocalDelivery: selfAssessment.vocalDelivery,
-        selfAssessmentVoiceQuality: selfAssessment.voiceQuality,
-        selfAssessmentPhysicalDelivery: selfAssessment.physicalDelivery,
       });
       await refreshUser();
       setLocation(`/record?baseline=1&prompt=${encodeURIComponent(BASELINE_PROMPT)}`);
@@ -831,35 +752,6 @@ export default function OnboardingPage() {
                 ))}
               </div>
               <ContinueButton onClick={goNext} disabled={highStakesContexts.length === 0} />
-            </div>
-          )}
-
-          {/* ── STEP: self_assessment ──────────────────────────────────────── */}
-          {currentStep === "self_assessment" && (
-            <div className="space-y-5">
-              <div className="flex items-center gap-3 mb-1">
-                <BackButton onClick={goBack} />
-              </div>
-              <div>
-                <h1 className="text-3xl font-semibold leading-tight" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}>
-                  How would you rate your executive presence today?
-                </h1>
-                <p className="mt-2 text-sm leading-relaxed" style={{ color: "#0F1B2D60" }}>
-                  No right or wrong answers — this helps personalise your coaching and gives you a baseline to track growth over time.
-                </p>
-              </div>
-              <div className="rounded-2xl p-5 space-y-6" style={{ backgroundColor: "white", border: "2px solid #0F1B2D08" }}>
-                {SELF_ASSESSMENT_DIMS.map(dim => (
-                  <SliderRow
-                    key={dim.key}
-                    label={dim.label}
-                    description={dim.description}
-                    value={selfAssessment[dim.key]}
-                    onChange={(v) => setSelfAssessment(prev => ({ ...prev, [dim.key]: v }))}
-                  />
-                ))}
-              </div>
-              <ContinueButton onClick={goNext} />
             </div>
           )}
 

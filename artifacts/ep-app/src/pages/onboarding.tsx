@@ -3,8 +3,18 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 
-const BASELINE_PROMPT =
-  "Tell us about yourself, your professional background, and what brought you here.";
+const BASELINE_PROMPTS = {
+  interview: {
+    prompt: "Tell me about yourself.",
+    instruction: "Take 30 seconds to think and structure your thoughts in your mind. Do not script it. Then speak as if you are opening a real interview. This is your starting point — not a test.",
+    duration: "90 seconds recommended",
+  },
+  workplace: {
+    prompt: "Walk me through a project you're currently working on and why it matters.",
+    instruction: "Take 30 seconds to think and structure your thoughts in your mind. Do not script it. Speak as if you are briefing a senior leader. This is your starting point — not a test.",
+    duration: "90 seconds recommended",
+  },
+};
 
 // ── Data constants ────────────────────────────────────────────────────────────
 
@@ -100,10 +110,10 @@ function getStepList(path: Path): StepId[] {
   const common: StepId[] = ["experience", "education", "primary_goal"];
   const bridge: StepId[] = ["emotional_connect", "privacy_trust", "how_it_works"];
   if (path === "interview") {
-    return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", ...bridge, "baseline"];
+    return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", ...bridge];
   }
   if (path === "workplace") {
-    return [...common, "environment", "current_role", "high_stakes", ...bridge, "baseline"];
+    return [...common, "environment", "current_role", "high_stakes", ...bridge];
   }
   return common;
 }
@@ -208,8 +218,8 @@ function ContinueButton({ onClick, disabled, label = "Continue" }: { onClick: ()
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all duration-150 disabled:opacity-40"
-      style={{ backgroundColor: "#F0953E" }}
+      className="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:opacity-90 active:opacity-80 disabled:opacity-40"
+      style={{ background: "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" }}
     >
       {label}
     </button>
@@ -312,7 +322,8 @@ export default function OnboardingPage() {
         highStakesContexts: path === "workplace" && highStakesContexts.length > 0 ? highStakesContexts.join("; ") : null,
       });
       await refreshUser();
-      setLocation(`/record?baseline=1&prompt=${encodeURIComponent(BASELINE_PROMPT)}`);
+      const baselinePrompt = path === "interview" ? BASELINE_PROMPTS.interview.prompt : BASELINE_PROMPTS.workplace.prompt;
+      setLocation(`/record?baseline=1&prompt=${encodeURIComponent(baselinePrompt)}`);
     } catch {
       setLocation("/dashboard");
     } finally {
@@ -767,6 +778,9 @@ export default function OnboardingPage() {
           {/* ── STEP: emotional_connect ────────────────────────────────────── */}
           {currentStep === "emotional_connect" && (
             <div className="space-y-8 flex flex-col min-h-[70vh] justify-center">
+              <div className="flex items-center gap-3 mb-1">
+                <BackButton onClick={goBack} />
+              </div>
               <div>
                 <p className="text-xs tracking-widest uppercase mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
                   You're here
@@ -795,6 +809,9 @@ export default function OnboardingPage() {
           {/* ── STEP: privacy_trust ─────────────────────────────────────────── */}
           {currentStep === "privacy_trust" && (
             <div className="space-y-8 flex flex-col min-h-[70vh] justify-center">
+              <div className="flex items-center gap-3 mb-1">
+                <BackButton onClick={goBack} />
+              </div>
               <div>
                 <p className="text-xs tracking-widest uppercase mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
                   Your privacy
@@ -826,6 +843,9 @@ export default function OnboardingPage() {
           {/* ── STEP: how_it_works ──────────────────────────────────────────── */}
           {currentStep === "how_it_works" && (
             <div className="space-y-7 flex flex-col min-h-[70vh] justify-center">
+              <div className="flex items-center gap-3 mb-1">
+                <BackButton onClick={goBack} />
+              </div>
               <div>
                 <p className="text-xs tracking-widest uppercase mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
                   The framework
@@ -898,7 +918,7 @@ export default function OnboardingPage() {
                 ))}
               </div>
 
-              <ContinueButton onClick={goNext} label="Start my baseline →" />
+              <ContinueButton onClick={save} disabled={loading} label={loading ? "Saving your profile…" : "Start my baseline →"} />
             </div>
           )}
 
@@ -927,7 +947,7 @@ export default function OnboardingPage() {
                     Your baseline prompt
                   </p>
                   <p className="text-[1.35rem] font-semibold leading-snug" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "white" }}>
-                    {BASELINE_PROMPT}
+                    {path === "interview" ? BASELINE_PROMPTS.interview.prompt : BASELINE_PROMPTS.workplace.prompt}
                   </p>
                   <p className="mt-4 text-xs" style={{ color: "rgba(255,255,255,0.35)" }}>
                     1–2 minutes recommended

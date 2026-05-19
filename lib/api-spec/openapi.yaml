@@ -636,6 +636,38 @@ components:
           type: boolean
         createdAt:
           type: string
+        isAdmin:
+          type: boolean
+        interviewMode:
+          type: ["boolean", "null"]
+        interviewSector:
+          type: ["string", "null"]
+        interviewSectorCustom:
+          type: ["string", "null"]
+        interviewCompanies:
+          type: ["string", "null"]
+        educationLevel:
+          type: ["string", "null"]
+        workExperienceYears:
+          type: ["string", "null"]
+        primaryGoal:
+          type: ["string", "null"]
+        interviewRole:
+          type: ["string", "null"]
+        interviewTimeline:
+          type: ["string", "null"]
+        interviewDate:
+          type: ["string", "null"]
+        hasConfirmedInterview:
+          type: ["boolean", "null"]
+        workEnvironment:
+          type: ["string", "null"]
+        workCurrentRole:
+          type: ["string", "null"]
+        workCurrentRoleCustom:
+          type: ["string", "null"]
+        highStakesContexts:
+          type: ["string", "null"]
       required:
         - id
         - email
@@ -716,6 +748,36 @@ components:
           type: string
         emailSummaries:
           type: boolean
+        interviewMode:
+          type: ["boolean", "null"]
+        interviewSector:
+          type: ["string", "null"]
+        interviewSectorCustom:
+          type: ["string", "null"]
+        interviewCompanies:
+          type: ["string", "null"]
+        educationLevel:
+          type: ["string", "null"]
+        workExperienceYears:
+          type: ["string", "null"]
+        primaryGoal:
+          type: ["string", "null"]
+        interviewRole:
+          type: ["string", "null"]
+        interviewTimeline:
+          type: ["string", "null"]
+        interviewDate:
+          type: ["string", "null"]
+        hasConfirmedInterview:
+          type: ["boolean", "null"]
+        workEnvironment:
+          type: ["string", "null"]
+        workCurrentRole:
+          type: ["string", "null"]
+        workCurrentRoleCustom:
+          type: ["string", "null"]
+        highStakesContexts:
+          type: ["string", "null"]
 
     DataExport:
       type: object

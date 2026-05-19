@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
+
+const ONBOARDING_DRAFT_KEY = "gravitas_onboarding_draft";
 
 const BASELINE_PROMPTS = {
   interview: {
@@ -257,6 +259,56 @@ export default function OnboardingPage() {
   const [workCurrentRoleCustom, setWorkCurrentRoleCustom] = useState("");
   const [highStakesContexts, setHighStakesContexts] = useState<string[]>([]);
 
+  // ── localStorage persistence ─────────────────────────────────────────────────
+  const hasRestoredRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ONBOARDING_DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as Record<string, unknown>;
+        if (d.currentStep) setCurrentStep(d.currentStep as StepId);
+        if (d.path) setPath(d.path as Path);
+        if (d.educationLevel) setEducationLevel(d.educationLevel as string);
+        if (d.workExperienceYears) setWorkExperienceYears(d.workExperienceYears as string);
+        if (d.industry) setIndustry(d.industry as string);
+        if (d.industryCustom) setIndustryCustom(d.industryCustom as string);
+        if (Array.isArray(d.selectedCompanies)) setSelectedCompanies(d.selectedCompanies as string[]);
+        if (d.companyCustom) setCompanyCustom(d.companyCustom as string);
+        if (d.interviewRole) setInterviewRole(d.interviewRole as string);
+        if (typeof d.hasConfirmedInterview === "boolean") setHasConfirmedInterview(d.hasConfirmedInterview);
+        if (d.interviewDate) setInterviewDate(d.interviewDate as string);
+        if (d.interviewTimeline) setInterviewTimeline(d.interviewTimeline as string);
+        if (d.workEnvironment) setWorkEnvironment(d.workEnvironment as string);
+        if (d.workEnvironmentCustom) setWorkEnvironmentCustom(d.workEnvironmentCustom as string);
+        if (d.workCurrentRole) setWorkCurrentRole(d.workCurrentRole as string);
+        if (d.workCurrentRoleCustom) setWorkCurrentRoleCustom(d.workCurrentRoleCustom as string);
+        if (Array.isArray(d.highStakesContexts)) setHighStakesContexts(d.highStakesContexts as string[]);
+      }
+    } catch {}
+    hasRestoredRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!hasRestoredRef.current) return;
+    try {
+      localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify({
+        currentStep, path,
+        educationLevel, workExperienceYears,
+        industry, industryCustom, selectedCompanies, companyCustom,
+        interviewRole, hasConfirmedInterview, interviewDate, interviewTimeline,
+        workEnvironment, workEnvironmentCustom, workCurrentRole, workCurrentRoleCustom,
+        highStakesContexts,
+      }));
+    } catch {}
+  }, [
+    currentStep, path,
+    educationLevel, workExperienceYears,
+    industry, industryCustom, selectedCompanies, companyCustom,
+    interviewRole, hasConfirmedInterview, interviewDate, interviewTimeline,
+    workEnvironment, workEnvironmentCustom, workCurrentRole, workCurrentRoleCustom,
+    highStakesContexts,
+  ]);
 
   // ── Step navigation ─────────────────────────────────────────────────────────
 
@@ -322,6 +374,7 @@ export default function OnboardingPage() {
         highStakesContexts: path === "workplace" && highStakesContexts.length > 0 ? highStakesContexts.join("; ") : null,
       });
       await refreshUser();
+      try { localStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch {}
       const bp = path === "interview" ? BASELINE_PROMPTS.interview : BASELINE_PROMPTS.workplace;
       setLocation(`/record?baseline=1&prompt=${encodeURIComponent(bp.prompt)}&instruction=${encodeURIComponent(bp.instruction)}&duration=${encodeURIComponent(bp.duration)}`);
     } catch {

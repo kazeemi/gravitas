@@ -18,6 +18,9 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
     name, roleTitle, communicationContext, goal, defaultRecordingContext,
     emailSummaries, hasSeenWelcome, notifyOnUpgrade,
     interviewMode, interviewSector, interviewSectorCustom, interviewCompanies,
+    educationLevel, workExperienceYears, primaryGoal,
+    interviewRole, interviewTimeline, interviewDate, hasConfirmedInterview,
+    workEnvironment, workCurrentRole, workCurrentRoleCustom, highStakesContexts,
   } = req.body;
   const updates: Partial<typeof usersTable.$inferInsert> = {};
   if (name !== undefined) updates.name = name;
@@ -32,6 +35,17 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
   if (interviewSector !== undefined) updates.interviewSector = interviewSector;
   if (interviewSectorCustom !== undefined) updates.interviewSectorCustom = interviewSectorCustom;
   if (interviewCompanies !== undefined) updates.interviewCompanies = interviewCompanies;
+  if (educationLevel !== undefined) updates.educationLevel = educationLevel;
+  if (workExperienceYears !== undefined) updates.workExperienceYears = workExperienceYears;
+  if (primaryGoal !== undefined) updates.primaryGoal = primaryGoal;
+  if (interviewRole !== undefined) updates.interviewRole = interviewRole;
+  if (interviewTimeline !== undefined) updates.interviewTimeline = interviewTimeline;
+  if (interviewDate !== undefined) updates.interviewDate = interviewDate;
+  if (hasConfirmedInterview !== undefined) updates.hasConfirmedInterview = hasConfirmedInterview;
+  if (workEnvironment !== undefined) updates.workEnvironment = workEnvironment;
+  if (workCurrentRole !== undefined) updates.workCurrentRole = workCurrentRole;
+  if (workCurrentRoleCustom !== undefined) updates.workCurrentRoleCustom = workCurrentRoleCustom;
+  if (highStakesContexts !== undefined) updates.highStakesContexts = highStakesContexts;
   const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, req.user!.userId)).returning();
   if (!user) return res.status(404).json({ error: "User not found" });
   const { passwordHash: _ph, ...safe } = user;

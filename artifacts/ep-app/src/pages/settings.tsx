@@ -7,91 +7,147 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckIcon } from "lucide-react";
 
-const SECTORS = [
+const EDUCATION_LEVELS = [
+  { id: "high_school", label: "High School" },
+  { id: "undergraduate", label: "Undergraduate Degree" },
+  { id: "masters", label: "Master's Degree" },
+  { id: "mba", label: "MBA" },
+  { id: "doctorate", label: "Doctorate / PhD" },
+  { id: "professional", label: "Other Professional Qualification" },
+  { id: "prefer_not", label: "Prefer not to say" },
+];
+
+const EXPERIENCE_YEARS = [
+  { id: "0", label: "0 years" },
+  { id: "1_3", label: "1–3 years" },
+  { id: "4_7", label: "4–7 years" },
+  { id: "8_12", label: "8–12 years" },
+  { id: "13_20", label: "13–20 years" },
+  { id: "20+", label: "20+ years" },
+];
+
+const INDUSTRIES = [
   { id: "consulting", label: "Consulting" },
   { id: "banking", label: "Banking & Finance" },
-  { id: "tech", label: "Tech" },
+  { id: "technology", label: "Technology" },
   { id: "other", label: "Other" },
 ];
 
-const COMPANIES_BY_SECTOR: Record<string, string[]> = {
-  consulting: [
-    "McKinsey & Company",
-    "Boston Consulting Group (BCG)",
-    "Bain & Company",
-    "Deloitte Consulting",
-    "Oliver Wyman",
-    "Strategy& (PwC)",
-    "Kearney",
-    "Roland Berger",
-    "L.E.K. Consulting",
-    "Accenture Strategy",
-  ],
-  banking: [
-    "Goldman Sachs",
-    "Morgan Stanley",
-    "J.P. Morgan",
-    "BlackRock",
-    "Blackstone",
-    "KKR",
-    "Citadel",
-    "Apollo Global Management",
-    "Carlyle Group",
-    "Bank of America Merrill Lynch",
-  ],
-  tech: [
-    "Google",
-    "Amazon",
-    "Microsoft",
-    "Meta",
-    "Apple",
-    "Salesforce",
-    "Uber",
-    "Airbnb",
-    "LinkedIn",
-    "Stripe",
-  ],
-  other: [],
+const COMPANIES_BY_INDUSTRY: Record<string, string[]> = {
+  consulting: ["McKinsey & Company", "Bain & Company", "Boston Consulting Group", "Oliver Wyman", "Strategy&"],
+  banking: ["Goldman Sachs", "J.P. Morgan", "Morgan Stanley", "BlackRock", "Citi"],
+  technology: ["Google", "Microsoft", "Amazon", "Meta", "Apple"],
 };
+
+const INTERVIEW_TIMELINES = [
+  "Within 2 weeks",
+  "Within a month",
+  "Within 3 months",
+  "No specific date — general preparation",
+];
+
+const WORK_ENVIRONMENTS = [
+  { id: "corporate", label: "Corporate" },
+  { id: "consulting", label: "Consulting / Advisory" },
+  { id: "finance", label: "Finance" },
+  { id: "technology", label: "Technology" },
+  { id: "government", label: "Government / Public Sector" },
+  { id: "startup", label: "Entrepreneurship / Startup" },
+  { id: "academia", label: "Academia / Research" },
+  { id: "other", label: "Other" },
+];
+
+const WORKPLACE_ROLES = [
+  "Individual Contributor",
+  "Team Manager",
+  "Senior Manager",
+  "Director / VP",
+  "Executive / C-Suite",
+  "Founder / Entrepreneur",
+  "Consultant / Advisor",
+  "Other",
+];
+
+const HIGH_STAKES_CONTEXTS = [
+  "Leadership Meetings",
+  "Presentations",
+  "Team Management",
+  "Client / Stakeholder Interactions",
+  "Public Speaking",
+  "Difficult Conversations",
+  "Networking & Relationship Building",
+  "Board / Executive Interactions",
+  "Cross-Functional Collaboration",
+  "Media / External Presence",
+];
 
 export default function SettingsPage() {
   const { user, logout, refreshUser } = useAuth();
 
-  // Profile
+  // ── Profile ──
   const [name, setName] = useState(user?.name || "");
   const [roleTitle, setRoleTitle] = useState(user?.roleTitle || "");
   const [goal, setGoal] = useState(user?.goal || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  // Password
+  // ── Password ──
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
 
-  // Interview prep
-  const [interviewMode, setInterviewMode] = useState<boolean>(user?.interviewMode ?? false);
+  // ── Coaching profile ──
+  const [coachingGoal, setCoachingGoal] = useState<"interview" | "workplace" | "">(
+    user?.primaryGoal === "interview_prep" ? "interview"
+    : user?.primaryGoal === "workplace_presence" ? "workplace"
+    : (user?.interviewMode ? "interview" : "")
+  );
+  const [educationLevel, setEducationLevel] = useState(user?.educationLevel ?? "");
+  const [workExperienceYears, setWorkExperienceYears] = useState(user?.workExperienceYears ?? "");
+
+  // Interview fields
   const [interviewSector, setInterviewSector] = useState(user?.interviewSector ?? "");
   const [interviewSectorCustom, setInterviewSectorCustom] = useState(user?.interviewSectorCustom ?? "");
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>(
     user?.interviewCompanies ? user.interviewCompanies.split("; ").filter(Boolean) : []
   );
   const [companyCustom, setCompanyCustom] = useState("");
-  const [interviewSaving, setInterviewSaving] = useState(false);
-  const [interviewSaved, setInterviewSaved] = useState(false);
+  const [interviewRole, setInterviewRole] = useState(user?.interviewRole ?? "");
+  const [hasConfirmedInterview, setHasConfirmedInterview] = useState<boolean | null>(
+    user?.hasConfirmedInterview ?? null
+  );
+  const [interviewDate, setInterviewDate] = useState(user?.interviewDate ?? "");
+  const [interviewTimeline, setInterviewTimeline] = useState(user?.interviewTimeline ?? "");
 
-  const toggleCompany = (company: string) => {
+  // Workplace fields
+  const [workEnvironment, setWorkEnvironment] = useState(user?.workEnvironment ?? "");
+  const [workCurrentRole, setWorkCurrentRole] = useState(user?.workCurrentRole ?? "");
+  const [workCurrentRoleCustom, setWorkCurrentRoleCustom] = useState(user?.workCurrentRoleCustom ?? "");
+  const [highStakesContexts, setHighStakesContexts] = useState<string[]>(
+    user?.highStakesContexts ? user.highStakesContexts.split("; ").filter(Boolean) : []
+  );
+
+  const [coachingSaving, setCoachingSaving] = useState(false);
+  const [coachingSaved, setCoachingSaved] = useState(false);
+
+  // ── Helpers ──
+  const toggleCompany = (company: string) =>
     setSelectedCompanies(prev =>
       prev.includes(company) ? prev.filter(c => c !== company) : [...prev, company]
     );
-  };
 
-  const companiesList = COMPANIES_BY_SECTOR[interviewSector] ?? [];
-  const knownCompanies = Object.values(COMPANIES_BY_SECTOR).flat();
+  const toggleHighStakes = (ctx: string) =>
+    setHighStakesContexts(prev =>
+      prev.includes(ctx) ? prev.filter(c => c !== ctx) : [...prev, ctx]
+    );
+
+  const knownCompanies = Object.values(COMPANIES_BY_INDUSTRY).flat();
+  const companiesList = COMPANIES_BY_INDUSTRY[interviewSector] ?? [];
   const customCompaniesInList = selectedCompanies.filter(c => !knownCompanies.includes(c));
 
+  // ── Handlers ──
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -125,25 +181,38 @@ export default function SettingsPage() {
     setPwLoading(false);
   };
 
-  const handleSaveInterview = async () => {
-    setInterviewSaving(true);
-    setInterviewSaved(false);
+  const handleSaveCoachingProfile = async () => {
+    setCoachingSaving(true);
+    setCoachingSaved(false);
     try {
-      const companies = [...selectedCompanies.filter(c => knownCompanies.includes(c) || !knownCompanies.includes(c))];
+      const isInterview = coachingGoal === "interview";
+      const isWorkplace = coachingGoal === "workplace";
+      const companies = [...selectedCompanies];
       if (companyCustom.trim() && !companies.includes(companyCustom.trim())) {
         companies.push(companyCustom.trim());
       }
       await api.users.update({
-        interviewMode,
-        interviewSector: interviewMode ? (interviewSector || null) : null,
-        interviewSectorCustom: interviewMode && interviewSector === "other" ? (interviewSectorCustom.trim() || null) : null,
-        interviewCompanies: interviewMode && companies.length > 0 ? companies.join("; ") : null,
+        educationLevel: educationLevel || null,
+        workExperienceYears: workExperienceYears || null,
+        primaryGoal: isInterview ? "interview_prep" : isWorkplace ? "workplace_presence" : null,
+        interviewMode: isInterview,
+        interviewSector: isInterview ? (interviewSector || null) : null,
+        interviewSectorCustom: isInterview && interviewSector === "other" ? (interviewSectorCustom.trim() || null) : null,
+        interviewCompanies: isInterview && companies.length > 0 ? companies.join("; ") : null,
+        interviewRole: isInterview ? (interviewRole.trim() || null) : null,
+        hasConfirmedInterview: isInterview ? hasConfirmedInterview : null,
+        interviewDate: isInterview && hasConfirmedInterview === true ? (interviewDate || null) : null,
+        interviewTimeline: isInterview && hasConfirmedInterview === false ? (interviewTimeline || null) : null,
+        workEnvironment: isWorkplace ? (workEnvironment || null) : null,
+        workCurrentRole: isWorkplace ? (workCurrentRole || null) : null,
+        workCurrentRoleCustom: isWorkplace && workCurrentRole === "Other" ? (workCurrentRoleCustom.trim() || null) : null,
+        highStakesContexts: isWorkplace && highStakesContexts.length > 0 ? highStakesContexts.join("; ") : null,
       });
       await refreshUser();
-      setInterviewSaved(true);
-      setTimeout(() => setInterviewSaved(false), 3000);
+      setCoachingSaved(true);
+      setTimeout(() => setCoachingSaved(false), 3000);
     } catch {}
-    setInterviewSaving(false);
+    setCoachingSaving(false);
   };
 
   return (
@@ -178,52 +247,99 @@ export default function SettingsPage() {
         </form>
       </section>
 
-      {/* ── Interview prep ── */}
-      <section className="rounded-lg border border-gray-200 bg-white p-6 space-y-5">
+      {/* ── Coaching profile ── */}
+      <section className="rounded-lg border border-gray-200 bg-white p-6 space-y-6">
         <div>
-          <h2 className="font-semibold text-gray-900">Interview preparation</h2>
+          <h2 className="font-semibold text-gray-900">Coaching profile</h2>
           <p className="text-sm text-gray-500 mt-1">
-            When enabled, your practice prompts will be tailored to behavioral interview questions from your target sector.
+            Gravitas uses this to tailor your practice prompts and feedback.
           </p>
         </div>
 
-        {/* Toggle */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              const next = !interviewMode;
-              setInterviewMode(next);
-              if (!next) {
-                setInterviewSector("");
-                setInterviewSectorCustom("");
-                setSelectedCompanies([]);
-              }
-            }}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-              interviewMode ? "bg-gray-900" : "bg-gray-200"
-            }`}
-            role="switch"
-            aria-checked={interviewMode}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                interviewMode ? "translate-x-5" : "translate-x-0"
-              }`}
-            />
-          </button>
-          <span className="text-sm font-medium text-gray-700">
-            {interviewMode ? "Enabled — prompts are tailored to interviews" : "Disabled — using standard prompts"}
-          </span>
+        {/* Education */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Highest level of education</p>
+          <div className="grid grid-cols-2 gap-2">
+            {EDUCATION_LEVELS.map(e => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => setEducationLevel(educationLevel === e.id ? "" : e.id)}
+                className={`flex items-center justify-between rounded border px-3 py-2.5 text-sm text-left transition-colors ${
+                  educationLevel === e.id
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                <span>{e.label}</span>
+                {educationLevel === e.id && <CheckIcon className="h-4 w-4 flex-shrink-0 ml-1" />}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {interviewMode && (
-          <div className="space-y-5 pt-1">
+        {/* Experience */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Years of full-time work experience</p>
+          <div className="grid grid-cols-3 gap-2">
+            {EXPERIENCE_YEARS.map(e => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => setWorkExperienceYears(workExperienceYears === e.id ? "" : e.id)}
+                className={`flex items-center justify-between rounded border px-3 py-2 text-sm text-left transition-colors ${
+                  workExperienceYears === e.id
+                    ? "border-gray-900 bg-gray-900 text-white"
+                    : "border-gray-200 hover:border-gray-400"
+                }`}
+              >
+                <span>{e.label}</span>
+                {workExperienceYears === e.id && <CheckIcon className="h-3 w-3 flex-shrink-0 ml-1" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Primary goal */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Primary goal</p>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => setCoachingGoal("interview")}
+              className={`flex items-center justify-between w-full rounded border px-4 py-3 text-sm text-left transition-colors ${
+                coachingGoal === "interview"
+                  ? "border-gray-900 bg-gray-900 text-white"
+                  : "border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              <span>I'm preparing for an interview</span>
+              {coachingGoal === "interview" && <CheckIcon className="h-4 w-4 flex-shrink-0" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setCoachingGoal("workplace")}
+              className={`flex items-center justify-between w-full rounded border px-4 py-3 text-sm text-left transition-colors ${
+                coachingGoal === "workplace"
+                  ? "border-gray-900 bg-gray-900 text-white"
+                  : "border-gray-200 hover:border-gray-400"
+              }`}
+            >
+              <span>I want to improve how I show up at work</span>
+              {coachingGoal === "workplace" && <CheckIcon className="h-4 w-4 flex-shrink-0" />}
+            </button>
+          </div>
+        </div>
+
+        {/* ── Interview details ── */}
+        {coachingGoal === "interview" && (
+          <div className="space-y-5 border-t border-gray-100 pt-5">
+
             {/* Sector */}
             <div className="space-y-2">
               <p className="text-sm font-medium text-gray-700">Target sector</p>
               <div className="grid grid-cols-2 gap-2">
-                {SECTORS.map(s => (
+                {INDUSTRIES.map(s => (
                   <button
                     key={s.id}
                     type="button"
@@ -260,7 +376,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-gray-700">Target companies</p>
                 <p className="text-xs text-gray-400">Select all that apply</p>
                 {companiesList.length > 0 && (
-                  <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
                     {companiesList.map(company => {
                       const selected = selectedCompanies.includes(company);
                       return (
@@ -269,9 +385,7 @@ export default function SettingsPage() {
                           type="button"
                           onClick={() => toggleCompany(company)}
                           className={`flex items-center gap-3 w-full rounded border px-3 py-2.5 text-sm text-left transition-colors ${
-                            selected
-                              ? "border-gray-900 bg-gray-50"
-                              : "border-gray-200 hover:border-gray-400"
+                            selected ? "border-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-400"
                           }`}
                         >
                           <span
@@ -287,7 +401,6 @@ export default function SettingsPage() {
                     })}
                   </div>
                 )}
-                {/* Custom companies already saved but not in current list */}
                 {customCompaniesInList.map(c => (
                   <button
                     key={c}
@@ -312,18 +425,187 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+
+            {/* Role */}
+            <div>
+              <Label htmlFor="interviewRole">Role I'm targeting</Label>
+              <Input
+                id="interviewRole"
+                value={interviewRole}
+                onChange={(e) => setInterviewRole(e.target.value)}
+                className="mt-1"
+                placeholder="e.g. Associate Consultant"
+              />
+            </div>
+
+            {/* Confirmed? */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">Do you have an interview scheduled?</p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setHasConfirmedInterview(true)}
+                  className={`flex-1 rounded border px-4 py-2.5 text-sm transition-colors ${
+                    hasConfirmedInterview === true
+                      ? "border-gray-900 bg-gray-900 text-white"
+                      : "border-gray-200 hover:border-gray-400"
+                  }`}
+                >
+                  Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHasConfirmedInterview(false)}
+                  className={`flex-1 rounded border px-4 py-2.5 text-sm transition-colors ${
+                    hasConfirmedInterview === false
+                      ? "border-gray-900 bg-gray-900 text-white"
+                      : "border-gray-200 hover:border-gray-400"
+                  }`}
+                >
+                  Not yet
+                </button>
+              </div>
+            </div>
+
+            {hasConfirmedInterview === true && (
+              <div>
+                <Label htmlFor="interviewDate">Interview date</Label>
+                <Input
+                  id="interviewDate"
+                  type="date"
+                  value={interviewDate}
+                  onChange={(e) => setInterviewDate(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            )}
+
+            {hasConfirmedInterview === false && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Roughly when?</p>
+                <div className="space-y-1.5">
+                  {INTERVIEW_TIMELINES.map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setInterviewTimeline(t)}
+                      className={`flex items-center justify-between w-full rounded border px-4 py-2.5 text-sm text-left transition-colors ${
+                        interviewTimeline === t
+                          ? "border-gray-900 bg-gray-900 text-white"
+                          : "border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      <span>{t}</span>
+                      {interviewTimeline === t && <CheckIcon className="h-4 w-4 flex-shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Workplace details ── */}
+        {coachingGoal === "workplace" && (
+          <div className="space-y-5 border-t border-gray-100 pt-5">
+
+            {/* Environment */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">Work environment</p>
+              <div className="grid grid-cols-2 gap-2">
+                {WORK_ENVIRONMENTS.map(e => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setWorkEnvironment(workEnvironment === e.id ? "" : e.id)}
+                    className={`flex items-center justify-between rounded border px-3 py-2.5 text-sm text-left transition-colors ${
+                      workEnvironment === e.id
+                        ? "border-gray-900 bg-gray-900 text-white"
+                        : "border-gray-200 hover:border-gray-400"
+                    }`}
+                  >
+                    <span>{e.label}</span>
+                    {workEnvironment === e.id && <CheckIcon className="h-4 w-4 flex-shrink-0 ml-1" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Current role */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">Current role level</p>
+              <div className="space-y-1.5">
+                {WORKPLACE_ROLES.map(role => (
+                  <button
+                    key={role}
+                    type="button"
+                    onClick={() => {
+                      setWorkCurrentRole(role);
+                      if (role !== "Other") setWorkCurrentRoleCustom("");
+                    }}
+                    className={`flex items-center justify-between w-full rounded border px-4 py-2.5 text-sm text-left transition-colors ${
+                      workCurrentRole === role
+                        ? "border-gray-900 bg-gray-900 text-white"
+                        : "border-gray-200 hover:border-gray-400"
+                    }`}
+                  >
+                    <span>{role}</span>
+                    {workCurrentRole === role && <CheckIcon className="h-4 w-4 flex-shrink-0" />}
+                  </button>
+                ))}
+              </div>
+              {workCurrentRole === "Other" && (
+                <input
+                  type="text"
+                  value={workCurrentRoleCustom}
+                  onChange={(e) => setWorkCurrentRoleCustom(e.target.value)}
+                  placeholder="Describe your role"
+                  className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900 mt-1"
+                />
+              )}
+            </div>
+
+            {/* High-stakes contexts */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-gray-700">Where does executive presence matter most for you?</p>
+              <p className="text-xs text-gray-400">Select all that apply</p>
+              <div className="space-y-1.5">
+                {HIGH_STAKES_CONTEXTS.map(ctx => {
+                  const selected = highStakesContexts.includes(ctx);
+                  return (
+                    <button
+                      key={ctx}
+                      type="button"
+                      onClick={() => toggleHighStakes(ctx)}
+                      className={`flex items-center gap-3 w-full rounded border px-3 py-2.5 text-sm text-left transition-colors ${
+                        selected ? "border-gray-900 bg-gray-50" : "border-gray-200 hover:border-gray-400"
+                      }`}
+                    >
+                      <span
+                        className={`h-4 w-4 flex-shrink-0 rounded border-2 flex items-center justify-center ${
+                          selected ? "border-gray-900 bg-gray-900" : "border-gray-300"
+                        }`}
+                      >
+                        {selected && <CheckIcon className="h-3 w-3 text-white" />}
+                      </span>
+                      <span>{ctx}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         )}
 
         <div className="flex items-center gap-3 pt-1">
           <Button
             type="button"
-            onClick={handleSaveInterview}
-            disabled={interviewSaving || (interviewMode && !interviewSector)}
+            onClick={handleSaveCoachingProfile}
+            disabled={coachingSaving}
           >
-            {interviewSaving ? "Saving…" : "Save preferences"}
+            {coachingSaving ? "Saving…" : "Save coaching profile"}
           </Button>
-          {interviewSaved && <span className="text-sm text-[#C84A18]">Saved!</span>}
+          {coachingSaved && <span className="text-sm text-[#C84A18]">Saved!</span>}
         </div>
       </section>
 

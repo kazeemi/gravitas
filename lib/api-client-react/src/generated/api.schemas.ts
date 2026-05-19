@@ -35,6 +35,37 @@ export interface UserProfile {
   defaultRecordingContext?: string | null;
   emailSummaries: boolean;
   createdAt: string;
+  isAdmin?: boolean;
+  /** @nullable */
+  interviewMode?: boolean | null;
+  /** @nullable */
+  interviewSector?: string | null;
+  /** @nullable */
+  interviewSectorCustom?: string | null;
+  /** @nullable */
+  interviewCompanies?: string | null;
+  /** @nullable */
+  educationLevel?: string | null;
+  /** @nullable */
+  workExperienceYears?: string | null;
+  /** @nullable */
+  primaryGoal?: string | null;
+  /** @nullable */
+  interviewRole?: string | null;
+  /** @nullable */
+  interviewTimeline?: string | null;
+  /** @nullable */
+  interviewDate?: string | null;
+  /** @nullable */
+  hasConfirmedInterview?: boolean | null;
+  /** @nullable */
+  workEnvironment?: string | null;
+  /** @nullable */
+  workCurrentRole?: string | null;
+  /** @nullable */
+  workCurrentRoleCustom?: string | null;
+  /** @nullable */
+  highStakesContexts?: string | null;
 }
 
 export interface AuthResponse {
@@ -75,6 +106,36 @@ export interface UpdateProfileBody {
   onboardingCompleted?: boolean;
   defaultRecordingContext?: string;
   emailSummaries?: boolean;
+  /** @nullable */
+  interviewMode?: boolean | null;
+  /** @nullable */
+  interviewSector?: string | null;
+  /** @nullable */
+  interviewSectorCustom?: string | null;
+  /** @nullable */
+  interviewCompanies?: string | null;
+  /** @nullable */
+  educationLevel?: string | null;
+  /** @nullable */
+  workExperienceYears?: string | null;
+  /** @nullable */
+  primaryGoal?: string | null;
+  /** @nullable */
+  interviewRole?: string | null;
+  /** @nullable */
+  interviewTimeline?: string | null;
+  /** @nullable */
+  interviewDate?: string | null;
+  /** @nullable */
+  hasConfirmedInterview?: boolean | null;
+  /** @nullable */
+  workEnvironment?: string | null;
+  /** @nullable */
+  workCurrentRole?: string | null;
+  /** @nullable */
+  workCurrentRoleCustom?: string | null;
+  /** @nullable */
+  highStakesContexts?: string | null;
 }
 
 export type DimensionScoreRawMetrics = { [key: string]: unknown };

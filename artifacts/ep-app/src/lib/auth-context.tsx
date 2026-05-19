@@ -14,10 +14,22 @@ interface User {
   emailSummaries?: boolean;
   totalRecordingSeconds?: number;
   notifyOnUpgrade?: boolean;
-  interviewMode?: boolean;
+  isAdmin?: boolean;
+  interviewMode?: boolean | null;
   interviewSector?: string | null;
   interviewSectorCustom?: string | null;
   interviewCompanies?: string | null;
+  educationLevel?: string | null;
+  workExperienceYears?: string | null;
+  primaryGoal?: string | null;
+  interviewRole?: string | null;
+  interviewTimeline?: string | null;
+  interviewDate?: string | null;
+  hasConfirmedInterview?: boolean | null;
+  workEnvironment?: string | null;
+  workCurrentRole?: string | null;
+  workCurrentRoleCustom?: string | null;
+  highStakesContexts?: string | null;
 }
 
 interface AuthContextValue {
@@ -39,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isAuthenticated()) {
       api.users.me()
-        .then((u) => setUser(u as User))
+        .then((u) => setUser(u as unknown as User))
         .catch(() => { clearToken(); })
         .finally(() => setLoading(false));
     } else {
@@ -73,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = async () => {
     const u = await api.users.me();
-    setUser(u as User);
+    setUser(u as unknown as User);
   };
 
   return (

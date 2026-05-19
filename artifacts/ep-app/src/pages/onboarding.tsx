@@ -410,9 +410,6 @@ export default function OnboardingPage() {
           {/* ── STEP: experience ───────────────────────────────────────────── */}
           {currentStep === "experience" && (
             <div className="space-y-5">
-              <div className="flex items-center gap-3 mb-1">
-                <BackButton onClick={goBack} />
-              </div>
               <div>
                 <h1 className="text-3xl font-semibold leading-tight" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}>
                   How many years of full-time work experience do you have?

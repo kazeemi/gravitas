@@ -116,7 +116,7 @@ type StepId =
 type Path = "interview" | "workplace" | null;
 
 function getStepList(path: Path): StepId[] {
-  const common: StepId[] = ["education", "experience", "primary_goal"];
+  const common: StepId[] = ["experience", "education", "primary_goal"];
   if (path === "interview") {
     return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", "self_assessment", "baseline"];
   }
@@ -286,7 +286,7 @@ export default function OnboardingPage() {
   const { refreshUser } = useAuth();
   const [, setLocation] = useLocation();
 
-  const [currentStep, setCurrentStep] = useState<StepId>("education");
+  const [currentStep, setCurrentStep] = useState<StepId>("experience");
   const [path, setPath] = useState<Path>(null);
   const [loading, setLoading] = useState(false);
 
@@ -510,7 +510,7 @@ export default function OnboardingPage() {
                     I want to improve how I show up at work
                   </p>
                   <p className="text-sm mt-1" style={{ color: "#0F1B2D55" }}>
-                    Strengthen presence in meetings, presentations, and leadership moments.
+                    Build the presence that matches your capability.
                   </p>
                 </button>
                 <button
@@ -521,7 +521,7 @@ export default function OnboardingPage() {
                     I have an interview coming up
                   </p>
                   <p className="text-sm mt-1" style={{ color: "#0F1B2D55" }}>
-                    Prepare for a specific role, company, or sector.
+                    Show up with the presence that matches your preparation.
                   </p>
                 </button>
               </div>

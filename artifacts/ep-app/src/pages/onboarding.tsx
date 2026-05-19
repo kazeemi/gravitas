@@ -322,8 +322,8 @@ export default function OnboardingPage() {
         highStakesContexts: path === "workplace" && highStakesContexts.length > 0 ? highStakesContexts.join("; ") : null,
       });
       await refreshUser();
-      const baselinePrompt = path === "interview" ? BASELINE_PROMPTS.interview.prompt : BASELINE_PROMPTS.workplace.prompt;
-      setLocation(`/record?baseline=1&prompt=${encodeURIComponent(baselinePrompt)}`);
+      const bp = path === "interview" ? BASELINE_PROMPTS.interview : BASELINE_PROMPTS.workplace;
+      setLocation(`/record?baseline=1&prompt=${encodeURIComponent(bp.prompt)}&instruction=${encodeURIComponent(bp.instruction)}&duration=${encodeURIComponent(bp.duration)}`);
     } catch {
       setLocation("/dashboard");
     } finally {
@@ -782,9 +782,6 @@ export default function OnboardingPage() {
                 <BackButton onClick={goBack} />
               </div>
               <div>
-                <p className="text-xs tracking-widest uppercase mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
-                  You're here
-                </p>
                 <h1
                   className="text-4xl font-semibold leading-tight mb-5"
                   style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
@@ -813,9 +810,6 @@ export default function OnboardingPage() {
                 <BackButton onClick={goBack} />
               </div>
               <div>
-                <p className="text-xs tracking-widest uppercase mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
-                  Your privacy
-                </p>
                 <h1
                   className="text-4xl font-semibold leading-tight mb-5"
                   style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
@@ -847,9 +841,6 @@ export default function OnboardingPage() {
                 <BackButton onClick={goBack} />
               </div>
               <div>
-                <p className="text-xs tracking-widest uppercase mb-4" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
-                  The framework
-                </p>
                 <h1
                   className="text-4xl font-semibold leading-tight"
                   style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}

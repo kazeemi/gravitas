@@ -220,6 +220,8 @@ export default function RecordPage() {
 
   const promptParam = params.get("prompt");
   const baselineMode = params.get("baseline") === "1";
+  const baselineInstruction = params.get("instruction");
+  const baselineDuration = params.get("duration");
 
   useEffect(() => {
     api.prompts.list().then(data => {
@@ -1025,12 +1027,24 @@ export default function RecordPage() {
                     </p>
                   )}
                   {baselineMode ? (
-                    <p
-                      className="text-[1.4rem] font-semibold leading-snug text-white"
-                      style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-                    >
-                      {customPrompt}
-                    </p>
+                    <>
+                      <p
+                        className="text-[1.4rem] font-semibold leading-snug text-white"
+                        style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+                      >
+                        {customPrompt}
+                      </p>
+                      {baselineInstruction && (
+                        <p className="mt-4 text-[12px] leading-relaxed" style={{ color: "rgba(255,255,255,0.5)" }}>
+                          {baselineInstruction}
+                        </p>
+                      )}
+                      {baselineDuration && (
+                        <p className="mt-3 text-[11px] tracking-wide" style={{ fontFamily: "'DM Mono', monospace", color: "rgba(255,255,255,0.3)" }}>
+                          {baselineDuration}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <textarea
                       autoFocus

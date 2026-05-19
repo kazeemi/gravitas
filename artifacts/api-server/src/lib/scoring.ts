@@ -784,13 +784,16 @@ ${input.previousCompositeScore != null
   ? `Previous session composite score: ${input.previousCompositeScore.toFixed(1)}. Based on your dimension scores in this evaluation, infer whether this session represents improvement, similar performance, or decline — but never state the numbers in the message.`
   : "This is the user's first session — no previous score exists."}
 
+CROSS-CHECK RULE — apply before writing summaryStrengths and summaryImprovements:
+A specific moment, named phrase, or word cited as evidence in summaryStrengths must NOT appear in summaryImprovements — and vice versa. Evidence belongs to one side only. If the same moment (e.g. a pause after a word, a sentence ending) could be framed as either a strength or a weakness, choose the reading that is most honest given the scores and commit to it on one side only. Citing the same evidence on both sides is a contradiction that destroys user trust.
+
 Return a JSON object (no markdown, no code fences):
 {
   "summaryStrengths": [
-    "<one sentence. Names the specific dimension or what happened. Evidence-based. Up to 3 items. Empty array if no genuine positives.>"
+    "<one sentence. Names the specific dimension or what happened. Evidence-based — cite specific moments, phrases, or named words. Up to 3 items. Empty array if no genuine positives.>"
   ],
   "summaryImprovements": [
-    "<one sentence. Names the specific dimension. For Strong/Distinguished sessions: frame as relative gap, not absolute failure. Up to 3 items.>"
+    "<one sentence. Names the specific dimension. For Strong/Distinguished sessions: frame as relative gap, not absolute failure. Up to 3 items. Must not reference any moment or phrase already cited in summaryStrengths.>"
   ],
   "priorityAction": "<for Developing/Strong/Distinguished sessions: identify the 1–2 highest-impact things to focus on in the next recording. Use TWO focus areas ONLY when ALL three conditions are met: (a) two separate dimensions are both clearly failing (score ≤5), (b) fixing one will NOT meaningfully fix the other — they are genuinely independent skills, AND (c) both dimensions carry significant composite weight (dimension weights from highest to lowest: structure 0.15, confidence_language 0.13, intonation 0.08, vocal_tone 0.08, eye_contact 0.08, pace 0.07, conciseness 0.07, posture 0.05, projection 0.05 audio/0.06 video, pausing 0.06 audio/0.07 video, breath_control 0.04, articulation 0.04, facial_expression 0.04, vocal_steadiness 0.02 audio/0.04 video, gestures 0.03). If conditions are not all met, give ONE focus area only — the highest-weight failing dimension. When giving two areas, address each in one sentence, together forming a single cohesive paragraph. NEVER suggest writing, scripting, or preparing material. Use language like 'in your next recording, try' or 'record again and notice whether'. For Needs Focus sessions: null.>",
   "priorityActions": ["<Start here: [specific mental focus or in-recording experiment — no writing, no scripting]>", "<Then here: [specific focus]>", "<Then here: [specific focus]>"],

@@ -576,19 +576,38 @@ export default function SessionDetailPage() {
             <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#F0953E" }}>
               What's next
             </p>
-            <p className="text-base leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.88)" }}>
-              {overallFeedback?.recordAgainPrompt ||
-                "The insight from this session is most valuable when tested immediately — record again now and see what shifts."}
-            </p>
-            <button
-              onClick={() => setLocation(session.promptText ? `/record?prompt=${encodeURIComponent(session.promptText)}` : "/record")}
-              className="w-full rounded-lg py-3.5 text-sm font-bold tracking-wide transition-colors"
-              style={{ background: "#F0953E", color: "#fff" }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C84A18"; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F0953E"; }}
-            >
-              Record again
-            </button>
+            {derivedSessionNumber === 1 ? (
+              <>
+                <p className="text-base leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.88)" }}>
+                  That's your baseline — and now you know exactly what Gravitas feedback looks like. Pick any prompt and record again. This is where the real work begins.
+                </p>
+                <button
+                  onClick={() => setLocation("/record")}
+                  className="w-full rounded-lg py-3.5 text-sm font-bold tracking-wide transition-colors"
+                  style={{ background: "#F0953E", color: "#fff" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C84A18"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F0953E"; }}
+                >
+                  Record a new session →
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-base leading-relaxed mb-5" style={{ color: "rgba(255,255,255,0.88)" }}>
+                  {overallFeedback?.recordAgainPrompt ||
+                    "The insight from this session is most valuable when tested immediately — record again now and see what shifts."}
+                </p>
+                <button
+                  onClick={() => setLocation(session.promptText ? `/record?prompt=${encodeURIComponent(session.promptText)}` : "/record")}
+                  className="w-full rounded-lg py-3.5 text-sm font-bold tracking-wide transition-colors"
+                  style={{ background: "#F0953E", color: "#fff" }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C84A18"; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F0953E"; }}
+                >
+                  Record again
+                </button>
+              </>
+            )}
           </div>
           <div className="px-6 py-3 flex justify-between items-center" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
             <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>

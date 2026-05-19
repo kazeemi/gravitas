@@ -1435,8 +1435,8 @@ export default function RecordPage() {
       )}
       {step === "processing" && (() => {
         const dimNames = mode === "video"
-          ? ["Articulation", "Projection", "Vocal Tone", "Vocal Steadiness", "Intonation", "Pace", "Pausing", "Breath Control", "Confidence Language", "Structure", "Conciseness", "Eye Contact", "Facial Expression", "Gestures", "Posture"]
-          : ["Articulation", "Projection", "Vocal Tone", "Vocal Steadiness", "Intonation", "Pace", "Pausing", "Breath Control", "Confidence Language", "Structure", "Conciseness"];
+          ? ["Confidence Language", "Structure", "Conciseness", "Intonation", "Pace", "Pausing", "Breath Control", "Articulation", "Projection", "Vocal Tone", "Vocal Steadiness", "Eye Contact", "Facial Expression", "Gestures", "Posture"]
+          : ["Confidence Language", "Structure", "Conciseness", "Intonation", "Pace", "Pausing", "Breath Control", "Articulation", "Projection", "Vocal Tone", "Vocal Steadiness"];
 
         const estimateSecsRaw = mode === "video"
           ? Math.min(180, Math.round(90 + pendingDuration * 0.4))
@@ -1456,8 +1456,7 @@ export default function RecordPage() {
 
         const litCount =
           processingStep <= 1 ? 0
-          : processingStep === 2 ? Math.floor(dimNames.length * 0.55)
-          : processingStep === 3 ? Math.floor(dimNames.length * 0.9)
+          : processingStep === 2 ? Math.floor(dimNames.length * 0.6)
           : dimNames.length;
 
         return (

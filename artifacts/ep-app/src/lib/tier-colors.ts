@@ -125,27 +125,27 @@ export const PILLARS: Pillar[] = [
   },
 ];
 
-// Display order: pillar by pillar, highest-weighted first within each pillar
+// Display order: pillar by pillar, highest-weighted first (Thought Clarity → Vocal Delivery → Voice Quality → Physical Delivery)
 export const DIMENSION_DISPLAY_ORDER: string[] = [
-  // Thought Clarity (highest pillar weight in audio mode)
-  "structure",
+  // Thought Clarity (35% video / 45% audio — highest weight)
   "confidence_language",
+  "structure",
   "conciseness",
-  // Vocal Delivery
+  // Vocal Delivery (25% video / 30% audio)
   "intonation",
   "pace",
   "pausing",
   "breath_control",
-  // Voice Quality
-  "vocal_tone",
-  "projection",
+  // Voice Quality (20% video / 25% audio)
   "articulation",
+  "projection",
+  "vocal_tone",
   "vocal_steadiness",
-  // Physical Delivery (video only)
+  // Physical Delivery (20% video only)
   "eye_contact",
-  "posture",
   "facial_expression",
   "gestures",
+  "posture",
 ];
 
 // ============================================================

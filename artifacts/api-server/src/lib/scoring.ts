@@ -38,17 +38,20 @@ export type DimensionKey =
 
 // Audio-only sessions: 11 dimensions (Pillar 4 excluded)
 export const AUDIO_DIMENSIONS: DimensionKey[] = [
-  "articulation",
-  "projection",
-  "vocal_tone",
-  "vocal_steadiness",
+  // Thought Clarity (highest weight)
+  "confidence_language",
+  "structure",
+  "conciseness",
+  // Vocal Delivery
   "intonation",
   "pace",
   "pausing",
   "breath_control",
-  "confidence_language",
-  "structure",
-  "conciseness",
+  // Voice Quality
+  "articulation",
+  "projection",
+  "vocal_tone",
+  "vocal_steadiness",
 ];
 
 // Video sessions: all 15 dimensions

@@ -30,6 +30,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     );
   }
   if (!user) return <Redirect to="/login" />;
+  if (!user.onboardingCompleted) return <Redirect to="/onboarding" />;
   if (!user.hasSeenWelcome) return <Redirect to="/welcome" />;
   return (
     <Layout>
@@ -52,13 +53,13 @@ function AppRouter() {
   return (
     <Switch>
       <Route path="/">
-        {user ? (user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <Redirect to="/login" />}
+        {user ? (!user.onboardingCompleted ? <Redirect to="/onboarding" /> : user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <Redirect to="/login" />}
       </Route>
       <Route path="/login">
-        {user ? (user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <LoginPage />}
+        {user ? (!user.onboardingCompleted ? <Redirect to="/onboarding" /> : user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <LoginPage />}
       </Route>
       <Route path="/signup">
-        {user ? (user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <SignupPage />}
+        {user ? (!user.onboardingCompleted ? <Redirect to="/onboarding" /> : user.hasSeenWelcome ? <Redirect to="/record" /> : <Redirect to="/welcome" />) : <SignupPage />}
       </Route>
       <Route path="/forgot-password">
         {user ? <Redirect to="/record" /> : <ForgotPasswordPage />}

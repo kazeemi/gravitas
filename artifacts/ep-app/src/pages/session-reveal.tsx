@@ -678,7 +678,7 @@ export default function SessionRevealPage() {
                                     </p>
                                   </div>
                                 )}
-                                {d.nextStepText && (
+                                {d.nextStepText && d.score < 6.5 && (
                                   <div>
                                     <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>
                                       Next recording

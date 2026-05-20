@@ -24,12 +24,12 @@ export const TIER_COLORS = {
     badge: "bg-[#C84A18] text-white",
   },
   Distinguished: {
-    hex: "#0F1B2D",
-    bg: "bg-[#0F1B2D]",
-    text: "text-[#0F1B2D]",
-    border: "border-[#0F1B2D]",
-    light: "bg-[#EEF0F5]",
-    badge: "bg-[#0F1B2D] text-white",
+    hex: "#C9A84C",
+    bg: "bg-[#C9A84C]",
+    text: "text-[#C9A84C]",
+    border: "border-[#C9A84C]",
+    light: "bg-[#FAF6EC]",
+    badge: "bg-[#C9A84C] text-white",
   },
 } as const;
 

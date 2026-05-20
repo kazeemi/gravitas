@@ -102,21 +102,17 @@ type StepId =
   | "education" | "experience" | "primary_goal"
   | "industry" | "company" | "role" | "interview_confirmed" | "interview_detail"
   | "environment" | "current_role" | "high_stakes"
-  | "emotional_connect" | "privacy_trust" | "how_it_works"
   | "baseline";
-
-const META_STEPS: StepId[] = ["emotional_connect", "privacy_trust", "how_it_works"];
 
 type Path = "interview" | "workplace" | null;
 
 function getStepList(path: Path): StepId[] {
   const common: StepId[] = ["experience", "education", "primary_goal"];
-  const bridge: StepId[] = ["emotional_connect", "privacy_trust", "how_it_works"];
   if (path === "interview") {
-    return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", ...bridge];
+    return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", "baseline"];
   }
   if (path === "workplace") {
-    return [...common, "environment", "current_role", "high_stakes", ...bridge];
+    return [...common, "environment", "current_role", "high_stakes", "baseline"];
   }
   return common;
 }
@@ -400,15 +396,11 @@ export default function OnboardingPage() {
     environment: "Professional Context",
     current_role: "Professional Context",
     high_stakes: "Your Priorities",
-    emotional_connect: "Welcome",
-    privacy_trust: "Your Space",
-    how_it_works: "How It Works",
     baseline: "Almost There",
   };
 
-  const isMetaStep = META_STEPS.includes(currentStep);
   const isWelcomeStep = currentStep === "welcome";
-  const progressPct = isMetaStep ? 100 : (displayIndex / displayTotal) * 100;
+  const progressPct = (displayIndex / displayTotal) * 100;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -431,11 +423,9 @@ export default function OnboardingPage() {
           <p className="text-xs tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#0F1B2D40" }}>
             {sectionLabel[currentStep]}
           </p>
-          {!isMetaStep && (
-            <p className="text-xs tabular-nums" style={{ fontFamily: "'DM Mono', monospace", color: "#0F1B2D35" }}>
-              {displayIndex} / {displayTotal}
-            </p>
-          )}
+          <p className="text-xs tabular-nums" style={{ fontFamily: "'DM Mono', monospace", color: "#0F1B2D35" }}>
+            {displayIndex} / {displayTotal}
+          </p>
         </div>
       )}
 
@@ -887,144 +877,6 @@ export default function OnboardingPage() {
                 ))}
               </div>
               <ContinueButton onClick={goNext} disabled={highStakesContexts.length === 0} />
-            </div>
-          )}
-
-          {/* ── STEP: emotional_connect ────────────────────────────────────── */}
-          {currentStep === "emotional_connect" && (
-            <div className="space-y-8 flex flex-col min-h-[70vh] justify-center">
-              <div className="flex items-center gap-3 mb-1">
-                <BackButton onClick={goBack} />
-              </div>
-              <div>
-                <h1
-                  className="text-4xl font-semibold leading-tight mb-5"
-                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
-                >
-                  You showed up.<br />That already sets you apart.
-                </h1>
-                <div className="h-px w-12 mb-5" style={{ backgroundColor: "#F0953E" }} />
-                <p className="text-base leading-relaxed" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  Most people never find out how they truly come across.
-                </p>
-                <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  You are about to.
-                </p>
-                <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  Gravitas gives you a specific, honest picture of how you land — in the rooms and moments that matter most.
-                </p>
-              </div>
-              <ContinueButton onClick={goNext} label="Next" />
-            </div>
-          )}
-
-          {/* ── STEP: privacy_trust ─────────────────────────────────────────── */}
-          {currentStep === "privacy_trust" && (
-            <div className="space-y-8 flex flex-col min-h-[70vh] justify-center">
-              <div className="flex items-center gap-3 mb-1">
-                <BackButton onClick={goBack} />
-              </div>
-              <div>
-                <h1
-                  className="text-4xl font-semibold leading-tight mb-5"
-                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
-                >
-                  This is your space.<br />Completely.
-                </h1>
-                <div className="h-px w-12 mb-5" style={{ backgroundColor: "#F0953E" }} />
-                <p className="text-base leading-relaxed" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  Your recordings are never stored, never shared, and never seen by anyone — including us.
-                </p>
-                <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  What happens here stays here. It is how we built it.
-                </p>
-                <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  Record freely. Be unpolished. Make mistakes. Say the thing you are still figuring out. That is exactly how this tool works best.
-                </p>
-                <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  You can record audio only or add video. It's your choice, every time.
-                </p>
-              </div>
-              <ContinueButton onClick={goNext} label="Got it →" />
-            </div>
-          )}
-
-          {/* ── STEP: how_it_works ──────────────────────────────────────────── */}
-          {currentStep === "how_it_works" && (
-            <div className="space-y-7 flex flex-col min-h-[70vh] justify-center">
-              <div className="flex items-center gap-3 mb-1">
-                <BackButton onClick={goBack} />
-              </div>
-              <div>
-                <h1
-                  className="text-4xl font-semibold leading-tight"
-                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
-                >
-                  What Gravitas measures.
-                </h1>
-                <p className="mt-2 text-sm" style={{ color: "#0F1B2D60" }}>
-                  Four pillars. 15 dimensions. One honest score.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  {
-                    num: "01",
-                    title: "Thought Clarity",
-                    body: "Whether your thinking lands sharp and decisive, or leaves the listener doing the work.",
-                  },
-                  {
-                    num: "02",
-                    title: "Vocal Delivery",
-                    body: "The pace, pauses, and rhythm that signal confidence or anxiety.",
-                  },
-                  {
-                    num: "03",
-                    title: "Voice Quality",
-                    body: "Whether your voice carries authority and steadiness.",
-                  },
-                  {
-                    num: "04",
-                    title: "Physical Delivery",
-                    body: "What the room sees — posture, eye contact, expression, gesture.",
-                    note: "Video only",
-                  },
-                ].map((pillar) => (
-                  <div
-                    key={pillar.num}
-                    className="rounded-2xl px-5 py-4"
-                    style={{ backgroundColor: "white", border: "2px solid #0F1B2D08" }}
-                  >
-                    <div className="flex items-start gap-4">
-                      <span
-                        className="text-xs tabular-nums mt-0.5 flex-shrink-0"
-                        style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}
-                      >
-                        {pillar.num}
-                      </span>
-                      <div>
-                        <p className="text-sm font-semibold" style={{ color: "#0F1B2D" }}>
-                          {pillar.title}
-                          {pillar.note && (
-                            <span
-                              className="ml-2 text-[10px] font-normal px-1.5 py-0.5 rounded-full"
-                              style={{ backgroundColor: "#0F1B2D08", color: "#0F1B2D50", fontFamily: "'DM Mono', monospace" }}
-                            >
-                              {pillar.note}
-                            </span>
-                          )}
-                        </p>
-                        <p className="text-xs leading-relaxed mt-1" style={{ color: "#0F1B2D60" }}>
-                          {pillar.body}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <ContinueButton onClick={save} disabled={loading} label={loading ? "Saving your profile…" : "Start my baseline →"} />
             </div>
           )}
 

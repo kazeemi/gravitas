@@ -748,6 +748,7 @@ export default function OnboardingPage() {
               <input
                 type="date"
                 value={interviewDate}
+                min={new Date().toISOString().split("T")[0]}
                 onChange={(e) => setInterviewDate(e.target.value)}
                 className="w-full rounded-xl border-2 px-4 py-3 text-sm focus:outline-none transition-colors"
                 style={{ borderColor: interviewDate ? "#F0953E" : "#0F1B2D15", backgroundColor: "white", color: "#0F1B2D" }}

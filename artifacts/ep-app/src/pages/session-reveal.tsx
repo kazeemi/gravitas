@@ -71,6 +71,7 @@ const SLIDES: Slide[] = ["score", "strengths", "improvements", "focus", "pillars
 export default function SessionRevealPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const fromBaseline = new URLSearchParams(window.location.search).get("from") === "baseline";
 
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -744,6 +745,17 @@ export default function SessionRevealPage() {
               onClick={goNext}
             >
               Next
+              <ArrowRightIcon className="h-3.5 w-3.5" />
+            </button>
+          ) : fromBaseline ? (
+            <button
+              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-colors"
+              style={{ background: "#F0953E", color: "#fff" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C84A18"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F0953E"; }}
+              onClick={() => setLocation("/welcome")}
+            >
+              What's next
               <ArrowRightIcon className="h-3.5 w-3.5" />
             </button>
           ) : (

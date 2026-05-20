@@ -1,122 +1,137 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { MicIcon, VideoIcon, BarChart2Icon } from "lucide-react";
-
-const STEPS = [
-  {
-    number: "1",
-    icon: <MicIcon className="h-5 w-5 text-amber-500" />,
-    title: "Choose a prompt",
-    body: "Select a professional scenario or write your own. No script required — speak as you would in a real meeting or presentation.",
-  },
-  {
-    number: "2",
-    icon: <VideoIcon className="h-5 w-5 text-amber-500" />,
-    title: "Record",
-    body: "Record in audio or video mode. Minimum 1 minute — the AI needs enough material to give you meaningful feedback. Maximum 10 minutes.",
-  },
-  {
-    number: "3",
-    icon: <BarChart2Icon className="h-5 w-5 text-amber-500" />,
-    title: "Get your scores and coaching",
-    body: "Receive evidence-based feedback across up to 15 dimensions of executive presence. Analysis covers how you communicate — delivery, structure, and vocal presence — not the content of what you say.",
-  },
-];
-
-const BETA_LIMIT_SECONDS = 1200;
 
 export default function WelcomePage() {
   const [, setLocation] = useLocation();
-  const { user, refreshUser } = useAuth();
+  const { refreshUser } = useAuth();
 
-  const totalRecordingSeconds = user?.totalRecordingSeconds ?? 0;
-  const quotaUsedMins = Math.floor(totalRecordingSeconds / 60);
-  const quotaUsedSecs = totalRecordingSeconds % 60;
-
-  const handleBegin = async () => {
-    try {
-      await api.users.markWelcomeSeen();
-      await refreshUser();
-    } catch {
-      // non-fatal — proceed anyway
-    }
-    setLocation("/record");
-  };
+  useEffect(() => {
+    api.users.markWelcomeSeen()
+      .then(() => refreshUser())
+      .catch(() => {});
+  }, [refreshUser]);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">How it works</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Your personal executive presence coach — powered by AI.
-        </p>
-      </div>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-5 py-12"
+      style={{ backgroundColor: "#FBF7F2" }}
+    >
+      <div className="w-full max-w-lg space-y-10">
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {STEPS.map((step) => (
-          <div
-            key={step.number}
-            className="rounded-lg border border-gray-200 bg-white px-5 py-5 space-y-3"
-            style={{ borderTop: "3px solid rgb(245 158 11)" }}
+        {/* Header */}
+        <div className="space-y-3">
+          <p
+            className="text-xs tracking-widest uppercase"
+            style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}
           >
-            <div className="flex items-center gap-2">
-              {step.icon}
-              <span className="text-xs font-semibold uppercase tracking-widest text-amber-500">
-                Step {step.number}
-              </span>
-            </div>
-            <h3 className="text-base font-semibold text-gray-900">{step.title}</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">{step.body}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="rounded-lg border border-gray-200 bg-white px-6 py-5 space-y-1">
-        <p className="text-sm font-semibold text-gray-900">Your progress unlocks after two sessions</p>
-        <p className="text-sm text-gray-500">
-          Once you've completed two recordings, your Progress page activates — showing how your
-          scores are moving across every dimension, where you're improving, and where to focus next.
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-gray-200 bg-white px-6 py-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-gray-900">Beta recording allowance</p>
-          <p className="text-sm font-mono text-gray-700">
-            {quotaUsedMins}m {quotaUsedSecs.toString().padStart(2, "0")}s
-            <span className="text-gray-400"> / 20m used</span>
+            Baseline complete
+          </p>
+          <h1
+            className="text-4xl font-semibold leading-tight"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
+          >
+            That was your baseline.
+          </h1>
+          <p className="text-base leading-relaxed" style={{ color: "#0F1B2D70" }}>
+            You've just set your starting point. Every session from here measures real growth
+            against this moment — across all dimensions of executive presence.
           </p>
         </div>
-        <div className="h-2 w-full rounded-full bg-gray-100 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-gray-800 transition-all"
-            style={{ width: `${Math.min(100, (totalRecordingSeconds / BETA_LIMIT_SECONDS) * 100)}%` }}
-          />
-        </div>
-        <p className="mt-2 text-xs text-gray-400">
-          {Math.max(0, BETA_LIMIT_SECONDS - totalRecordingSeconds)} seconds remaining in your beta allowance.
-        </p>
-      </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white px-6 py-4 space-y-1.5">
-        <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Privacy & AI</p>
-        <p className="text-xs text-gray-500 leading-relaxed">
-          Your recording is processed by AI and <strong className="text-gray-700">deleted immediately after scoring</strong> — it is never stored, shared with your organization, or accessible to anyone at Gravitas.
-        </p>
-        <p className="text-xs text-gray-500 leading-relaxed">
-          During beta only, Gravitas may review session <em>transcripts</em> (not recordings) to validate scoring accuracy. This does not affect your results.
-        </p>
-      </div>
-
-      {!user?.hasSeenWelcome && (
-        <div className="flex flex-col items-start gap-3">
-          <Button onClick={handleBegin} className="px-8">
-            Let's begin →
-          </Button>
+        {/* What your baseline means */}
+        <div
+          className="rounded-2xl px-6 py-6 space-y-5"
+          style={{ backgroundColor: "#0F1B2D" }}
+        >
+          <div className="h-0.5 w-8 rounded-full" style={{ backgroundColor: "#F0953E" }} />
+          <p
+            className="text-xs tracking-widest uppercase"
+            style={{ fontFamily: "'DM Mono', monospace", color: "rgba(255,255,255,0.35)" }}
+          >
+            What your baseline means
+          </p>
+          <div className="space-y-4">
+            {[
+              {
+                heading: "It's honest, not harsh.",
+                body: "Your scores reflect where you communicate today — not where you'll be in four weeks.",
+              },
+              {
+                heading: "Every session builds on it.",
+                body: "Each time you record, Gravitas tracks whether you're moving. The Progress page shows your arc over time.",
+              },
+              {
+                heading: "The coaching is specific to you.",
+                body: "Feedback is generated from what you said and how you said it — not from a generic template.",
+              },
+            ].map(({ heading, body }) => (
+              <div key={heading} className="flex gap-4">
+                <div
+                  className="flex-shrink-0 mt-1.5 rounded-full"
+                  style={{ width: "5px", height: "5px", backgroundColor: "#F0953E" }}
+                />
+                <div>
+                  <p
+                    className="text-sm font-semibold leading-snug"
+                    style={{ color: "rgba(255,255,255,0.85)" }}
+                  >
+                    {heading}
+                  </p>
+                  <p
+                    className="text-sm leading-relaxed mt-0.5"
+                    style={{ color: "rgba(255,255,255,0.45)" }}
+                  >
+                    {body}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      )}
+
+        {/* What's next */}
+        <div className="space-y-3">
+          <p
+            className="text-xs tracking-widest uppercase"
+            style={{ fontFamily: "'DM Mono', monospace", color: "#0F1B2D40" }}
+          >
+            What's next
+          </p>
+          <div className="space-y-2">
+            {[
+              { num: "01", text: "Record your next session — any prompt, any context." },
+              { num: "02", text: "Review per-dimension coaching after each session." },
+              { num: "03", text: "Watch your Progress page activate after your second session." },
+            ].map(({ num, text }) => (
+              <div
+                key={num}
+                className="flex items-start gap-4 rounded-xl px-5 py-4"
+                style={{ backgroundColor: "white", border: "2px solid #0F1B2D08" }}
+              >
+                <span
+                  className="text-xs tabular-nums flex-shrink-0 mt-0.5"
+                  style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}
+                >
+                  {num}
+                </span>
+                <p className="text-sm leading-snug" style={{ color: "#0F1B2D75" }}>{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={() => setLocation("/dashboard")}
+          className="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:opacity-90 active:opacity-80"
+          style={{ background: "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" }}
+        >
+          Go to my dashboard →
+        </button>
+
+      </div>
     </div>
   );
 }

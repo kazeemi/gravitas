@@ -1542,7 +1542,7 @@ export default function RecordPage() {
           <CheckCircleIcon className="mx-auto h-12 w-12 text-[#C84A18]" />
           <p className="text-lg font-semibold text-gray-900">Analysis complete!</p>
           <p className="text-sm text-gray-500">Your personalized coaching feedback is ready.</p>
-          <Button onClick={() => setLocation(`/sessions/${sessionId}`)}>View results</Button>
+          <Button onClick={() => setLocation(baselineMode ? `/sessions/${sessionId}?from=baseline` : `/sessions/${sessionId}`)}>View results</Button>
         </div>
       )}
     </div>

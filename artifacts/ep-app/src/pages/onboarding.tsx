@@ -98,6 +98,7 @@ const HIGH_STAKES_CONTEXTS = [
 // ── Step definitions ──────────────────────────────────────────────────────────
 
 type StepId =
+  | "welcome"
   | "education" | "experience" | "primary_goal"
   | "industry" | "company" | "role" | "interview_confirmed" | "interview_detail"
   | "environment" | "current_role" | "high_stakes"
@@ -234,7 +235,7 @@ export default function OnboardingPage() {
   const { refreshUser } = useAuth();
   const [, setLocation] = useLocation();
 
-  const [currentStep, setCurrentStep] = useState<StepId>("experience");
+  const [currentStep, setCurrentStep] = useState<StepId>("welcome");
   const [path, setPath] = useState<Path>(null);
   const [loading, setLoading] = useState(false);
 
@@ -387,6 +388,7 @@ export default function OnboardingPage() {
   // ── Section labels ──────────────────────────────────────────────────────────
 
   const sectionLabel: Partial<Record<StepId, string>> = {
+    welcome: "",
     education: "Professional Profile",
     experience: "Professional Profile",
     primary_goal: "Your Goal",
@@ -405,6 +407,7 @@ export default function OnboardingPage() {
   };
 
   const isMetaStep = META_STEPS.includes(currentStep);
+  const isWelcomeStep = currentStep === "welcome";
   const progressPct = isMetaStep ? 100 : (displayIndex / displayTotal) * 100;
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -412,29 +415,85 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#FBF7F2" }}>
 
-      {/* Progress bar */}
-      <div className="h-0.5 w-full" style={{ backgroundColor: "#0F1B2D10" }}>
-        <div
-          className="h-full transition-all duration-500 ease-out"
-          style={{ width: `${progressPct}%`, backgroundColor: "#F0953E" }}
-        />
-      </div>
+      {/* Progress bar — hidden on welcome */}
+      {!isWelcomeStep && (
+        <div className="h-0.5 w-full" style={{ backgroundColor: "#0F1B2D10" }}>
+          <div
+            className="h-full transition-all duration-500 ease-out"
+            style={{ width: `${progressPct}%`, backgroundColor: "#F0953E" }}
+          />
+        </div>
+      )}
 
-      {/* Step counter */}
-      <div className="flex items-center justify-between px-6 pt-5 pb-2">
-        <p className="text-xs tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#0F1B2D40" }}>
-          {sectionLabel[currentStep]}
-        </p>
-        {!isMetaStep && (
-          <p className="text-xs tabular-nums" style={{ fontFamily: "'DM Mono', monospace", color: "#0F1B2D35" }}>
-            {displayIndex} / {displayTotal}
+      {/* Step counter — hidden on welcome */}
+      {!isWelcomeStep && (
+        <div className="flex items-center justify-between px-6 pt-5 pb-2">
+          <p className="text-xs tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#0F1B2D40" }}>
+            {sectionLabel[currentStep]}
           </p>
-        )}
-      </div>
+          {!isMetaStep && (
+            <p className="text-xs tabular-nums" style={{ fontFamily: "'DM Mono', monospace", color: "#0F1B2D35" }}>
+              {displayIndex} / {displayTotal}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Content */}
-      <div className="flex-1 flex items-start justify-center px-5 py-4">
+      <div className={`flex-1 flex ${isWelcomeStep ? "items-center" : "items-start"} justify-center px-5 py-4`}>
         <div className="w-full max-w-lg">
+
+          {/* ── STEP: welcome ──────────────────────────────────────────────── */}
+          {currentStep === "welcome" && (
+            <div className="space-y-8 text-center">
+              {/* Logo */}
+              <div className="flex items-center justify-center gap-2.5">
+                <img src="/gravitas-logo-light.png" alt="Gravitas" className="h-9 w-auto" />
+                <span
+                  className="text-3xl font-semibold"
+                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
+                >
+                  Gravitas
+                </span>
+              </div>
+
+              {/* Headline */}
+              <div className="space-y-3">
+                <h1
+                  className="text-4xl font-semibold leading-tight"
+                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
+                >
+                  Let's get to know you.
+                </h1>
+                <p className="text-base leading-relaxed" style={{ color: "#0F1B2D70" }}>
+                  This will help us personalise your coaching so you make the most of Gravitas from day one.
+                </p>
+              </div>
+
+              {/* What to expect */}
+              <div
+                className="rounded-2xl px-6 py-5 text-left space-y-3.5"
+                style={{ backgroundColor: "white", border: "2px solid #0F1B2D08" }}
+              >
+                <p className="text-xs tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
+                  What to expect
+                </p>
+                {[
+                  { icon: "⏱", text: "Takes about 2 minutes" },
+                  { icon: "💬", text: "A few quick questions about your goals and context" },
+                  { icon: "✨", text: "Your experience is tailored to your answers from the start" },
+                ].map(({ icon, text }) => (
+                  <div key={text} className="flex items-start gap-3">
+                    <span className="text-base leading-snug flex-shrink-0">{icon}</span>
+                    <p className="text-sm leading-snug" style={{ color: "#0F1B2D75" }}>{text}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA */}
+              <ContinueButton onClick={() => setCurrentStep("experience")} label="Let's begin →" />
+            </div>
+          )}
 
           {/* ── STEP: education ────────────────────────────────────────────── */}
           {currentStep === "education" && (
@@ -463,6 +522,9 @@ export default function OnboardingPage() {
           {/* ── STEP: experience ───────────────────────────────────────────── */}
           {currentStep === "experience" && (
             <div className="space-y-5">
+              <div className="flex items-center gap-3 mb-1">
+                <BackButton onClick={() => setCurrentStep("welcome")} />
+              </div>
               <div>
                 <h1 className="text-3xl font-semibold leading-tight" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}>
                   How many years of full-time work experience do you have?

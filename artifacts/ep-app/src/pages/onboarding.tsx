@@ -1031,7 +1031,7 @@ export default function OnboardingPage() {
                 ))}
               </div>
 
-              <ContinueButton onClick={goNext} label="Start my baseline →" />
+              <ContinueButton onClick={save} disabled={loading} label={loading ? "Saving your profile…" : "Start my baseline →"} />
             </div>
           )}
 

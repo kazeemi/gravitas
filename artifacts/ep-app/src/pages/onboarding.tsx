@@ -264,6 +264,11 @@ export default function OnboardingPage() {
   const hasRestoredRef = useRef(false);
 
   useEffect(() => {
+    const isFresh = new URLSearchParams(window.location.search).get("fresh") === "1";
+    if (isFresh) {
+      try { localStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch {}
+      return;
+    }
     try {
       const raw = localStorage.getItem(ONBOARDING_DRAFT_KEY);
       if (raw) {
@@ -315,8 +320,9 @@ export default function OnboardingPage() {
 
   const steps = getStepList(path);
   const currentIndex = steps.indexOf(currentStep);
-  const displayTotal = path === "interview" ? 9 : path === "workplace" ? 7 : 9;
-  const displayIndex = currentIndex + 1;
+  const nonMetaSteps = steps.filter(s => !META_STEPS.includes(s));
+  const displayTotal = nonMetaSteps.length;
+  const displayIndex = nonMetaSteps.indexOf(currentStep) + 1;
 
   const goNext = () => {
     const nextIdx = currentIndex + 1;

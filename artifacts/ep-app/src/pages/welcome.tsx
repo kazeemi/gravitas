@@ -21,7 +21,7 @@ export default function WelcomePage() {
       <div className="w-full max-w-lg space-y-10">
 
         {/* Header */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <p
             className="text-xs tracking-widest uppercase"
             style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}
@@ -32,12 +32,19 @@ export default function WelcomePage() {
             className="text-4xl font-semibold leading-tight"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
           >
-            That was your baseline.
+            You have taken the first step. Now let's build on it.
           </h1>
-          <p className="text-base leading-relaxed" style={{ color: "#0F1B2D70" }}>
-            You've just set your starting point. Every session from here measures real growth
-            against this moment — across all dimensions of executive presence.
-          </p>
+          <div className="space-y-3 text-base leading-relaxed" style={{ color: "#0F1B2D70" }}>
+            <p>
+              Gravitas exists for one reason — to help you show up at your best, in every room that matters.
+            </p>
+            <p>
+              What you practise here is grounded in real research and real interviewer experience. It will be honest. It will be specific. And it will move with you as you grow.
+            </p>
+            <p style={{ color: "#0F1B2D90" }}>
+              You have got this. Let's go.
+            </p>
+          </div>
         </div>
 
         {/* What your baseline means */}
@@ -128,7 +135,7 @@ export default function WelcomePage() {
           className="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:opacity-90 active:opacity-80"
           style={{ background: "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" }}
         >
-          Go to my dashboard →
+          Start practising →
         </button>
 
       </div>

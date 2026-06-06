@@ -499,6 +499,7 @@ router.get("/v1/sessions/:id/status", requireAuth, async (req, res) => {
     .where(and(eq(sessionsTable.id, req.params.id), eq(sessionsTable.userId, req.user!.userId)))
     .limit(1);
   if (!session) return res.status(404).json({ error: "Session not found" });
+  res.setHeader("Cache-Control", "no-store");
   return res.json(session);
 });
 

@@ -545,7 +545,9 @@ export default function RecordPage() {
       setRecordingState("recording");
       setElapsed(0);
       elapsedRef.current = 0;
-      timerRef.current = window.setInterval(() => setElapsed(e => e + 1), 1000);
+      timerRef.current = window.setInterval(() => {
+        if (recordingStateRef.current === "recording") setElapsed(e => e + 1);
+      }, 1000);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to start recording";
       const isPermission =
@@ -580,7 +582,10 @@ export default function RecordPage() {
     if (mediaRecorderRef.current?.state === "paused") {
       mediaRecorderRef.current.resume();
     }
-    timerRef.current = window.setInterval(() => setElapsed(e => e + 1), 1000);
+    stopTimer();
+    timerRef.current = window.setInterval(() => {
+      if (recordingStateRef.current === "recording") setElapsed(e => e + 1);
+    }, 1000);
     setRecordingState("recording");
   };
 

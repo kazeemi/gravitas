@@ -409,7 +409,7 @@ Return your analysis as a JSON object with these exact keys:
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-audio",
+      model: "gpt-audio-mini",
       modalities: ["text"],
       messages: [
         {

@@ -410,8 +410,7 @@ Return your analysis as a JSON object with these exact keys:
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-audio",
-      modalities: ["text", "audio"],
-      audio: { voice: "alloy", format: "mp3" },
+      modalities: ["text"],
       messages: [
         {
           role: "user",
@@ -424,8 +423,7 @@ Return your analysis as a JSON object with these exact keys:
     } as Parameters<typeof openai.chat.completions.create>[0]);
 
     const message = response.choices[0]?.message as Record<string, unknown>;
-    const audioContent = message?.audio as Record<string, unknown> | undefined;
-    const rawText = (audioContent?.transcript as string) || (message?.content as string) || "";
+    const rawText = (message?.content as string) || "";
 
     let pitchVariationScore: number | null = null;
     let breathingScore: number | null = null;

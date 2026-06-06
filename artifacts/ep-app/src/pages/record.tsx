@@ -188,6 +188,10 @@ export default function RecordPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const elapsedRef = useRef(0);
+  const isStartingRef = useRef(false);
+  const recordingStartedAtRef = useRef<number>(0);
+  const pausedDurationMsRef = useRef<number>(0);
+  const pauseStartedAtRef = useRef<number>(0);
   const streamRef = useRef<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -449,6 +453,8 @@ export default function RecordPage() {
   }, []);
 
   const startRecording = async () => {
+    if (isStartingRef.current) return;
+    isStartingRef.current = true;
     setError("");
     const quotaRemaining = BETA_LIMIT_SECONDS - totalRecordingSeconds;
     if (quotaRemaining <= 0) {
@@ -545,9 +551,14 @@ export default function RecordPage() {
       setRecordingState("recording");
       setElapsed(0);
       elapsedRef.current = 0;
+      recordingStartedAtRef.current = Date.now();
+      pausedDurationMsRef.current = 0;
+      stopTimer();
       timerRef.current = window.setInterval(() => {
-        if (recordingStateRef.current === "recording") setElapsed(e => e + 1);
-      }, 1000);
+        if (recordingStateRef.current !== "recording") return;
+        const ms = Date.now() - recordingStartedAtRef.current - pausedDurationMsRef.current;
+        setElapsed(Math.floor(ms / 1000));
+      }, 500);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Failed to start recording";
       const isPermission =
@@ -563,6 +574,8 @@ export default function RecordPage() {
         setError(msg);
       }
       releaseStream();
+    } finally {
+      isStartingRef.current = false;
     }
   };
 
@@ -570,6 +583,7 @@ export default function RecordPage() {
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.pause();
     }
+    pauseStartedAtRef.current = Date.now();
     stopTimer();
     // Reset silence counter on pause — don't penalise deliberate pauses
     silenceMsRef.current = 0;
@@ -582,10 +596,17 @@ export default function RecordPage() {
     if (mediaRecorderRef.current?.state === "paused") {
       mediaRecorderRef.current.resume();
     }
+    // Accumulate time spent paused before resuming
+    if (pauseStartedAtRef.current > 0) {
+      pausedDurationMsRef.current += Date.now() - pauseStartedAtRef.current;
+      pauseStartedAtRef.current = 0;
+    }
     stopTimer();
     timerRef.current = window.setInterval(() => {
-      if (recordingStateRef.current === "recording") setElapsed(e => e + 1);
-    }, 1000);
+      if (recordingStateRef.current !== "recording") return;
+      const ms = Date.now() - recordingStartedAtRef.current - pausedDurationMsRef.current;
+      setElapsed(Math.floor(ms / 1000));
+    }, 500);
     setRecordingState("recording");
   };
 
@@ -594,6 +615,10 @@ export default function RecordPage() {
     stopLevelMonitor();
     stopFrameCapture();
     releaseWakeLock();
+    isStartingRef.current = false;
+    recordingStartedAtRef.current = 0;
+    pausedDurationMsRef.current = 0;
+    pauseStartedAtRef.current = 0;
     framesRef.current = [];
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();

@@ -349,62 +349,32 @@ export async function analyzeAudioDelivery(
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}
 
-You are a senior executive presence coach listening to this audio recording. Evaluate EVERYTHING you observe from the audio — both how the person speaks AND what they say. Base every observation solely on what you actually hear. Do not make generic statements; be specific about what you heard.
+You are a senior executive presence coach listening to this audio recording. Focus exclusively on the RAW SONIC QUALITIES of the voice — what you hear in the audio itself. Be specific; no generic statements. Ignore silence at the start/end; analyse only from first word to last word. Keep each field to 1-2 sentences.
 
-IMPORTANT: Ignore any silence at the very beginning or end of the recording. Your analysis should cover only the span from the first spoken word to the last spoken word.
+Assess the following:
 
-Assess ALL of the following in detail:
+1. Articulation — Clarity and precision of word formation. Are endings dropped, words mumbled or slurred?
+2. Projection — Does the voice carry consistently? Does volume drop at phrase endings or trail off?
+3. Vocal Tone — Richness, warmth, resonance of the voice. Thin, nasal, strained, breathy, warm, or authoritative?
+4. Vocal Steadiness — Audible tremor, pitch wavering, or tension-driven strain? (Distinguish from expressive intonation.)
+5. Intonation — Does pitch vary purposefully for emphasis and meaning, or is delivery monotone? Do statements fall with authority or rise with uncertainty?
+6. Breath Control — Does breath support full phrases, or does the voice thin at endings? Note audible inhalations or breath-induced pauses.
+7. clarityFlags — Any words/phrases mumbled, swallowed, or likely misheared by auto-transcription? Note timestamp and what you heard. Write "none" if all clear.
+8. professionalLanguageFlags — Any profanity, crude language, or personally demeaning language? Quote exact words and timestamp. Write "none" if none.
 
-VOICE QUALITY:
-1. Articulation — How clearly and precisely words are formed. Are word endings dropped? Is there mumbling or slurring? How consistently do all words land clearly?
-2. Projection — Does the voice carry consistently throughout each phrase? Does volume drop at sentence endings? Is there a pattern of trailing off or consistent amplitude?
-3. Vocal Tone — The richness, warmth, and resonance of the voice as an instrument. Is the tone thin, nasal, strained, breathy, warm, resonant, or authoritative?
-4. Vocal Steadiness — Is there audible tremor, pitch wavering, or tension-driven strain? Does the voice hold steady under pressure? Note F0 SD interpretation: if variation sounds expressive and purposeful = Intonation; if it sounds like anxiety or tremor = Vocal Steadiness.
-
-VOCAL DELIVERY:
-5. Intonation — Does pitch vary purposefully to signal emphasis, structure, and meaning? Or is delivery monotone? Note whether pitch falls decisively at statements (authority) or rises (uncertainty). Reference any pitch variation score 1-5.
-6. Pace — Estimate speaking pace and any acceleration/deceleration patterns. Pay particular attention to:
-   - How pace changes over the course of the response — did the speaker start slow then accelerate? Start fast and slow down? Stay consistent?
-   - End-of-response sprints: if the speaker noticeably rushed at the end of their response, flag this explicitly with approximate timestamp. This is one of the most common and impactful pace errors.
-   - Any moment where speech became so rapid that words themselves became unclear or blurred together — note the timestamp and what it sounded like.
-   - Note rush events (bursts that sound above 200 WPM) and moments of deliberate slowing on key points.
-   IMPORTANT: If the speaker's overall pace was slow but they had a burst of speed at any point — especially at the end — do NOT summarise this as simply "slow pace". The burst is the more impactful observation and must be named explicitly.
-7. Pausing — Observe strategic pauses at idea boundaries vs hesitation mid-thought. Are pauses used deliberately before key statements? Count boundary pauses vs mid-clause pauses.
-8. Breath Control — Does breath support delivery through full phrases or does the voice thin at endings? Note audible inhalations, breath-induced mid-clause pauses, any pre-statement settling breaths.
-
-THOUGHT CLARITY (from transcript/audio):
-9. Confidence Language — Assess language across THREE categories, not two:
-   (a) HEDGING: phrases that undermine the speaker's own position ("I think", "maybe", "I guess", "kind of", "sort of", "hopefully", "I'm not sure but") — these signal uncertainty and erode authority.
-   (b) CONFIDENT: language that asserts a clear position appropriately for the context ("The key issue is", "We will", "I recommend", "The evidence shows", clear declarative statements) — these signal credibility and ownership.
-   (c) AGGRESSIVE or DISMISSIVE: language that is emotionally charged, inflammatory, or that demeans the subject, the audience, or others ("absolutely ridiculous", "complete disaster", "they have no idea", "this is insane") — CRITICAL: do NOT classify this as confidence. This is aggression dressed as directness, and it undermines professional credibility even if it avoids hedging. Quote these phrases explicitly and note them as a distinct concern.
-   Quote specific phrases from each category that you heard. Note filler word types and approximate count.
-10. Structure — Clear opening that signals purpose? Organised logical body? Decisive close? Point-first delivery (recommendation before rationale)? Quote specific moments.
-11. Conciseness — Does the speaker say what needs to be said and stop? Note any repetition of points, padding phrases ("as I said", "what I mean to say is", "basically"), or over-explanation.
-
-IMPORTANT — TWO ADDITIONAL FIELDS YOU MUST ALWAYS COMPLETE:
-
-12. clarityFlags — Listen carefully for any words or phrases that were mumbled, swallowed, or difficult to discern clearly. Also note any moments where what you heard may differ from how it would appear in an automated transcript — transcription tools sometimes mishear or sanitise words. List each instance with approximate timestamp and what you actually heard. If everything was clearly intelligible, write "none".
-
-13. professionalLanguageFlags — Flag any language that would be considered inappropriate or unprofessional in a workplace or professional setting: profanity, crude language, personal insults (e.g. calling someone a "dumb fuck", "idiot", etc.), or aggressive language. Quote the exact words you heard. Note the approximate timestamp. Do not paraphrase or sanitise — quote what was actually said. If none, write "none".
-
-Return your analysis as a JSON object with these exact keys:
+Return JSON with exactly these keys:
 {
-  "articulation": "specific observation about word clarity, dropped endings, mumbling",
-  "projection": "specific observation about volume consistency, phrase-ending drops, trailing",
-  "vocalTone": "specific observation about richness, warmth, resonance, breathiness, nasality, strain",
-  "vocalSteadiness": "specific observation about tremor, wavering, anxiety signals in voice",
-  "pitchIntonation": "specific observation about pitch variation, monotone vs dynamic, pattern of rises/falls",
-  "pitchVariationScore": <integer 1-5 where 1=completely monotone, 5=excellent expressive range>,
-  "pace": "specific observation about speaking pace, rush moments, deceleration",
-  "pausing": "specific observation about boundary pauses, mid-clause pauses, strategic silence use",
-  "breathControl": "specific observation about phrase support, inhalations, breath-induced pauses",
-  "breathingScore": <integer 1-5 where 1=severe breathlessness, 5=excellent relaxed control>,
-  "confidenceLanguage": "specific hedging phrases heard (quote them) and specific assertive phrases heard (quote them), plus filler word count by type",
-  "structure": "from listening: clear opening? organised body? decisive close? point-first delivery? Quote specific moments.",
-  "conciseness": "specific observation about repetition, padding phrases, over-explanation",
-  "overallDeliveryQuality": "direct summary of voice quality and delivery in 2-3 sentences",
-  "clarityFlags": "list of words/phrases that were unclear or may have been misheared by transcription, with approximate timestamps. 'none' if all clear.",
-  "professionalLanguageFlags": "exact quotes of any unprofessional or inappropriate language heard, with approximate timestamps. 'none' if none detected."
+  "articulation": "1-2 sentence observation",
+  "projection": "1-2 sentence observation",
+  "vocalTone": "1-2 sentence observation",
+  "vocalSteadiness": "1-2 sentence observation",
+  "pitchIntonation": "1-2 sentence observation",
+  "pitchVariationScore": <integer 1-5, 1=completely monotone, 5=excellent expressive range>,
+  "breathControl": "1-2 sentence observation",
+  "breathingScore": <integer 1-5, 1=severe breathlessness, 5=excellent relaxed control>,
+  "overallDeliveryQuality": "2-sentence summary of vocal quality",
+  "clarityFlags": "observations or 'none'",
+  "professionalLanguageFlags": "exact quotes or 'none'"
 }`;
 
   try {

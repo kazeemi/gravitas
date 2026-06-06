@@ -1,5 +1,6 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { openai } from "@workspace/integrations-openai-ai-server";
+import { logger } from "./logger.js";
 import {
   ensureCompatibleFormat,
   speechToText,
@@ -392,6 +393,16 @@ Return JSON with exactly these keys:
       ],
     } as Parameters<typeof openai.chat.completions.create>[0]);
 
+    const u = response.usage as Record<string, unknown> | undefined;
+    logger.info({
+      ai_call: "gpt-audio-mini",
+      prompt_tokens: u?.prompt_tokens,
+      completion_tokens: u?.completion_tokens,
+      total_tokens: u?.total_tokens,
+      audio_input_tokens: (u?.prompt_tokens_details as Record<string, unknown> | undefined)?.audio_tokens,
+      audio_output_tokens: (u?.completion_tokens_details as Record<string, unknown> | undefined)?.audio_tokens,
+    }, "gpt-audio-mini usage");
+
     const message = response.choices[0]?.message as Record<string, unknown>;
     const rawText = (message?.content as string) || "";
 
@@ -483,6 +494,13 @@ Return your analysis as a JSON object with these exact keys:
         },
       ],
     });
+
+    logger.info({
+      ai_call: "claude-vision",
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+      frames_sent: frames.length,
+    }, "claude-vision usage");
 
     const rawText = response.content
       .filter(b => b.type === "text")
@@ -788,6 +806,12 @@ Return a JSON object (no markdown, no code fences):
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt,
     });
+
+    logger.info({
+      ai_call: "claude-scoring",
+      input_tokens: message.usage.input_tokens,
+      output_tokens: message.usage.output_tokens,
+    }, "claude-scoring usage");
 
     const block = message.content[0];
     const text = block.type === "text" ? block.text.trim() : "{}";

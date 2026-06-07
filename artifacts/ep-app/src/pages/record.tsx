@@ -230,12 +230,13 @@ export default function RecordPage() {
   useEffect(() => {
     api.prompts.list().then(data => {
       if (data.prompts.length === 0) return;
-      // Filter to interview prompts for the user's sector when in interview mode
+      // Filter to interview prompts for the user's sector when in interview mode.
+      // Interview prompts always have a sector field; workplace prompts do not.
       let pool = data.prompts;
       if (user?.interviewMode) {
         const sector = user.interviewSector ?? "all";
         const interviewPool = data.prompts.filter(
-          p => p.category === "Interview" && (p.sector === sector || p.sector === "all")
+          p => p.sector !== undefined && (p.sector === sector || p.sector === "all")
         );
         if (interviewPool.length > 0) pool = interviewPool;
       }

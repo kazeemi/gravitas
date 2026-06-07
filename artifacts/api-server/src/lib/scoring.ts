@@ -534,7 +534,17 @@ export async function transcribeAudio(
   audioBuffer: Buffer
 ): Promise<{ transcript: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null; wpmWindows: WpmWindow[] | null }> {
   const { buffer, format } = await ensureCompatibleFormat(audioBuffer);
+  const t0 = Date.now();
   const result = await speechToTextWithTiming(buffer, format);
+  const elapsedMs = Date.now() - t0;
+  logger.info({
+    ai_call: "gpt-4o-mini-transcribe",
+    audio_bytes: buffer.length,
+    audio_mb: Math.round(buffer.length / 1024 / 1024 * 100) / 100,
+    speech_duration_seconds: result.speechDurationSeconds,
+    elapsed_ms: elapsedMs,
+    word_count: result.text ? result.text.trim().split(/\s+/).filter(Boolean).length : 0,
+  }, "gpt-4o-mini-transcribe usage");
   return {
     transcript: result.text,
     speechDurationSeconds: result.speechDurationSeconds,

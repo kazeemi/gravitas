@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,7 @@ const HIGH_STAKES_CONTEXTS = [
 
 export default function SettingsPage() {
   const { user, logout, refreshUser } = useAuth();
+  const [, setLocation] = useLocation();
 
   // ── Profile ──
   const [name, setName] = useState(user?.name || "");
@@ -97,6 +99,22 @@ export default function SettingsPage() {
   const [pwError, setPwError] = useState("");
   const [pwSuccess, setPwSuccess] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
+
+  // ── Delete account ──
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+      await api.users.deleteAccount();
+      logout();
+      setLocation("/login");
+    } catch {
+      setDeleteLoading(false);
+      setDeleteConfirm(false);
+    }
+  };
 
   // ── Coaching profile ──
   const [coachingGoal, setCoachingGoal] = useState<"interview" | "workplace" | "">(
@@ -651,13 +669,53 @@ export default function SettingsPage() {
       {/* ── Account ── */}
       <section className="rounded-lg border border-red-100 bg-white p-6 space-y-4">
         <h2 className="font-semibold text-gray-900">Account</h2>
-        <Button
-          variant="outline"
-          className="border-red-200 text-red-600 hover:bg-red-50"
-          onClick={logout}
-        >
-          Sign out
-        </Button>
+        <div className="flex flex-col gap-3">
+          <Button
+            variant="outline"
+            className="border-red-200 text-red-600 hover:bg-red-50 w-fit"
+            onClick={logout}
+          >
+            Sign out
+          </Button>
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-sm font-medium text-gray-900 mb-1">Delete account</p>
+            <p className="text-xs text-gray-500 mb-3">
+              Permanently delete your account and all session data. This cannot be undone.
+            </p>
+            {!deleteConfirm ? (
+              <Button
+                variant="outline"
+                className="border-red-300 text-red-700 hover:bg-red-50"
+                onClick={() => setDeleteConfirm(true)}
+              >
+                Delete my account
+              </Button>
+            ) : (
+              <div className="rounded border border-red-200 bg-red-50 p-4 space-y-3">
+                <p className="text-sm font-medium text-red-800">Are you sure? This will delete all your sessions and coaching data permanently.</p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300 text-gray-700"
+                    onClick={() => setDeleteConfirm(false)}
+                    disabled={deleteLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-red-700 hover:bg-red-800 text-white border-0"
+                    onClick={handleDeleteAccount}
+                    disabled={deleteLoading}
+                  >
+                    {deleteLoading ? "Deleting…" : "Yes, delete everything"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </section>
     </div>
   );

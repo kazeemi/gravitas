@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { requireAuth } from "../lib/auth.js";
 import { usersTable, sessionsTable, dimensionScoresTable } from "@workspace/db";
@@ -54,19 +54,13 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
 
 router.post("/v1/users/me/onboarding", requireAuth, async (req, res) => {
   const {
-    // legacy + common
     roleTitle, communicationContext, goal, defaultRecordingContext,
     interviewMode, interviewSector, interviewSectorCustom, interviewCompanies,
-    // v2 professional profile
     careerStage, educationLevel, workExperienceYears,
-    // v2 primary goal path
     primaryGoal,
-    // v2 interview path
     interviewRole, interviewRoleCustom, interviewTimeline, interviewStage,
     interviewDate, hasConfirmedInterview,
-    // v2 workplace path
     workEnvironment, workCurrentRole, workCurrentRoleCustom, highStakesContexts,
-    // v2 self-assessment
     selfAssessmentThoughtClarity, selfAssessmentVocalDelivery,
     selfAssessmentVoiceQuality, selfAssessmentPhysicalDelivery,
   } = req.body;
@@ -80,7 +74,6 @@ router.post("/v1/users/me/onboarding", requireAuth, async (req, res) => {
     interviewSector: interviewSector ?? null,
     interviewSectorCustom: interviewSectorCustom ?? null,
     interviewCompanies: interviewCompanies ?? null,
-    // v2 fields
     careerStage: careerStage ?? null,
     educationLevel: educationLevel ?? null,
     workExperienceYears: workExperienceYears ?? null,
@@ -114,13 +107,24 @@ router.get("/v1/users/me/export", requireAuth, async (req, res) => {
   const sessionIds = sessions.map(s => s.id);
   let scores: (typeof dimensionScoresTable.$inferSelect)[] = [];
   if (sessionIds.length > 0) {
-    const { inArray } = await import("drizzle-orm");
     scores = await db.select().from(dimensionScoresTable).where(inArray(dimensionScoresTable.sessionId, sessionIds));
   }
   const { passwordHash: _ph, ...safeUser } = user;
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Content-Disposition", "attachment; filename=export.json");
   return res.json({ user: safeUser, sessions, scores });
+});
+
+router.delete("/v1/users/me", requireAuth, async (req, res) => {
+  const userId = req.user!.userId;
+  const sessions = await db.select({ id: sessionsTable.id }).from(sessionsTable).where(eq(sessionsTable.userId, userId));
+  const sessionIds = sessions.map(s => s.id);
+  if (sessionIds.length > 0) {
+    await db.delete(dimensionScoresTable).where(inArray(dimensionScoresTable.sessionId, sessionIds));
+  }
+  await db.delete(sessionsTable).where(eq(sessionsTable.userId, userId));
+  await db.delete(usersTable).where(eq(usersTable.id, userId));
+  return res.json({ message: "Account deleted" });
 });
 
 export default router;

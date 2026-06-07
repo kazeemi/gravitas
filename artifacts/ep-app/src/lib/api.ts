@@ -18,7 +18,8 @@ export function isAuthenticated(): boolean {
 
 async function request<T>(
   path: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  opts: { allowStatuses?: number[] } = {}
 ): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -29,7 +30,7 @@ async function request<T>(
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
 
-  if (!res.ok) {
+  if (!res.ok && !opts.allowStatuses?.includes(res.status)) {
     const body = await res.json().catch(() => ({ error: "Unknown error" }));
     throw new Error(body.error || `HTTP ${res.status}`);
   }
@@ -40,15 +41,15 @@ async function request<T>(
 export const api = {
   auth: {
     signup: (email: string, password: string, name: string) =>
-      request<{ token: string; user: { id: string; email: string; name: string | null } }>("/v1/auth/signup", {
+      request<{ message: string }>("/v1/auth/signup", {
         method: "POST",
         body: JSON.stringify({ email, password, name }),
       }),
     login: (email: string, password: string) =>
-      request<{ token: string; user: { id: string; email: string; name: string | null } }>("/v1/auth/login", {
+      request<{ token: string; user: { id: string; email: string; name: string | null } } | { error: string; message?: string }>("/v1/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
-      }),
+      }, { allowStatuses: [403] }),
     logout: () => request("/v1/auth/logout", { method: "POST" }),
     google: (credential: string) =>
       request<{ token: string; user: { id: string; email: string; name: string | null }; isNewUser?: boolean }>("/v1/auth/google", {
@@ -74,6 +75,8 @@ export const api = {
       const token = getToken();
       window.open(`${API_BASE}/v1/users/me/export?token=${token}`, "_blank");
     },
+    deleteAccount: () =>
+      request<{ message: string }>("/v1/users/me", { method: "DELETE" }),
   },
 
   sessions: {

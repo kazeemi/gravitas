@@ -7,6 +7,8 @@ import Layout from "@/components/layout";
 import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import ForgotPasswordPage from "@/pages/forgot-password";
+import ResetPasswordPage from "@/pages/reset-password";
+import VerifyEmailPage from "@/pages/verify-email";
 import OnboardingPage from "@/pages/onboarding";
 import DashboardPage from "@/pages/dashboard";
 import RecordPage from "@/pages/record";
@@ -62,6 +64,12 @@ function AppRouter() {
       </Route>
       <Route path="/forgot-password">
         {user ? <Redirect to="/record" /> : <ForgotPasswordPage />}
+      </Route>
+      <Route path="/reset-password">
+        <ResetPasswordPage />
+      </Route>
+      <Route path="/verify-email">
+        <VerifyEmailPage />
       </Route>
       <Route path="/onboarding">
         {!user ? <Redirect to="/login" /> : <OnboardingPage />}

@@ -60,15 +60,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { token, user: u } = await api.auth.login(email, password);
+    const data = await api.auth.login(email, password);
+    if ('error' in data && data.error === 'email_not_verified') {
+      throw new Error(data.message as string || "Please verify your email before signing in.");
+    }
+    const { token, user: u } = data as { token: string; user: User };
     setToken(token);
     setUser(u as User);
   };
 
   const signup = async (email: string, password: string, name: string) => {
-    const { token, user: u } = await api.auth.signup(email, password, name);
-    setToken(token);
-    setUser(u as User);
+    await api.auth.signup(email, password, name);
   };
 
   const loginWithGoogle = async (credential: string) => {

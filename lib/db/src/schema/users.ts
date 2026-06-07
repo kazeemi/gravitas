@@ -31,6 +31,15 @@ export const usersTable = pgTable("users", {
   interviewCompanies: text("interview_companies"),
   isAdmin: boolean("is_admin").notNull().default(false),
 
+  // Email verification
+  emailVerified: boolean("email_verified").notNull().default(false),
+  emailVerificationToken: varchar("email_verification_token", { length: 255 }),
+  emailVerificationExpiresAt: timestamp("email_verification_expires_at", { withTimezone: true }),
+
+  // Password reset
+  passwordResetToken: varchar("password_reset_token", { length: 255 }),
+  passwordResetExpiresAt: timestamp("password_reset_expires_at", { withTimezone: true }),
+
   // v2 onboarding fields
   careerStage: varchar("career_stage", { length: 50 }),
   educationLevel: varchar("education_level", { length: 100 }),

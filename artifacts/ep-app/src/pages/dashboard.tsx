@@ -395,20 +395,30 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <ActionCard
-          icon={<MicIcon className="h-5 w-5" />}
-          title="Audio session"
-          description="Record and analyze your vocal delivery"
-          onClick={() => setLocation("/record?mode=audio")}
-        />
-        <ActionCard
-          icon={<VideoIcon className="h-5 w-5" />}
-          title="Video session"
-          description="Full 15-dimension analysis including body language and eye contact"
-          onClick={() => setLocation("/record?mode=video")}
-        />
-      </div>
+      <button
+        onClick={() => setLocation("/record")}
+        className="group relative w-full overflow-hidden rounded-2xl px-8 py-7 text-left transition-opacity hover:opacity-90 active:opacity-80"
+        style={{ background: "linear-gradient(120deg, #F0953E 0%, #C84A18 100%)" }}
+      >
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/70 mb-1">
+              {recent.length === 0 ? "Get started" : "New session"}
+            </p>
+            <p className="text-xl font-semibold text-white leading-snug">
+              {recent.length === 0
+                ? "Record your first session"
+                : "Record again"}
+            </p>
+            <p className="mt-1 text-sm text-white/75">
+              {recent.length === 0
+                ? "Speak for 60 seconds and get feedback across 11 dimensions"
+                : "Keep building — consistency is what drives improvement"}
+            </p>
+          </div>
+          <ChevronRightIcon className="h-6 w-6 shrink-0 text-white/60 transition-transform group-hover:translate-x-1" />
+        </div>
+      </button>
     </div>
   );
 }
@@ -483,30 +493,5 @@ function SessionRow({ session, onClick }: { session: SessionSummary; onClick: ()
         </div>
       </button>
     </li>
-  );
-}
-
-function ActionCard({
-  icon,
-  title,
-  description,
-  onClick,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-lg border border-gray-200 bg-white p-6 text-left hover:border-gray-400 transition-colors"
-    >
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-700">
-        {icon}
-      </div>
-      <h3 className="mt-4 font-semibold text-gray-900">{title}</h3>
-      <p className="mt-1 text-sm text-gray-500">{description}</p>
-    </button>
   );
 }

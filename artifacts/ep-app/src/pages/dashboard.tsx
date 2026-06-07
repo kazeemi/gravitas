@@ -334,10 +334,14 @@ export default function DashboardPage() {
             Track and improve your executive presence
           </p>
         </div>
-        <Button onClick={() => setLocation("/record")} className="gap-2">
+        <button
+          onClick={() => setLocation("/record")}
+          className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80"
+          style={{ background: "linear-gradient(120deg, #F0953E 0%, #C84A18 100%)" }}
+        >
           <PlusIcon className="h-4 w-4" />
           New session
-        </Button>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

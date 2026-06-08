@@ -271,36 +271,22 @@ router.post(
         // Await the video presence promise that was started before audio analysis
         videoPresenceAnalysis = await videoPresencePromise;
 
-        // If no speech was detected AND no audio delivery analysis could be
-        // produced, there is nothing to score. Save the session as complete
-        // but without any scores so the UI can show a clear "try again" message.
-        const hasAnyAudioData =
+        // If no audio was captured, there is nothing meaningful to score.
+        // Video frames alone are insufficient — 11 of 15 dimensions require audio.
+        // Mark as error so the user gets a clear recovery screen and can re-record.
+        const hasAudioContent =
           (transcript && transcript.trim().length > 0) ||
-          (audioDeliveryAnalysis && audioDeliveryAnalysis.trim().length > 0) ||
-          videoPresenceAnalysis != null;
+          (audioDeliveryAnalysis && audioDeliveryAnalysis.trim().length > 0);
 
-        if (!hasAnyAudioData) {
+        if (!hasAudioContent) {
           await db
             .update(sessionsTable)
             .set({
-              processingStatus: "complete",
-              compositeScore: null,
-              compositeTier: null,
-              audioQualityFlag: true,
-              faceCoverageFlag: false,
-              overallFeedback: null,
+              processingStatus: "error",
+              processingError: "No audio was captured in this recording. Please check your microphone is unmuted and record again.",
               durationSeconds,
-              audioGapEvents,
-              faceLostEvents,
-              silenceEvents,
-              transcript: null,
-              scoredAt: new Date(),
             })
             .where(eq(sessionsTable.id, session.id));
-          await db
-            .update(usersTable)
-            .set({ totalRecordingSeconds: sql`total_recording_seconds + ${durationSeconds}` })
-            .where(eq(usersTable.id, session.userId));
           return;
         }
 

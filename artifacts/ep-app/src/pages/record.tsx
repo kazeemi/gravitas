@@ -388,10 +388,10 @@ export default function RecordPage() {
       if (frame) framesRef.current.push(frame);
       frameIntervalRef.current = window.setInterval(() => {
         if (recordingStateRef.current !== "recording") return;
-        if (framesRef.current.length >= 10) return;
+        if (framesRef.current.length >= 20) return;
         const f = captureFrame();
         if (f) framesRef.current.push(f);
-      }, 8000);
+      }, 5000);
     }, 2500);
   }, [captureFrame]);
 

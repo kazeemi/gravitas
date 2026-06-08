@@ -444,7 +444,7 @@ export async function analyzeVideoPresence(
   promptText?: string,
   recordingContext?: string
 ): Promise<VideoPresenceResult> {
-  const frames = frameBase64Array.slice(0, 10);
+  const frames = frameBase64Array.slice(0, 20);
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}${recordingContext ? `Recording context: ${recordingContext}.` : ""}
 
@@ -709,6 +709,15 @@ When the words claim an emotion that the delivery does not carry — e.g. saying
 When the delivery DOES match the emotional content, there is nothing to flag here. Do not manufacture a gap.
 
 CRITICAL SCOPING RULE — NO DUPLICATION: This congruence check belongs EXCLUSIVELY to intonation. Do NOT reference it in vocal_tone. Vocal Tone covers the physical quality of the voice (warmth, resonance, richness, texture) — it does NOT assess whether vocal energy matches stated emotions. If the voice is physically warm but the energy does not match enthusiastic words, that is an intonation congruence gap, not a vocal tone gap. Each dimension must remain MECE.
+
+CONCISENESS — REDUNDANCY AND REPETITION RULE:
+When evaluating Conciseness, check for two distinct failure modes beyond simple wordiness:
+
+1. RESTATEMENT: The speaker says the same idea more than once in different words without adding new meaning. This is different from emphasis — emphasis restates to land a point; restatement just fills time. If the same idea appears twice or more, flag which idea and what was lost (the listener registers it as padding, and authority erodes).
+
+2. CIRCULAR REASONING: The speaker returns to an earlier point without building on it — e.g., ends where they began, references their opening claim again without developing it further, or loops through the same examples in a different order. Name the specific moment the response circled back and state the listener impact: it signals the speaker ran out of ideas rather than chose to stop.
+
+Both are distinct from a long response that covers new ground throughout (which may score well on Conciseness despite high word count). Score them as meaningful gaps. A response that is brief but covers fresh ground on each sentence scores higher than one that takes twice as long restating the same two points.
 
 CALIBRATION RULES:
 - Score 9 or 10 must include specific named evidence for what earned it

@@ -57,3 +57,7 @@ channel = "stable-25_05"
 [userenv]
 
 [userenv.production]
+APP_URL = "https://gravitas.selfcraftpartners.com"
+
+[userenv.development]
+APP_URL = "http://localhost:80"

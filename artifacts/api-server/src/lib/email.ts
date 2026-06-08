@@ -6,6 +6,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "Gravitas <noreply@selfcraftpartners.com>";
 
 function getAppUrl(): string {
+  if (process.env.APP_URL) return process.env.APP_URL;
   const domains = process.env.REPLIT_DOMAINS;
   if (domains) {
     const primary = domains.split(",")[0].trim();

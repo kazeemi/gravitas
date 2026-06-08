@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
 
 export default function VerifyEmailPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [, setLocation] = useLocation();
   const search = useSearch();
   const token = new URLSearchParams(search).get("token") ?? "";
+  const { loginWithToken } = useAuth();
 
   useEffect(() => {
     if (!token) { setStatus("error"); return; }
@@ -15,7 +17,12 @@ export default function VerifyEmailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token }),
     })
-      .then((res) => setStatus(res.ok ? "success" : "error"))
+      .then(async (res) => {
+        if (!res.ok) { setStatus("error"); return; }
+        const data = await res.json();
+        loginWithToken(data.token, data.user);
+        setLocation(data.user.onboardingCompleted ? "/dashboard" : "/onboarding");
+      })
       .catch(() => setStatus("error"));
   }, [token]);
 
@@ -38,29 +45,22 @@ export default function VerifyEmailPage() {
           </div>
         )}
 
-        {status === "success" && (
-          <div className="space-y-5">
-            <div className="rounded border border-green-200 bg-green-50 px-4 py-5">
-              <p className="font-semibold text-green-800">Email verified</p>
-              <p className="mt-1 text-sm text-green-700">Your account is active. Sign in to get started.</p>
-            </div>
-            <Button className="w-full" onClick={() => setLocation("/login")}>
-              Sign in
-            </Button>
-          </div>
-        )}
-
         {status === "error" && (
           <div className="space-y-5">
             <div className="rounded border border-red-200 bg-red-50 px-4 py-5">
               <p className="font-semibold text-red-800">Link expired or invalid</p>
               <p className="mt-1 text-sm text-red-700">
-                This verification link has expired or already been used. Sign up again to receive a new one.
+                This verification link has expired or already been used. Sign in if you already verified, or sign up again to receive a new link.
               </p>
             </div>
-            <Button variant="outline" className="w-full" onClick={() => setLocation("/signup")}>
-              Back to sign up
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button className="w-full" onClick={() => setLocation("/login")}>
+                Sign in
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => setLocation("/signup")}>
+                Back to sign up
+              </Button>
+            </div>
           </div>
         )}
       </div>

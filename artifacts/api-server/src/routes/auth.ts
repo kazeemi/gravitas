@@ -58,7 +58,8 @@ router.post("/v1/auth/verify-email", async (req, res) => {
     emailVerificationExpiresAt: null,
   }).where(eq(usersTable.id, user.id));
 
-  return res.json({ message: "Email verified successfully" });
+  const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
+  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted } });
 });
 
 router.post("/v1/auth/login", async (req, res) => {

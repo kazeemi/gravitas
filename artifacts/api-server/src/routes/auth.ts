@@ -78,7 +78,7 @@ router.post("/v1/auth/login", async (req, res) => {
     return res.status(403).json({ error: "email_not_verified", message: "Please verify your email before signing in. Check your inbox for a verification link." });
   }
   const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
-  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin } });
+  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted } });
 });
 
 router.post("/v1/auth/logout", requireAuth, (_req, res) => {

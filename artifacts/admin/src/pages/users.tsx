@@ -11,10 +11,10 @@ import { format } from "date-fns";
 
 function tierBadge(score: number | null) {
   if (score == null) return null;
-  if (score >= 80) return <Badge className="bg-green-100 text-green-800 border-green-200">Distinguished</Badge>;
-  if (score >= 65) return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Strong</Badge>;
-  if (score >= 50) return <Badge className="bg-amber-100 text-amber-800 border-amber-200">Developing</Badge>;
-  return <Badge className="bg-red-100 text-red-800 border-red-200">Emerging</Badge>;
+  if (score >= 80) return <Badge className="bg-[#EDF4EF] text-[#6B9B7A] border-[#6B9B7A]">Distinguished</Badge>;
+  if (score >= 65) return <Badge className="bg-[#F5F0E3] text-[#A08838] border-[#A08838]">Strong</Badge>;
+  if (score >= 50) return <Badge className="bg-[#F5EEE3] text-[#B87A35] border-[#B87A35]">Developing</Badge>;
+  return <Badge className="bg-[#F5EDEB] text-[#A84B3A] border-[#A84B3A]">Needs Focus</Badge>;
 }
 
 function fmtDuration(s: number) {

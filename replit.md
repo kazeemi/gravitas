@@ -59,7 +59,7 @@ Sessions scored under v4.0 are tagged `methodologyVersion: "4.0"`. Legacy sessio
 - Text: Midnight #0F1B2D
 - CTA: Amber #F0953E
 - Accent: Terracotta #C84A18
-- Tier colors: Needs Focus #EDE8E2 | Developing #F0953E | Strong #C84A18 | Distinguished #0F1B2D
+- Tier colors: Needs Focus #A84B3A | Developing #B87A35 | Strong #A08838 | Distinguished #6B9B7A
 - Fonts: Cormorant Garamond (display), Inter (body), DM Mono (data)
 
 ## Key Commands

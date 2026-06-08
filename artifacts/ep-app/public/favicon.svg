@@ -1,3 +1,18 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F5B942"/>
+      <stop offset="100%" stop-color="#F0953E"/>
+    </linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#F5A836"/>
+      <stop offset="100%" stop-color="#E8823A"/>
+    </linearGradient>
+  </defs>
+  <!-- left circle -->
+  <circle cx="46" cy="90" r="36" fill="url(#a)"/>
+  <!-- middle circle -->
+  <circle cx="108" cy="90" r="32" fill="url(#b)"/>
+  <!-- right arrow -->
+  <polygon points="148,62 148,118 178,90" fill="#C84A18"/>
 </svg>

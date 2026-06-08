@@ -32,7 +32,7 @@ app.listen(port, (err) => {
       .update(sessionsTable)
       .set({
         processingStatus: "error",
-        processingError: "Analysis was interrupted by a server restart. Please record again.",
+        processingError: "Something went wrong during analysis. Please record again.",
       })
       .where(eq(sessionsTable.processingStatus, "processing"))
       .returning({ id: sessionsTable.id });

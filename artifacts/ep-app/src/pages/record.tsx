@@ -93,7 +93,7 @@ async function convertToWavBlob(blob: Blob): Promise<Blob> {
   }
 }
 
-type Step = "setup" | "recording" | "review" | "processing" | "done";
+type Step = "setup" | "recording" | "review" | "processing" | "done" | "failed";
 type RecordingState = "idle" | "recording" | "paused";
 
 const MIN_DURATION = 60;
@@ -818,9 +818,8 @@ export default function RecordPage() {
         if (Date.now() - pollStart > POLL_TIMEOUT_MS) {
           clearInterval(pollRef.current!);
           if (processingStepRef.current) clearInterval(processingStepRef.current);
-          setError("Analysis is taking longer than expected. This may be a temporary issue — please check your history in a few minutes, or try recording again.");
-          setStep("recording");
-          setRecordingState("paused");
+          setError("Scoring is taking longer than expected. Please check your history in a few minutes, or record again.");
+          setStep("failed");
           return;
         }
         try {
@@ -835,18 +834,16 @@ export default function RecordPage() {
           } else if (status.processingStatus === "error") {
             clearInterval(pollRef.current!);
             if (processingStepRef.current) clearInterval(processingStepRef.current);
-            setError(status.processingError || "Processing failed");
-            setStep("recording");
-            setRecordingState("paused");
+            setError(status.processingError || "Something went wrong during analysis. Please record again.");
+            setStep("failed");
           }
         } catch {}
       }, 2000);
     } catch (err) {
       if (processingStepRef.current) clearInterval(processingStepRef.current);
-      const msg = err instanceof Error ? err.message : "Failed to upload";
+      const msg = err instanceof Error ? err.message : "Upload failed — please record again.";
       setError(msg);
-      setStep("recording");
-      setRecordingState("paused");
+      setStep("failed");
     }
   };
 
@@ -1037,7 +1034,7 @@ export default function RecordPage() {
           </div>
         </div>
       )}
-      {error && !permissionDenied && (
+      {error && !permissionDenied && step !== "failed" && (
         <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
           <AlertCircleIcon className="h-4 w-4 flex-shrink-0 mt-0.5" />
           <span>{error}</span>
@@ -1568,6 +1565,29 @@ export default function RecordPage() {
           </div>
         );
       })()}
+      {step === "failed" && (
+        <div className="space-y-5 text-center py-12">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+            <AlertCircleIcon className="h-7 w-7 text-red-400" />
+          </div>
+          <div className="space-y-1.5">
+            <p className="text-lg font-semibold text-gray-900">Analysis didn't complete</p>
+            <p className="text-sm text-gray-500 max-w-sm mx-auto leading-relaxed">
+              {error || "Something went wrong during analysis."}
+            </p>
+          </div>
+          <Button
+            onClick={() => {
+              setError("");
+              setElapsed(0);
+              setRecordingState("idle");
+              setStep("setup");
+            }}
+          >
+            Record again
+          </Button>
+        </div>
+      )}
       {step === "done" && sessionId && (
         <div className="space-y-4 text-center py-12">
           <CheckCircleIcon className="mx-auto h-12 w-12 text-[#C84A18]" />

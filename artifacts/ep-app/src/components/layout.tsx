@@ -1,12 +1,10 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { LayoutDashboardIcon, MicIcon, SettingsIcon, LogOutIcon, ClockIcon, TrendingUpIcon } from "lucide-react";
+import { LayoutDashboardIcon, MicIcon, SettingsIcon, LogOutIcon } from "lucide-react";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
   { path: "/record", label: "Record", icon: MicIcon },
-  { path: "/history", label: "History", icon: ClockIcon },
-  { path: "/progress", label: "Progress", icon: TrendingUpIcon },
   { path: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -18,26 +16,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen overflow-hidden bg-background">
       <nav className="hidden md:flex w-56 flex-col border-r border-border bg-sidebar px-3 py-6">
         <div className="mb-8 px-3">
-          <div className="flex flex-col gap-1 items-center">
+          <div className="flex flex-col gap-1 items-start">
             <div className="flex items-center gap-2">
               <img
                 src="/Logo.png"
                 alt="Gravitas logo mark"
-                className="h-6 w-auto"
+                className="h-5 w-auto flex-shrink-0"
               />
               <span
-                className="text-3xl font-semibold tracking-tight text-foreground"
+                className="text-2xl font-semibold tracking-tight text-foreground leading-none"
                 style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
               >
                 Gravitas
               </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <p className="text-xs text-muted-foreground leading-tight font-bold tracking-wide">Executive Presence, Elevated.</p>
-              <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
+              <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#C84A18] flex-shrink-0">
                 Beta
               </span>
             </div>
+            <p className="text-[11px] text-muted-foreground leading-tight font-medium tracking-wide pl-0.5">
+              Executive Presence, Elevated.
+            </p>
           </div>
         </div>
         <div className="flex flex-1 flex-col gap-1">
@@ -68,7 +66,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           Sign out
         </button>
       </nav>
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col min-w-0">
         <header className="flex md:hidden items-center justify-between border-b border-border bg-sidebar px-4 py-3">
           <div className="flex items-center gap-2">
             <img

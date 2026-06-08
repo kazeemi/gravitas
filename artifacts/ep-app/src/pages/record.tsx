@@ -167,6 +167,7 @@ export default function RecordPage() {
   const [earlyNoAudioWarning, setEarlyNoAudioWarning] = useState(false); // mic never picked up audio in first 5s
   const [processingStep, setProcessingStep] = useState(0); // 0–3 for step labels
   const [progressPct, setProgressPct] = useState(0);       // 0–100 smooth progress bar
+  const [liveTranscript, setLiveTranscript] = useState<string | null>(null);
   const processingStepRef = useRef<number | null>(null);
   const [insightIdx, setInsightIdx] = useState(0);
   const [insightFade, setInsightFade] = useState(true);
@@ -824,6 +825,7 @@ export default function RecordPage() {
         }
         try {
           const status = await api.sessions.status(sessionId);
+          if (status.transcript) setLiveTranscript(status.transcript);
           if (status.processingStatus === "complete") {
             clearInterval(pollRef.current!);
             if (processingStepRef.current) clearInterval(processingStepRef.current);
@@ -1528,40 +1530,46 @@ export default function RecordPage() {
               <p className="text-right text-xs text-gray-400 font-mono">{progressPct}%</p>
             </div>
 
-            {/* Rotating insight / self-reflection card */}
-            <div className="rounded-xl border border-[#F0953E]/20 bg-[#FBF7F2] px-5 py-4 min-h-[80px] flex flex-col justify-center">
+            {/* Rotating insight / self-reflection card — fixed height so dimensions below never shift */}
+            <div className="rounded-xl border border-[#F0953E]/20 bg-[#FBF7F2] px-5 py-4 h-[96px] overflow-hidden flex flex-col justify-center">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C84A18] mb-1.5">
                 {showReflection ? "Reflect on this" : "Did you know"}
               </p>
               <p
-                className="text-sm text-gray-700 leading-relaxed"
+                className="text-sm text-gray-700 leading-relaxed line-clamp-2"
                 style={{ opacity: insightFade ? 1 : 0, transition: "opacity 0.4s ease" }}
               >
                 {showReflection ? REFLECTIONS[reflectionIdx] : INSIGHTS[insightIdx]}
               </p>
             </div>
 
-            {/* Dimension chips */}
-            {processingStep >= 2 && (
-              <div className="space-y-2.5">
-                <p className="text-xs text-gray-400">Dimensions being scored</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {dimNames.map((name, i) => (
-                    <span
-                      key={name}
-                      className="px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300"
-                      style={{
-                        transitionDelay: `${i * 80}ms`,
-                        background: i < litCount ? "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" : "#F3F4F6",
-                        color: i < litCount ? "white" : "#9CA3AF",
-                      }}
-                    >
-                      {name}
-                    </span>
-                  ))}
-                </div>
+            {/* Dimension chips — always rendered to keep vertical position stable */}
+            <div className="space-y-2.5" style={{ visibility: processingStep >= 2 ? "visible" : "hidden" }}>
+              <p className="text-xs text-gray-400">Dimensions being scored</p>
+              <div className="flex flex-wrap gap-1.5">
+                {dimNames.map((name, i) => (
+                  <span
+                    key={name}
+                    className="px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-300"
+                    style={{
+                      transitionDelay: `${i * 80}ms`,
+                      background: i < litCount ? "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" : "#F3F4F6",
+                      color: i < litCount ? "white" : "#9CA3AF",
+                    }}
+                  >
+                    {name}
+                  </span>
+                ))}
               </div>
-            )}
+            </div>
+
+            {/* Transcript — appears once transcription is done */}
+            <div className="space-y-2" style={{ visibility: liveTranscript ? "visible" : "hidden", minHeight: "5rem" }}>
+              <p className="text-xs text-gray-400">What we heard</p>
+              <div className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3 h-20 overflow-y-auto">
+                <p className="text-xs text-gray-500 leading-relaxed">{liveTranscript ?? ""}</p>
+              </div>
+            </div>
           </div>
         );
       })()}

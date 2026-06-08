@@ -126,7 +126,7 @@ export const api = {
       });
     },
     status: (id: string) =>
-      request<{ id: string; processingStatus: string; processingError?: string }>(`/v1/sessions/${id}/status`),
+      request<{ id: string; processingStatus: string; processingError?: string; transcript?: string | null }>(`/v1/sessions/${id}/status`),
     generateMotivationalMessage: (id: string) =>
       request<{ message: string }>(`/v1/sessions/${id}/motivational-message`, { method: "POST" }),
     progress: () => request<{ sessions: SessionSummary[] }>("/v1/sessions/progress"),

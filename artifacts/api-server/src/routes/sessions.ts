@@ -268,6 +268,15 @@ router.post(
           logger.warn({ sessionId: session.id }, "no audio buffer received — skipping transcription");
         }
 
+        // Save transcript early so the status endpoint can surface it to the
+        // frontend during the scoring/coaching steps that follow.
+        if (transcript && transcript.trim().length > 0) {
+          await db
+            .update(sessionsTable)
+            .set({ transcript })
+            .where(eq(sessionsTable.id, session.id));
+        }
+
         // Await the video presence promise that was started before audio analysis
         videoPresenceAnalysis = await videoPresencePromise;
 
@@ -486,6 +495,7 @@ router.get("/v1/sessions/:id/status", requireAuth, async (req, res) => {
       id: sessionsTable.id,
       processingStatus: sessionsTable.processingStatus,
       processingError: sessionsTable.processingError,
+      transcript: sessionsTable.transcript,
     })
     .from(sessionsTable)
     .where(and(eq(sessionsTable.id, req.params.id), eq(sessionsTable.userId, req.user!.userId)))

@@ -3,7 +3,7 @@ import { logger } from "./logger.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM = "Gravitas <noreply@gravitas.coach>";
+const FROM = "Gravitas <noreply@selfcraftpartners.com>";
 
 function getAppUrl(): string {
   const domains = process.env.REPLIT_DOMAINS;

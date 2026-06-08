@@ -256,6 +256,8 @@ export interface AudioDeliveryResult {
   breathingObservation: string | null;
   clarityFlags: string | null;
   professionalLanguageFlags: string | null;
+  fillerWordCount: number | null;
+  fillerWordObservation: string | null;
 }
 
 export interface VideoPresenceResult {
@@ -281,6 +283,8 @@ export interface ScoringInput {
   breathingObservation?: string | null;
   clarityFlags?: string | null;
   professionalLanguageFlags?: string | null;
+  fillerWordCount?: number | null;
+  fillerWordObservation?: string | null;
   videoPresenceAnalysis?: VideoPresenceResult | null;
   recordingContext?: string;
   promptText?: string;
@@ -360,8 +364,9 @@ Assess the following:
 4. Vocal Steadiness — Audible tremor, pitch wavering, or tension-driven strain? (Distinguish from expressive intonation.)
 5. Intonation — Does pitch vary purposefully for emphasis and meaning, or is delivery monotone? Do statements fall with authority or rise with uncertainty?
 6. Breath Control — Does breath support full phrases, or does the voice thin at endings? Note audible inhalations or breath-induced pauses.
-7. clarityFlags — Any words/phrases mumbled, swallowed, or likely misheared by auto-transcription? Note timestamp and what you heard. Write "none" if all clear.
-8. professionalLanguageFlags — Any profanity, crude language, or personally demeaning language? Quote exact words and timestamp. Write "none" if none.
+7. Filler Words — Count and name any filler words or verbal tics heard. Listen specifically for: "um", "uh", "like" (only when used as a gap-filler, NOT when used as a comparison — e.g. "like a project" is NOT a filler), "you know", "basically", "right?" (when used as a trailing check-in), "I mean", "so" (only when used as a sentence-starter filler, NOT as a logical connector). Count each occurrence separately. Be conservative — only flag clear filler usage. Write "none detected" if none heard.
+8. clarityFlags — Any words/phrases mumbled, swallowed, or likely misheared by auto-transcription? Note timestamp and what you heard. Write "none" if all clear.
+9. professionalLanguageFlags — Any profanity, crude language, or personally demeaning language? Quote exact words and timestamp. Write "none" if none.
 
 Return JSON with exactly these keys:
 {
@@ -374,6 +379,8 @@ Return JSON with exactly these keys:
   "breathControl": "1-2 sentence observation",
   "breathingScore": <integer 1-5, 1=severe breathlessness, 5=excellent relaxed control>,
   "overallDeliveryQuality": "2-sentence summary of vocal quality",
+  "fillerWordObservation": "list each filler word type heard and its count, e.g. 'um x3, uh x1, like x2 (as filler)' — or 'none detected'",
+  "fillerWordCount": <integer, total filler word instances across all types, 0 if none>,
   "clarityFlags": "observations or 'none'",
   "professionalLanguageFlags": "exact quotes or 'none'"
 }`;
@@ -411,6 +418,8 @@ Return JSON with exactly these keys:
     let breathingObservation: string | null = null;
     let clarityFlags: string | null = null;
     let professionalLanguageFlags: string | null = null;
+    let fillerWordCount: number | null = null;
+    let fillerWordObservation: string | null = null;
 
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -423,15 +432,18 @@ Return JSON with exactly these keys:
         if (typeof parsed.breathControl === "string") breathingObservation = parsed.breathControl;
         if (typeof parsed.clarityFlags === "string" && parsed.clarityFlags !== "none") clarityFlags = parsed.clarityFlags;
         if (typeof parsed.professionalLanguageFlags === "string" && parsed.professionalLanguageFlags !== "none") professionalLanguageFlags = parsed.professionalLanguageFlags;
+        const fwc = Number(parsed.fillerWordCount);
+        if (!isNaN(fwc) && fwc >= 0) fillerWordCount = fwc;
+        if (typeof parsed.fillerWordObservation === "string" && parsed.fillerWordObservation !== "none detected") fillerWordObservation = parsed.fillerWordObservation;
       }
     } catch {
       // parsing failure — scores remain null
     }
 
-    return { analysisText: rawText, pitchVariationScore, breathingScore, breathingObservation, clarityFlags, professionalLanguageFlags };
+    return { analysisText: rawText, pitchVariationScore, breathingScore, breathingObservation, clarityFlags, professionalLanguageFlags, fillerWordCount, fillerWordObservation };
   } catch (err) {
     console.error("gpt-audio delivery analysis failed:", err);
-    return { analysisText: "", pitchVariationScore: null, breathingScore: null, breathingObservation: null, clarityFlags: null, professionalLanguageFlags: null };
+    return { analysisText: "", pitchVariationScore: null, breathingScore: null, breathingObservation: null, clarityFlags: null, professionalLanguageFlags: null, fillerWordCount: null, fillerWordObservation: null };
   }
 }
 
@@ -691,7 +703,14 @@ STEP 4 — PARTIAL OR BROKEN STRUCTURE:
 - Name the exact moment the structure broke down: "You set up the situation clearly and described your approach well, but the response ended before reaching the result — your interviewer is left without a clear landing point."
 - Name the listener experience: "That gap puts the burden of interpretation on the interviewer. In a high-stakes interview, you want to close the loop explicitly."
 
-RULE: Never use a framework label as a generic compliment. If you say STAR, demonstrate it — show which specific lines earned which letters.` : ""}
+RULE: Never use a framework label as a generic compliment. If you say STAR, demonstrate it — show which specific lines earned which letters.
+
+CLOSING QUESTION RULE (interview mode, structure dimension only):
+If the speaker ends their answer with a genuine, substantive question directed back at the interviewer — an actual invitation for dialogue, not a rhetorical device — credit it as a structural strength. It is rare and signals intellectual confidence and curiosity. Examples of what qualifies: "What does success look like for this role in the first 90 days?" or "How does this team typically approach [topic the speaker just mentioned]?" Examples of what does NOT qualify: trailing check-ins ("…does that make sense?", "…right?") or rhetorical questions the speaker immediately answers themselves.
+
+When it qualifies: name it in strengthText as a structural choice, not just a nice moment — explain why it works ("it signals that you are engaged with their world, not just selling yourself").
+
+CRITICAL: Do NOT penalise or flag the absence of a closing question. This rule only fires when the behaviour is present. Never suggest the speaker should have asked a question if they did not.` : ""}
 
 INTONATION — EMOTIONAL CONGRUENCE RULE:
 For the intonation dimension only, cross-reference SOURCE C (transcript) against SOURCE A (audio delivery analysis) to check whether the pitch and vocal energy carry the emotional weight of the words.
@@ -734,6 +753,19 @@ Confidence Language is not a binary of "hedging vs. assertive". There are THREE 
 - AGGRESSIVE or DISMISSIVE language (negative — and distinct from confidence): emotionally charged, inflammatory, or demeaning language — "absolutely ridiculous", "complete disaster", "they have no idea", "this is insane", "dumb [slur]". CRITICAL: Do NOT treat this as a strength. Do NOT reframe it as "directness" or "committing to a position". This is aggression dressed as confidence, and it actively undermines executive credibility. It signals loss of emotional regulation, not conviction. Name the specific phrases, explain why they are a liability in professional settings, and penalise the score accordingly.
 The presence of assertive language that is also aggressive does NOT compensate for hedging and should NOT be cited as evidence of confident communication.
 
+FILLER WORD RULE (confidence_language dimension):
+Filler words are a fourth signal within Confidence Language. They are provided as a separate metric from SOURCE A (gpt-audio), which hears the raw audio more reliably than the transcript.
+
+If fillerWordCount > 0:
+- Name the specific filler words heard and how many times each appeared (use the fillerWordObservation directly)
+- State the listener impact specifically: at low counts (1–3 total), note they were present but did not dominate; at moderate counts (4–8), note they interrupt the authority of the delivery; at high counts (9+), note they become the dominant experience for the listener and significantly undermine credibility
+- Distinguish between "um/uh" (involuntary gap fillers — signal thinking time, erode authority) and "like/you know/basically" (habitual language — signal casualness, erode executive register)
+- End with one specific next-recording instruction: e.g. "In your next recording, when you feel the urge to fill silence, try replacing it with a pause — a half-second of silence reads as composure, not uncertainty."
+
+If fillerWordCount is 0 or no data: do not mention filler words at all — do not credit their absence as a strength.
+
+CRITICAL SCOPING RULE: Filler words belong EXCLUSIVELY to confidence_language. Do NOT reference them in articulation, vocal_tone, or any other dimension.
+
 TRANSCRIPT RELIABILITY AND AUDIO FLAGS:
 The Whisper transcript is generated automatically and may contain errors — particularly it can mishear or sanitise profanity or unclear words. The gpt-audio analysis (SOURCE A) hears the raw audio and is more reliable for what was actually said.
 - If SOURCE A flags any words or phrases as unclear or potentially misheared (in clarityFlags), reference this in the articulation dimension feedback.
@@ -753,8 +785,13 @@ ${context.label}
 Ideal pace for this context: ${context.idealWpmMin}–${context.idealWpmMax} words per minute
 ${isRecitation ? `\n⚠️ RECITATION CONTEXT DETECTED: The speaker's prompt indicates they were reading or reciting a pre-written literary or published text. Do NOT penalise structure for lacking original architecture — evaluate only how delivery served the text's structure. Do NOT penalise confidence_language for the text's word choices — evaluate only vocal conviction and commitment. Do NOT penalise conciseness for the text's natural length.` : ""}
 
-SOURCE A — gpt-audio DELIVERY ANALYSIS (use for: articulation, projection, vocal_tone, vocal_steadiness, intonation, breath_control):
-${input.audioDeliveryAnalysis || "[No audio delivery analysis available — scoring quality will be limited for audio dimensions]"}${input.clarityFlags ? `
+SOURCE A — gpt-audio DELIVERY ANALYSIS (use for: articulation, projection, vocal_tone, vocal_steadiness, intonation, breath_control, and confidence_language filler word signal):
+${input.audioDeliveryAnalysis || "[No audio delivery analysis available — scoring quality will be limited for audio dimensions]"}${input.fillerWordCount != null ? `
+
+🗣️ FILLER WORD DATA (from audio — more reliable than transcript for this signal):
+Total filler words heard: ${input.fillerWordCount}${input.fillerWordObservation ? `
+Breakdown: ${input.fillerWordObservation}` : ""}
+Use this in confidence_language feedback per the FILLER WORD RULE.` : ""}${input.clarityFlags ? `
 
 ⚠️ CLARITY FLAGS (words/phrases that sounded unclear or may have been misheared by transcription):
 ${input.clarityFlags}` : ""}${input.professionalLanguageFlags ? `

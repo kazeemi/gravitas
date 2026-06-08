@@ -181,6 +181,8 @@ router.post(
         let breathingObservation: string | null = null;
         let clarityFlags: string | null = null;
         let professionalLanguageFlags: string | null = null;
+        let fillerWordCount: number | null = null;
+        let fillerWordObservation: string | null = null;
         let videoPresenceAnalysis: VideoPresenceResult | null = null;
         let rmsMetrics: RmsMetrics | null = null;
         let f0Metrics: F0Metrics | null = null;
@@ -253,7 +255,9 @@ router.post(
             breathingObservation = dr.breathingObservation;
             clarityFlags = dr.clarityFlags;
             professionalLanguageFlags = dr.professionalLanguageFlags;
-            logger.info({ sessionId: session.id, pitchVariationScore, breathingScore, hasClarityFlags: !!clarityFlags, hasProfessionalLanguageFlags: !!professionalLanguageFlags }, "delivery analysis complete");
+            fillerWordCount = dr.fillerWordCount;
+            fillerWordObservation = dr.fillerWordObservation;
+            logger.info({ sessionId: session.id, pitchVariationScore, breathingScore, fillerWordCount, hasClarityFlags: !!clarityFlags, hasProfessionalLanguageFlags: !!professionalLanguageFlags }, "delivery analysis complete");
           } else {
             logger.error({
               sessionId: session.id,
@@ -338,6 +342,8 @@ router.post(
           breathingObservation,
           clarityFlags,
           professionalLanguageFlags,
+          fillerWordCount,
+          fillerWordObservation,
           rmsMetrics,
           f0Metrics,
           pauseMetrics,

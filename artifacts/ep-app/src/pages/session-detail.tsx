@@ -582,13 +582,13 @@ export default function SessionDetailPage() {
                   That's your baseline — and now you know exactly what Gravitas feedback looks like. Pick any prompt and record again. This is where the real work begins.
                 </p>
                 <button
-                  onClick={() => setLocation("/record")}
+                  onClick={() => setLocation(session.promptText ? `/record?prompt=${encodeURIComponent(session.promptText)}` : "/record")}
                   className="w-full rounded-lg py-3.5 text-sm font-bold tracking-wide transition-colors"
                   style={{ background: "#F0953E", color: "#fff" }}
                   onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C84A18"; }}
                   onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F0953E"; }}
                 >
-                  Record a new session →
+                  Start practicing →
                 </button>
               </>
             ) : (

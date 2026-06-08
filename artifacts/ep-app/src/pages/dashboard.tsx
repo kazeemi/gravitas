@@ -302,8 +302,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
 
-  useEffect(() => {
-    Promise.all([
+  const load = useCallback(() => {
+    return Promise.all([
       api.sessions.list().then(({ sessions }) => sessions),
       api.sessions.chart().then(({ sessions }) => sessions).catch(() => [] as ChartSession[]),
     ])
@@ -315,8 +315,20 @@ export default function DashboardPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Poll every 5 s while any session is still being scored so the list updates automatically
+  useEffect(() => {
+    const hasProcessing = sessions.some(s => s.processingStatus === "processing" || s.processingStatus === "pending");
+    if (!hasProcessing) return;
+    const id = setInterval(load, 5000);
+    return () => clearInterval(id);
+  }, [sessions, load]);
+
   const completed = sessions.filter(s => s.processingStatus === "complete");
-  const recent = completed.slice(0, 5);
+  const recent = sessions.slice(0, 5);
 
   const avgScore = completed.length > 0
     ? (completed.reduce((sum, s) => sum + parseFloat(s.compositeScore || "0"), 0) / completed.length).toFixed(1)
@@ -459,20 +471,21 @@ function StatCard({
 
 function SessionRow({ session, onClick }: { session: SessionSummary; onClick: () => void }) {
   const colors = session.compositeTier ? getTierColors(session.compositeTier) : null;
+  const isProcessing = session.processingStatus === "processing" || session.processingStatus === "pending";
   return (
     <li>
       <button
         onClick={onClick}
         className="flex w-full items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors text-left"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {session.mode === "audio" ? (
-            <MicIcon className="h-4 w-4 text-gray-400" />
+            <MicIcon className="h-4 w-4 flex-shrink-0 text-gray-400" />
           ) : (
-            <VideoIcon className="h-4 w-4 text-gray-400" />
+            <VideoIcon className="h-4 w-4 flex-shrink-0 text-gray-400" />
           )}
-          <div>
-            <p className="text-sm font-medium text-gray-900 line-clamp-1">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-gray-900 truncate">
               {session.promptText || `${session.mode} session`}
             </p>
             <p className="text-xs text-gray-400">
@@ -481,18 +494,27 @@ function SessionRow({ session, onClick }: { session: SessionSummary; onClick: ()
           </div>
         </div>
         <div className="flex flex-shrink-0 items-center gap-3 ml-3">
-          {session.compositeScore && (
-            <span className="text-sm font-semibold text-gray-900">
-              {parseFloat(session.compositeScore).toFixed(1)}
+          {isProcessing ? (
+            <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-gray-400 bg-gray-100 whitespace-nowrap">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+              Scoring…
             </span>
-          )}
-          {session.compositeTier && colors && (
-            <span
-              className="rounded px-2 py-0.5 text-xs font-medium text-white whitespace-nowrap"
-              style={{ backgroundColor: colors.hex }}
-            >
-              {session.compositeTier}
-            </span>
+          ) : (
+            <>
+              {session.compositeScore && (
+                <span className="text-sm font-semibold text-gray-900">
+                  {parseFloat(session.compositeScore).toFixed(1)}
+                </span>
+              )}
+              {session.compositeTier && colors && (
+                <span
+                  className="rounded px-2 py-0.5 text-xs font-medium text-white whitespace-nowrap"
+                  style={{ backgroundColor: colors.hex }}
+                >
+                  {session.compositeTier}
+                </span>
+              )}
+            </>
           )}
           <ChevronRightIcon className="h-4 w-4 text-gray-300 flex-shrink-0" />
         </div>

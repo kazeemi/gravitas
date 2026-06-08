@@ -126,6 +126,9 @@ router.post("/v1/auth/reset-password", async (req, res) => {
     passwordHash,
     passwordResetToken: null,
     passwordResetExpiresAt: null,
+    emailVerified: true,
+    emailVerificationToken: null,
+    emailVerificationExpiresAt: null,
   }).where(eq(usersTable.id, user.id));
 
   return res.json({ message: "Password reset successfully" });

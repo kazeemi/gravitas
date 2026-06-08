@@ -216,8 +216,9 @@ function ProgressChart({
                 axisLine={false}
               />
               <Tooltip content={<ChartTooltip />} />
-              <ReferenceLine y={6.5} stroke="#C84A18" strokeDasharray="4 2" strokeWidth={1} label={{ value: "Strong", position: "right", fontSize: 10, fill: "#C84A18" }} />
-              <ReferenceLine y={8.5} stroke="#0F1B2D" strokeDasharray="4 2" strokeWidth={1} label={{ value: "Distinguished", position: "right", fontSize: 10, fill: "#0F1B2D" }} />
+              <ReferenceLine y={4.0} stroke={TIER_COLORS["Developing"].hex} strokeDasharray="4 2" strokeWidth={1} label={{ value: "Dev", position: "insideTopRight", fontSize: 9, fill: TIER_COLORS["Developing"].hex }} />
+              <ReferenceLine y={6.5} stroke={TIER_COLORS["Strong"].hex} strokeDasharray="4 2" strokeWidth={1} label={{ value: "Strong", position: "insideTopRight", fontSize: 9, fill: TIER_COLORS["Strong"].hex }} />
+              <ReferenceLine y={8.5} stroke={TIER_COLORS["Distinguished"].hex} strokeDasharray="4 2" strokeWidth={1} label={{ value: "Dist.", position: "insideTopRight", fontSize: 9, fill: TIER_COLORS["Distinguished"].hex }} />
               <Area
                 type="monotone"
                 dataKey="score"
@@ -479,7 +480,7 @@ function SessionRow({ session, onClick }: { session: SessionSummary; onClick: ()
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-shrink-0 items-center gap-3 ml-3">
           {session.compositeScore && (
             <span className="text-sm font-semibold text-gray-900">
               {parseFloat(session.compositeScore).toFixed(1)}
@@ -487,13 +488,13 @@ function SessionRow({ session, onClick }: { session: SessionSummary; onClick: ()
           )}
           {session.compositeTier && colors && (
             <span
-              className="rounded px-2 py-0.5 text-xs font-medium text-white"
+              className="rounded px-2 py-0.5 text-xs font-medium text-white whitespace-nowrap"
               style={{ backgroundColor: colors.hex }}
             >
               {session.compositeTier}
             </span>
           )}
-          <ChevronRightIcon className="h-4 w-4 text-gray-300" />
+          <ChevronRightIcon className="h-4 w-4 text-gray-300 flex-shrink-0" />
         </div>
       </button>
     </li>

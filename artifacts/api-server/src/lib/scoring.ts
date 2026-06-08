@@ -715,7 +715,18 @@ If the speaker ends their answer with a genuine, substantive question directed b
 
 When it qualifies: name it in strengthText as a structural choice, not just a nice moment — explain why it works ("it signals that you are engaged with their world, not just selling yourself").
 
-CRITICAL: Do NOT penalise or flag the absence of a closing question. This rule only fires when the behaviour is present. Never suggest the speaker should have asked a question if they did not.` : ""}
+CRITICAL: Do NOT penalise or flag the absence of a closing question. This rule only fires when the behaviour is present. Never suggest the speaker should have asked a question if they did not.
+
+NARRATIVE PROMPT RULE — "TELL ME ABOUT YOURSELF" AND SIMILAR (interview mode, structure dimension only):
+When the prompt is a career narrative invitation — "Tell me about yourself", "Walk me through your background", "Tell me about your journey", "Introduce yourself", or any variation that asks for a self-introduction rather than a competency demonstration — apply the following rules:
+
+1. CORRECT FRAMEWORK: The expected structure is a narrative arc — Past → Present → Future or Present → Past → Future. STAR, SCR, and PREP are NOT appropriate frameworks for this question type. Do not recommend them here.
+
+2. CORRECT CLOSE: A strong close for this prompt is a forward-looking bridge — a brief statement of what the speaker is seeking next, what kind of challenge or move they are pursuing, or why they are in this conversation. Examples of a strong close: "…which is why I'm now looking for a role where I can [X]" or "…and that's what brought me to this conversation." The close does not need to name the company or explain company-specific motivation.
+
+3. STRICTLY PROHIBITED: Do NOT penalise or flag the absence of "why this company", "why now", or company-specific motivation in a "Tell me about yourself" answer. Those belong to a separate interview question ("Why are you interested in this role?" / "Why us?") and have no place in the structural evaluation of a self-introduction. Calling them out as a gap in this answer is a coaching error.
+
+4. MISSING CLOSE: If the narrative ends without any forward-looking statement — the speaker simply stops mid-story with no landing — flag it as: "The response ended without a forward-looking close. A brief statement of what you're looking for next would give the interviewer a clear bridge into the next part of the conversation."` : ""}
 
 INTONATION — EMOTIONAL CONGRUENCE RULE:
 For the intonation dimension only, cross-reference SOURCE C (transcript) against SOURCE A (audio delivery analysis) to check whether the pitch and vocal energy carry the emotional weight of the words.

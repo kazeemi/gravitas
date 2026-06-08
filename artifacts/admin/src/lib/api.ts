@@ -124,3 +124,9 @@ export function patchUser(id: string, data: { isAdmin?: boolean }) {
     body: JSON.stringify(data),
   });
 }
+
+export function deleteUser(id: string) {
+  return request<{ deleted: boolean; id: string; email: string }>(`/v1/admin/users/${id}`, {
+    method: "DELETE",
+  });
+}

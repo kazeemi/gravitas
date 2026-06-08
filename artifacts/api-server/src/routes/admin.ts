@@ -137,6 +137,19 @@ router.get("/v1/admin/sessions/:id", requireAdmin, async (req, res) => {
   return res.json({ session, user, dimensionScores: scores });
 });
 
+router.delete("/v1/admin/users/:id", requireAdmin, async (req, res) => {
+  const userId = req.params.id;
+  // delete sessions first — dimension_scores and diagnostic_metrics cascade automatically
+  await db.delete(sessionsTable).where(eq(sessionsTable.userId, userId));
+  const [deleted] = await db
+    .delete(usersTable)
+    .where(eq(usersTable.id, userId))
+    .returning({ id: usersTable.id, email: usersTable.email });
+  if (!deleted) return res.status(404).json({ error: "User not found" });
+  req.log.info({ userId, email: deleted.email }, "admin deleted user");
+  return res.json({ deleted: true, id: deleted.id, email: deleted.email });
+});
+
 router.patch("/v1/admin/users/:id", requireAdmin, async (req, res) => {
   const { isAdmin } = req.body;
   const updates: Partial<typeof usersTable.$inferInsert> = {};

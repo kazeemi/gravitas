@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { getUserDetail, patchUser, type SessionRow } from "@/lib/api";
+import { getUserDetail, patchUser, deleteUser, type SessionRow } from "@/lib/api";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Shield, ShieldOff } from "lucide-react";
+import { Shield, ShieldOff, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
@@ -41,6 +41,16 @@ export default function UserDetailPage() {
       qc.invalidateQueries({ queryKey: ["admin-user", params.id] });
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       toast({ description: "User updated." });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: () => deleteUser(params.id),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ description: `Deleted ${result.email} and all their data.` });
+      navigate("/users");
     },
     onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
   });
@@ -123,31 +133,50 @@ export default function UserDetailPage() {
             </Card>
 
             <Card>
-              <CardContent className="pt-5">
-                <p className="text-xs text-muted-foreground mb-3">Admin access</p>
-                {user.isAdmin ? (
+              <CardContent className="pt-5 space-y-3">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-3">Admin access</p>
+                  {user.isAdmin ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 text-destructive hover:text-destructive"
+                      onClick={() => toggleAdmin.mutate(false)}
+                      disabled={toggleAdmin.isPending}
+                    >
+                      <ShieldOff className="w-4 h-4" />
+                      Revoke admin
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2"
+                      onClick={() => toggleAdmin.mutate(true)}
+                      disabled={toggleAdmin.isPending}
+                    >
+                      <Shield className="w-4 h-4" />
+                      Grant admin
+                    </Button>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-3">Danger zone</p>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full gap-2 text-destructive hover:text-destructive"
-                    onClick={() => toggleAdmin.mutate(false)}
-                    disabled={toggleAdmin.isPending}
+                    className="w-full gap-2 text-destructive hover:text-destructive border-destructive/30 hover:border-destructive"
+                    onClick={() => {
+                      if (confirm(`Permanently delete ${user.email} and all their sessions? This cannot be undone.`)) {
+                        deleteUserMutation.mutate();
+                      }
+                    }}
+                    disabled={deleteUserMutation.isPending}
                   >
-                    <ShieldOff className="w-4 h-4" />
-                    Revoke admin
+                    <Trash2 className="w-4 h-4" />
+                    {deleteUserMutation.isPending ? "Deleting…" : "Delete user"}
                   </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={() => toggleAdmin.mutate(true)}
-                    disabled={toggleAdmin.isPending}
-                  >
-                    <Shield className="w-4 h-4" />
-                    Grant admin
-                  </Button>
-                )}
+                </div>
               </CardContent>
             </Card>
           </div>

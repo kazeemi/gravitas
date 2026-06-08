@@ -439,7 +439,7 @@ export function downloadSessionPdf(session: SessionDetail, userName: string | nu
 // ── Metrics helper ─────────────────────────────────────────────────────────
 interface MetricRow { label: string; value: string; benchmark: string; note?: string; statusColor: string; }
 const GOOD_COLOR = "#A08838";
-const WARN_COLOR = "#B87A35";
+const WARN_COLOR = "#C9A020";
 const POOR_COLOR = "#78736A";
 
 function buildMetricsRows(session: SessionDetail): MetricRow[] {

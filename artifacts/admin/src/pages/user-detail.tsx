@@ -13,8 +13,8 @@ function tierLabel(score: number | null) {
   if (score == null) return null;
   if (score >= 80) return { label: "Distinguished", cls: "bg-[#EDF4EF] text-[#6B9B7A] border-[#6B9B7A]" };
   if (score >= 65) return { label: "Strong", cls: "bg-[#F5F0E3] text-[#A08838] border-[#A08838]" };
-  if (score >= 50) return { label: "Developing", cls: "bg-[#F5EEE3] text-[#B87A35] border-[#B87A35]" };
-  return { label: "Needs Focus", cls: "bg-[#F5EDEB] text-[#A84B3A] border-[#A84B3A]" };
+  if (score >= 50) return { label: "Developing", cls: "bg-[#FAF5E4] text-[#C9A020] border-[#C9A020]" };
+  return { label: "Needs Focus", cls: "bg-[#FAF0E8] text-[#C05A1E] border-[#C05A1E]" };
 }
 
 function statusBadge(status: string) {

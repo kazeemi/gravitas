@@ -13,8 +13,8 @@ function tierBadge(score: number | null) {
   if (score == null) return null;
   if (score >= 80) return <Badge className="bg-[#EDF4EF] text-[#6B9B7A] border-[#6B9B7A]">Distinguished</Badge>;
   if (score >= 65) return <Badge className="bg-[#F5F0E3] text-[#A08838] border-[#A08838]">Strong</Badge>;
-  if (score >= 50) return <Badge className="bg-[#F5EEE3] text-[#B87A35] border-[#B87A35]">Developing</Badge>;
-  return <Badge className="bg-[#F5EDEB] text-[#A84B3A] border-[#A84B3A]">Needs Focus</Badge>;
+  if (score >= 50) return <Badge className="bg-[#FAF5E4] text-[#C9A020] border-[#C9A020]">Developing</Badge>;
+  return <Badge className="bg-[#FAF0E8] text-[#C05A1E] border-[#C05A1E]">Needs Focus</Badge>;
 }
 
 function fmtDuration(s: number) {

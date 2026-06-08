@@ -693,6 +693,23 @@ STEP 4 — PARTIAL OR BROKEN STRUCTURE:
 
 RULE: Never use a framework label as a generic compliment. If you say STAR, demonstrate it — show which specific lines earned which letters.` : ""}
 
+INTONATION — EMOTIONAL CONGRUENCE RULE:
+For the intonation dimension only, cross-reference SOURCE C (transcript) against SOURCE A (audio delivery analysis) to check whether the pitch and vocal energy carry the emotional weight of the words.
+
+Trigger condition: the speaker uses explicitly emotional or enthusiastic language — phrases such as "I am so excited", "I love", "I'm passionate about", "I can't wait", "this is amazing", "I really care about", "I'm thrilled", "I'm really excited", or any explicit statement of excitement, enthusiasm, or strong personal feeling.
+
+When triggered, check whether SOURCE A describes matching energy: elevated pitch, rising inflection, increased engagement, warmth in the delivery at that moment.
+
+When the words claim an emotion that the delivery does not carry — e.g. saying "I am so excited" in a flat, even, or measured tone — this IS an intonation gap and MUST be named explicitly in the intonation gapText:
+- Quote the specific phrase from the transcript that claimed the emotion
+- Describe what the delivery actually sounded like (flat, even-toned, controlled, measured)
+- Name the listener impact: the listener hears the words but does not feel the energy — this creates a subtle disconnect, and the claim of excitement registers as a formality rather than a genuine signal
+- End with one specific next step framed as an in-recording experiment: "In your next recording, let your voice lift on that phrase — not louder, but warmer and slightly higher — so the energy in your voice matches the feeling in the words."
+
+When the delivery DOES match the emotional content, there is nothing to flag here. Do not manufacture a gap.
+
+CRITICAL SCOPING RULE — NO DUPLICATION: This congruence check belongs EXCLUSIVELY to intonation. Do NOT reference it in vocal_tone. Vocal Tone covers the physical quality of the voice (warmth, resonance, richness, texture) — it does NOT assess whether vocal energy matches stated emotions. If the voice is physically warm but the energy does not match enthusiastic words, that is an intonation congruence gap, not a vocal tone gap. Each dimension must remain MECE.
+
 CALIBRATION RULES:
 - Score 9 or 10 must include specific named evidence for what earned it
 - A 7 is solid professional standard — do not inflate to 8 or 9 to encourage

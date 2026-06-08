@@ -1,10 +1,12 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
-import { LayoutDashboardIcon, MicIcon, SettingsIcon, LogOutIcon, InfoIcon } from "lucide-react";
+import { LayoutDashboardIcon, MicIcon, SettingsIcon, LogOutIcon, ClockIcon, TrendingUpIcon } from "lucide-react";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: LayoutDashboardIcon },
   { path: "/record", label: "Record", icon: MicIcon },
+  { path: "/history", label: "History", icon: ClockIcon },
+  { path: "/progress", label: "Progress", icon: TrendingUpIcon },
   { path: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
@@ -59,13 +61,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           })}
         </div>
         <button
-          onClick={() => setLocation("/welcome")}
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors"
-        >
-          <InfoIcon className="h-4 w-4" />
-          How it works
-        </button>
-        <button
           onClick={logout}
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-colors"
         >
@@ -99,7 +94,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </main>
 
         <nav className="flex md:hidden items-center justify-around border-t border-border bg-sidebar px-2 py-2">
-          {navItems.slice(0, 4).map(item => {
+          {navItems.map(item => {
             const Icon = item.icon;
             const active = location.startsWith(item.path);
             return (

@@ -2,6 +2,8 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
+import path from "path";
+import fs from "fs";
 import router from "./routes/index.js";
 import { logger } from "./lib/logger.js";
 
@@ -37,6 +39,25 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use("/api", router);
+
+// Serve static frontends when built (production).
+// Admin dashboard at /admin, ep-app at /.
+// __dirname is set by the esbuild banner to the compiled dist/ directory.
+const adminDist = path.resolve(__dirname, "../../admin/dist/public");
+if (fs.existsSync(adminDist)) {
+  app.use("/admin", express.static(adminDist));
+  app.use("/admin", (_req: Request, res: Response) => {
+    res.sendFile(path.join(adminDist, "index.html"));
+  });
+}
+
+const epAppDist = path.resolve(__dirname, "../../ep-app/dist/public");
+if (fs.existsSync(epAppDist)) {
+  app.use(express.static(epAppDist));
+  app.use((_req: Request, res: Response) => {
+    res.sendFile(path.join(epAppDist, "index.html"));
+  });
+}
 
 // Global error handler — always returns JSON so the client never receives an HTML 500 page.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

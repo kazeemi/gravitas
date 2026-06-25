@@ -1,0 +1,13 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "pnpm install --frozen-lockfile && pnpm --filter @workspace/ep-app build && pnpm --filter @workspace/admin build && pnpm --filter @workspace/api-server build"
+  },
+  "deploy": {
+    "startCommand": "pnpm -C lib/db exec drizzle-kit push --force --config drizzle.config.ts && node --enable-source-maps ./artifacts/api-server/dist/index.mjs",
+    "healthcheckPath": "/api/healthz",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}

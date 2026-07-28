@@ -41,7 +41,7 @@ async function request<T>(
 export const api = {
   auth: {
     signup: (email: string, password: string, name: string, consentAccepted: boolean) =>
-      request<{ message: string }>("/v1/auth/signup", {
+      request<{ message: string; emailSent?: boolean }>("/v1/auth/signup", {
         method: "POST",
         body: JSON.stringify({ email, password, name, consentAccepted }),
       }),

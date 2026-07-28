@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MailCheckIcon } from "lucide-react";
+import { MailCheckIcon, MailWarningIcon } from "lucide-react";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [emailSent, setEmailSent] = useState(true);
   const { signup } = useAuth();
   const [, setLocation] = useLocation();
 
@@ -31,7 +32,8 @@ export default function SignupPage() {
     }
     setLoading(true);
     try {
-      await signup(email, password, name, consentAccepted);
+      const result = await signup(email, password, name, consentAccepted);
+      setEmailSent(result.emailSent);
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
@@ -58,26 +60,50 @@ export default function SignupPage() {
         {done ? (
           <div
             className="rounded-2xl border px-6 py-7 text-center space-y-3"
-            style={{ backgroundColor: "#EDF4EF", borderColor: "rgba(107,155,122,0.35)" }}
+            style={
+              emailSent
+                ? { backgroundColor: "#EDF4EF", borderColor: "rgba(107,155,122,0.35)" }
+                : { backgroundColor: "#FAF0E8", borderColor: "rgba(192,90,30,0.35)" }
+            }
           >
             <div
               className="mx-auto flex h-11 w-11 items-center justify-center rounded-full"
-              style={{ backgroundColor: "#6B9B7A" }}
+              style={{ backgroundColor: emailSent ? "#6B9B7A" : "#C05A1E" }}
             >
-              <MailCheckIcon className="h-5 w-5 text-white" />
+              {emailSent ? (
+                <MailCheckIcon className="h-5 w-5 text-white" />
+              ) : (
+                <MailWarningIcon className="h-5 w-5 text-white" />
+              )}
             </div>
             <p
               className="text-xl"
               style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
             >
-              Check your inbox
+              {emailSent ? "Check your inbox" : "Your account is created"}
             </p>
-            <p className="text-sm leading-relaxed" style={{ color: "rgba(15,27,45,0.75)" }}>
-              We've sent a verification link to{" "}
-              <strong style={{ color: "#0F1B2D" }}>{email}</strong>. Click it to activate your account.
-            </p>
+            {emailSent ? (
+              <p className="text-sm leading-relaxed" style={{ color: "rgba(15,27,45,0.75)" }}>
+                We've sent a verification link to{" "}
+                <strong style={{ color: "#0F1B2D" }}>{email}</strong>. Click it to activate your account.
+              </p>
+            ) : (
+              <p className="text-sm leading-relaxed" style={{ color: "rgba(15,27,45,0.75)" }}>
+                We could not send the verification email to{" "}
+                <strong style={{ color: "#0F1B2D" }}>{email}</strong> just now. Nothing is lost — your
+                account exists. Email{" "}
+                <a
+                  href="mailto:kanza@selfcraftpartners.com"
+                  className="underline hover:no-underline font-medium"
+                  style={{ color: "#C84A18" }}
+                >
+                  kanza@selfcraftpartners.com
+                </a>{" "}
+                and we will activate it for you.
+              </p>
+            )}
             <p className="text-xs pt-1" style={{ color: "rgba(15,27,45,0.55)" }}>
-              Didn't receive it? Check your spam folder or{" "}
+              {emailSent ? "Didn't receive it? Check your spam folder or " : "Or "}
               <button
                 onClick={() => setDone(false)}
                 className="underline hover:no-underline font-medium"

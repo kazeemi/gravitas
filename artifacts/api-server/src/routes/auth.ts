@@ -56,13 +56,22 @@ router.post("/v1/auth/signup", authLimiter, async (req, res) => {
     privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION,
   }).returning();
 
+  // The account exists either way, so this is not fatal — but the client must
+  // be told, otherwise the user waits indefinitely for an email that never came.
+  let emailSent = true;
   try {
     await sendVerificationEmail(user.email, user.name ?? "there", verificationToken);
   } catch (err) {
+    emailSent = false;
     logger.error({ err, userId: user.id }, "Failed to send verification email after signup");
   }
 
-  return res.status(201).json({ message: "Account created. Please check your email to verify your account." });
+  return res.status(201).json({
+    message: emailSent
+      ? "Account created. Please check your email to verify your account."
+      : "Account created, but the verification email could not be sent.",
+    emailSent,
+  });
 });
 
 router.post("/v1/auth/verify-email", async (req, res) => {

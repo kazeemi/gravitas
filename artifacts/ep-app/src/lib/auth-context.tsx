@@ -39,7 +39,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string, consentAccepted: boolean) => Promise<void>;
+  signup: (email: string, password: string, name: string, consentAccepted: boolean) => Promise<{ emailSent: boolean }>;
   loginWithGoogle: (credential: string) => Promise<{ isNewUser?: boolean }>;
   loginWithToken: (token: string, userData: User) => void;
   logout: () => void;
@@ -74,7 +74,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (email: string, password: string, name: string, consentAccepted: boolean) => {
-    await api.auth.signup(email, password, name, consentAccepted);
+    const result = await api.auth.signup(email, password, name, consentAccepted);
+    // emailSent is false when the account was created but the verification
+    // email could not be delivered. Older responses omit it; treat that as sent.
+    return { emailSent: result.emailSent !== false };
   };
 
   const loginWithGoogle = async (credential: string) => {

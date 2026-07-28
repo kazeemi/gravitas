@@ -34,9 +34,6 @@ export default function ForgotPasswordPage() {
             <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
               Gravitas
             </h1>
-            <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
-              Beta
-            </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Executive Presence, Elevated.</p>
           <p className="text-xs text-muted-foreground">Reset your password</p>

@@ -39,9 +39,6 @@ export default function LoginPage() {
             >
               Gravitas
             </span>
-            <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
-              Beta
-            </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Executive Presence, Elevated.</p>
           <p className="text-xs text-muted-foreground">Sign in to your account</p>

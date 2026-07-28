@@ -1222,7 +1222,7 @@ export default function RecordPage() {
 
           {/* ── Privacy note ── */}
           <p className="text-xs text-gray-400 leading-relaxed px-1">
-            Your recording is processed by AI and <strong className="text-gray-500">deleted immediately after scoring</strong> — never stored or shared. During beta, Gravitas may review transcripts (not recordings) to validate scoring accuracy.
+            Your recording is processed by AI and <strong className="text-gray-500">deleted immediately after scoring</strong> — never stored or shared. Gravitas may review transcripts (not recordings) to validate scoring accuracy.
           </p>
         </div>
       )}

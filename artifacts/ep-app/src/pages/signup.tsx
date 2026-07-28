@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { MailCheckIcon } from "lucide-react";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -40,32 +41,47 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-1">
+            {/* Decorative: the wordmark beside it already names the product. */}
+            <img src="/gravitas-logo-light.png" alt="" className="h-8 w-auto" />
             <h1 className="text-2xl font-semibold text-foreground" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
               Gravitas
             </h1>
-            <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
-              Beta
-            </span>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">Executive Presence, Elevated.</p>
-          <p className="text-xs text-muted-foreground">Create your account</p>
+          {!done && <p className="text-xs text-muted-foreground">Create your account</p>}
         </div>
 
         {done ? (
-          <div className="rounded-lg border border-green-200 bg-green-50 px-5 py-6 text-center space-y-2">
-            <p className="font-semibold text-green-800">Check your inbox</p>
-            <p className="text-sm text-green-700">
-              We've sent a verification link to <strong>{email}</strong>. Click it to activate your account.
+          <div
+            className="rounded-2xl border px-6 py-7 text-center space-y-3"
+            style={{ backgroundColor: "#EDF4EF", borderColor: "rgba(107,155,122,0.35)" }}
+          >
+            <div
+              className="mx-auto flex h-11 w-11 items-center justify-center rounded-full"
+              style={{ backgroundColor: "#6B9B7A" }}
+            >
+              <MailCheckIcon className="h-5 w-5 text-white" />
+            </div>
+            <p
+              className="text-xl"
+              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
+            >
+              Check your inbox
             </p>
-            <p className="text-xs text-green-600 pt-1">
+            <p className="text-sm leading-relaxed" style={{ color: "rgba(15,27,45,0.75)" }}>
+              We've sent a verification link to{" "}
+              <strong style={{ color: "#0F1B2D" }}>{email}</strong>. Click it to activate your account.
+            </p>
+            <p className="text-xs pt-1" style={{ color: "rgba(15,27,45,0.55)" }}>
               Didn't receive it? Check your spam folder or{" "}
               <button
                 onClick={() => setDone(false)}
-                className="underline hover:no-underline"
+                className="underline hover:no-underline font-medium"
+                style={{ color: "#C84A18" }}
               >
                 try again
               </button>

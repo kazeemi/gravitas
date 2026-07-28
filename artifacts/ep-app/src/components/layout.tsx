@@ -29,9 +29,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               >
                 Gravitas
               </span>
-              <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#C84A18] flex-shrink-0">
-                Beta
-              </span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-tight font-medium tracking-wide pl-0.5">
               Executive Presence, Elevated.
@@ -79,9 +76,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
               Gravitas
-            </span>
-            <span className="rounded bg-[#FEF3E6] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#C84A18]">
-              Beta
             </span>
           </div>
           <button onClick={logout} className="text-xs text-muted-foreground">Sign out</button>

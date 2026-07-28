@@ -1,0 +1,30 @@
+# Keep the build context small and never ship secrets into the image.
+
+# Installed fresh inside the image — copying these would be slow and can break
+# the build by mixing host-architecture binaries in.
+node_modules
+**/node_modules
+
+# Rebuilt inside the image.
+**/dist
+lib/**/*.tsbuildinfo
+
+# Secrets — Railway injects real values as environment variables.
+.env
+.env.*
+
+.git
+.gitignore
+
+# Replit-era files, unused at runtime.
+.replit
+.replitignore
+attached_assets
+replit.md
+
+# Local artefacts.
+backups
+*.log
+.DS_Store
+**/.DS_Store
+badges-review.html

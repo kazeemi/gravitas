@@ -70,6 +70,19 @@ const WORK_ENVIRONMENTS = [
   { id: "other", label: "Other" },
 ];
 
+// The employer examples follow the environment the user already chose. A fixed
+// list contradicts the tailoring the step promises — someone who picked public
+// sector should not be shown investment banks.
+const EMPLOYER_EXAMPLES_BY_ENVIRONMENT: Record<string, string> = {
+  corporate: "e.g. Unilever, Siemens, Emirates Group",
+  consulting: "e.g. McKinsey & Company, Bain & Company, Oliver Wyman",
+  finance: "e.g. Goldman Sachs, HSBC, Emirates NBD",
+  technology: "e.g. Google, Microsoft, Careem",
+  government: "e.g. Ministry of Education, NHS, city council",
+  startup: "e.g. your company's name",
+  academia: "e.g. University of Oxford, Imperial College London",
+};
+
 const WORKPLACE_ROLES = [
   "Individual Contributor",
   "Team Manager",
@@ -848,7 +861,7 @@ export default function OnboardingPage() {
                 type="text"
                 value={workOrganisation}
                 onChange={(e) => setWorkOrganisation(e.target.value)}
-                placeholder="e.g. Goldman Sachs, NHS, your own startup"
+                placeholder={EMPLOYER_EXAMPLES_BY_ENVIRONMENT[workEnvironment] ?? "Your employer's name"}
                 autoFocus
                 className="w-full rounded-xl border-2 px-4 py-3.5 text-sm focus:outline-none transition-colors"
                 style={{ borderColor: workOrganisation ? "#F0953E" : "#0F1B2D15", backgroundColor: "white", color: "#0F1B2D" }}

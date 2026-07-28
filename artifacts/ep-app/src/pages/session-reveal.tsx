@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { api, type SessionDetail } from "@/lib/api";
+import { api, type SessionDetail, type SessionSummary } from "@/lib/api";
 import { getTierColors, DIMENSION_LABELS, PILLARS, DIMENSION_DISPLAY_ORDER } from "@/lib/tier-colors";
 import { ArrowRightIcon, ChevronDownIcon, ChevronUpIcon, MicIcon, VideoIcon } from "lucide-react";
 import { format } from "date-fns";
+import { computeSessionBadges, type BadgeDefinition } from "@/lib/badges";
+import { BadgeIcon } from "@/components/badge-icon";
 
 // ── Shared utilities ───────────────────────────────────────────────────────
 
@@ -61,6 +63,9 @@ function scoreToTier(score: number): string {
   return "Distinguished";
 }
 
+const TIER_ORDER: Record<string, number> = { "Needs Focus": 1, "Developing": 2, "Strong": 3, "Distinguished": 4 };
+
+
 // ── Slide types ────────────────────────────────────────────────────────────
 
 type Slide = "score" | "strengths" | "improvements" | "focus" | "pillars";
@@ -89,6 +94,10 @@ export default function SessionRevealPage() {
   const [pillarsRevealed, setPillarsRevealed] = useState(0);
   const [selectedPillarIndex, setSelectedPillarIndex] = useState(0);
   const [expandedDimKey, setExpandedDimKey] = useState<string | null>(null);
+  const [allSessions, setAllSessions] = useState<SessionSummary[]>([]);
+  const [tierUpVisible, setTierUpVisible] = useState(false);
+  const [badgeVisible, setBadgeVisible] = useState(false);
+  const [earnedBadges, setEarnedBadges] = useState<BadgeDefinition[]>([]);
 
   const rafRef = useRef<number | null>(null);
   const timersRef = useRef<number[]>([]);
@@ -97,8 +106,14 @@ export default function SessionRevealPage() {
 
   useEffect(() => {
     if (!id) return;
-    api.sessions.get(id)
-      .then(setSession)
+    Promise.all([
+      api.sessions.get(id),
+      api.sessions.list().then(r => r.sessions).catch(() => [] as SessionSummary[]),
+    ])
+      .then(([detail, sessions]) => {
+        setSession(detail);
+        setAllSessions(sessions);
+      })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
@@ -126,6 +141,30 @@ export default function SessionRevealPage() {
       };
       rafRef.current = requestAnimationFrame(animate);
       timersRef.current.push(window.setTimeout(() => setMessageVisible(true), 900));
+
+      // Detect earned badges for this session
+      if (allSessions.length > 0) {
+        const sorted = [...allSessions]
+          .filter(s => s.processingStatus === "complete")
+          .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        const badges = computeSessionBadges(sorted, session.id, target);
+        if (badges.length > 0) {
+          setEarnedBadges(badges);
+          timersRef.current.push(window.setTimeout(() => setBadgeVisible(true), 2500));
+        }
+      }
+
+      // Detect tier-up against the most recent prior completed session
+      if (allSessions.length > 0 && session.compositeTier) {
+        const currRank = TIER_ORDER[session.compositeTier] ?? 0;
+        const prevSess = allSessions
+          .filter(s => s.processingStatus === "complete" && s.id !== session.id && new Date(s.createdAt).getTime() < new Date(session.createdAt).getTime())
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+        const prevRank = prevSess ? (TIER_ORDER[prevSess.compositeTier ?? ""] ?? 0) : 0;
+        if (currRank > prevRank && prevRank > 0) {
+          timersRef.current.push(window.setTimeout(() => setTierUpVisible(true), 2200));
+        }
+      }
     }
 
     if (slide === "strengths") {
@@ -171,7 +210,7 @@ export default function SessionRevealPage() {
       timersRef.current.forEach(clearTimeout);
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [slideIndex, slideIn, session]);
+  }, [slideIndex, slideIn, session, allSessions]);
 
   // ── Navigation ───────────────────────────────────────────────────────────
 
@@ -187,6 +226,8 @@ export default function SessionRevealPage() {
       setSelectedPillarIndex(0);
       setExpandedDimKey(null);
       setAnimatedScore(0);
+      setTierUpVisible(false);
+      setBadgeVisible(false);
       setSlideIn(true);
     }, 240);
   };
@@ -203,6 +244,8 @@ export default function SessionRevealPage() {
       setSelectedPillarIndex(0);
       setExpandedDimKey(null);
       setAnimatedScore(0);
+      setTierUpVisible(false);
+      setBadgeVisible(false);
       setSlideIn(true);
     }, 240);
   };
@@ -264,6 +307,19 @@ export default function SessionRevealPage() {
       dimensions: sortedDimensions.filter(d => p.dimensions.includes(d.dimensionKey)),
     }))
     .filter(g => g.dimensions.length > 0);
+
+  const sortedCompleted = [...allSessions]
+    .filter(s => s.processingStatus === "complete")
+    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+  const sessionNumber = sortedCompleted.findIndex(s => s.id === id) + 1;
+
+  const prevCompletedSession = allSessions.length > 0
+    ? allSessions
+        .filter(s => s.processingStatus === "complete" && s.id !== session.id && new Date(s.createdAt).getTime() < new Date(session.createdAt).getTime())
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0] ?? null
+    : null;
+  const prevTierRank = TIER_ORDER[prevCompletedSession?.compositeTier ?? ""] ?? 0;
+  const isTierUp = (TIER_ORDER[tier] ?? 0) > prevTierRank && prevTierRank > 0;
 
   const isLastSlide = slideIndex === SLIDES.length - 1;
   const currentSlide = SLIDES[slideIndex];
@@ -347,6 +403,98 @@ export default function SessionRevealPage() {
             )}
 
             <div style={{ height: "1px", background: "rgba(255,255,255,0.07)" }} />
+
+            {isTierUp && (
+              <div
+                style={{
+                  opacity: tierUpVisible ? 1 : 0,
+                  transform: tierUpVisible ? "none" : "translateY(6px)",
+                  transition: "opacity 0.55s ease, transform 0.55s ease",
+                }}
+              >
+                <span
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest"
+                  style={{
+                    background: `${tierColors.hex}1A`,
+                    border: `1px solid ${tierColors.hex}40`,
+                    color: tierColors.hex,
+                  }}
+                >
+                  ↑ Moved up to {tier}
+                </span>
+              </div>
+            )}
+
+            {earnedBadges.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                {/* Expanding line — ceremony signal */}
+                <div
+                  style={{
+                    height: "1px",
+                    background: "rgba(255,255,255,0.12)",
+                    transformOrigin: "center",
+                    animation: badgeVisible ? "badge-line 0.65s cubic-bezier(0.22,1,0.36,1) forwards" : "none",
+                    opacity: badgeVisible ? undefined : 0,
+                  }}
+                />
+
+                {earnedBadges.map((badge, i) => {
+                  const iconDelay = `${0.35 + i * 0.55}s`;
+                  const copyDelay = `${0.95 + i * 0.55}s`;
+                  const accentColor = badge.category === "identity"
+                    ? "#F0953E"
+                    : badge.category === "earned"
+                    ? "#C9952A"
+                    : "rgba(255,255,255,0.3)";
+                  const categoryLabel = badge.category === "identity" ? "Achievement" : badge.category === "earned" ? "Earned" : "Milestone";
+
+                  return (
+                    <div key={badge.id} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {/* Badge icon + name */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "14px",
+                          animation: badgeVisible ? `badge-in 0.55s cubic-bezier(0.22,1,0.36,1) ${iconDelay} both` : "none",
+                          opacity: badgeVisible ? undefined : 0,
+                        }}
+                      >
+                        <BadgeIcon badge={badge} size={44} />
+                        <div>
+                          <p style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: accentColor, marginBottom: "3px", fontFamily: "'DM Mono', monospace" }}>
+                            {categoryLabel}
+                          </p>
+                          <p style={{ fontSize: "16px", fontWeight: 600, color: "rgba(255,255,255,0.9)", fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+                            {badge.name}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Reveal copy */}
+                      <p
+                        style={{
+                          fontSize: "13px",
+                          color: "rgba(255,255,255,0.45)",
+                          lineHeight: 1.6,
+                          fontStyle: "italic",
+                          transition: "opacity 0.4s ease",
+                          transitionDelay: badgeVisible ? copyDelay : "0s",
+                          opacity: badgeVisible ? 1 : 0,
+                        }}
+                      >
+                        {badge.revealCopy}
+                      </p>
+
+                      {/* Divider between badges */}
+                      {i < earnedBadges.length - 1 && (
+                        <div style={{ height: "1px", background: "rgba(255,255,255,0.06)", marginTop: "4px" }} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             <div
               style={{
@@ -753,9 +901,15 @@ export default function SessionRevealPage() {
               style={{ background: "#F0953E", color: "#fff" }}
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = "#C84A18"; }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = "#F0953E"; }}
-              onClick={() => setLocation("/welcome")}
+              onClick={() =>
+                setLocation(
+                  session.promptText
+                    ? `/record?prompt=${encodeURIComponent(session.promptText)}`
+                    : "/record"
+                )
+              }
             >
-              What's next
+              Practice again
               <ArrowRightIcon className="h-3.5 w-3.5" />
             </button>
           ) : (

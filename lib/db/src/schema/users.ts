@@ -24,6 +24,9 @@ export const usersTable = pgTable("users", {
   emailSummaries: boolean("email_summaries").notNull().default(false),
   hasSeenWelcome: boolean("has_seen_welcome").notNull().default(false),
   totalRecordingSeconds: integer("total_recording_seconds").notNull().default(0),
+  // Per-user recording allowance in seconds. Defaults to the standard 30-minute
+  // allowance; raise it per user (e.g. for pilot clients and evaluators) from admin.
+  recordingSecondsAllowance: integer("recording_seconds_allowance").notNull().default(1800),
   notifyOnUpgrade: boolean("notify_on_upgrade").notNull().default(true),
   interviewMode: boolean("interview_mode").notNull().default(false),
   interviewSector: varchar("interview_sector", { length: 50 }),
@@ -52,6 +55,7 @@ export const usersTable = pgTable("users", {
   interviewDate: varchar("interview_date", { length: 50 }),
   hasConfirmedInterview: boolean("has_confirmed_interview"),
   workEnvironment: varchar("work_environment", { length: 100 }),
+  workOrganisation: varchar("work_organisation", { length: 500 }),
   workCurrentRole: varchar("work_current_role", { length: 255 }),
   workCurrentRoleCustom: varchar("work_current_role_custom", { length: 255 }),
   highStakesContexts: text("high_stakes_contexts"),
@@ -59,6 +63,16 @@ export const usersTable = pgTable("users", {
   selfAssessmentVocalDelivery: integer("self_assessment_vocal_delivery"),
   selfAssessmentVoiceQuality: integer("self_assessment_voice_quality"),
   selfAssessmentPhysicalDelivery: integer("self_assessment_physical_delivery"),
+
+  // GDPR consent tracking
+  consentAcceptedAt: timestamp("consent_accepted_at", { withTimezone: true }),
+  privacyPolicyVersion: varchar("privacy_policy_version", { length: 20 }),
+
+  // Account restoration (valid for 30 days after deletion request)
+  accountRestoreToken: varchar("account_restore_token", { length: 255 }),
+
+  // Scheduled email IDs (Resend) — nulled when cancelled or no longer needed
+  nudgeEmailId: varchar("nudge_email_id", { length: 255 }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

@@ -63,6 +63,7 @@ export interface UserRow {
   communicationContext: string | null;
   onboardingCompleted: boolean;
   totalRecordingSeconds: number;
+  recordingSecondsAllowance: number;
   notifyOnUpgrade: boolean;
   isAdmin: boolean;
   createdAt: string;
@@ -118,8 +119,8 @@ export function getSessionDetail(id: string) {
   return request<SessionDetail>(`/v1/admin/sessions/${id}`);
 }
 
-export function patchUser(id: string, data: { isAdmin?: boolean }) {
-  return request<{ id: string; email: string; isAdmin: boolean }>(`/v1/admin/users/${id}`, {
+export function patchUser(id: string, data: { isAdmin?: boolean; recordingSecondsAllowance?: number }) {
+  return request<{ id: string; email: string; isAdmin: boolean; recordingSecondsAllowance: number }>(`/v1/admin/users/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });

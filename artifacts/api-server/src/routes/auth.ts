@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { eq } from "drizzle-orm";
+import { rateLimit } from "express-rate-limit";
 import { db } from "../lib/db.js";
 import { signToken, requireAuth } from "../lib/auth.js";
 import { usersTable } from "@workspace/db";
@@ -10,10 +11,31 @@ import { logger } from "../lib/logger.js";
 
 const router = Router();
 
-router.post("/v1/auth/signup", async (req, res) => {
-  const { email, password, name } = req.body;
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many attempts. Please wait 15 minutes and try again." },
+});
+
+const passwordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many password reset requests. Please wait an hour and try again." },
+});
+
+const CURRENT_PRIVACY_POLICY_VERSION = "1.0";
+
+router.post("/v1/auth/signup", authLimiter, async (req, res) => {
+  const { email, password, name, consentAccepted } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ error: "email, password and name are required" });
+  }
+  if (!consentAccepted) {
+    return res.status(400).json({ error: "You must accept the Terms of Service and Privacy Policy to create an account" });
   }
   const existing = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
   if (existing.length > 0) {
@@ -30,6 +52,8 @@ router.post("/v1/auth/signup", async (req, res) => {
     emailVerified: false,
     emailVerificationToken: verificationToken,
     emailVerificationExpiresAt: verificationExpires,
+    consentAcceptedAt: new Date(),
+    privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION,
   }).returning();
 
   try {
@@ -59,10 +83,10 @@ router.post("/v1/auth/verify-email", async (req, res) => {
   }).where(eq(usersTable.id, user.id));
 
   const authToken = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
-  return res.json({ token: authToken, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted } });
+  return res.json({ token: authToken, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt } });
 });
 
-router.post("/v1/auth/login", async (req, res) => {
+router.post("/v1/auth/login", authLimiter, async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "email and password are required" });
@@ -79,14 +103,14 @@ router.post("/v1/auth/login", async (req, res) => {
     return res.status(403).json({ error: "email_not_verified", message: "Please verify your email before signing in. Check your inbox for a verification link." });
   }
   const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
-  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted } });
+  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt } });
 });
 
 router.post("/v1/auth/logout", requireAuth, (_req, res) => {
   res.json({ message: "Logged out" });
 });
 
-router.post("/v1/auth/forgot-password", async (req, res) => {
+router.post("/v1/auth/forgot-password", passwordLimiter, async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: "email is required" });
 
@@ -135,7 +159,7 @@ router.post("/v1/auth/reset-password", async (req, res) => {
   return res.json({ message: "Password reset successfully" });
 });
 
-router.post("/v1/auth/google", async (req, res) => {
+router.post("/v1/auth/google", authLimiter, async (req, res) => {
   const { credential } = req.body;
   if (!credential) {
     return res.status(400).json({ error: "credential is required" });
@@ -168,20 +192,59 @@ router.post("/v1/auth/google", async (req, res) => {
     const email = tokenInfo.email.toLowerCase();
     const name = tokenInfo.name || tokenInfo.given_name || email.split("@")[0];
 
+    const { consentAccepted } = req.body;
     let [user] = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
     if (!user) {
-      [user] = await db.insert(usersTable).values({ email, name, emailVerified: true }).returning();
+      if (!consentAccepted) {
+        return res.status(400).json({ error: "You must accept the Terms of Service and Privacy Policy to create an account" });
+      }
+      [user] = await db.insert(usersTable).values({
+        email,
+        name,
+        emailVerified: true,
+        consentAcceptedAt: new Date(),
+        privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION,
+      }).returning();
     }
 
     const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
     return res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin },
+      user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt },
       isNewUser: !user.onboardingCompleted,
     });
   } catch {
     return res.status(401).json({ error: "Google authentication failed" });
   }
+});
+
+router.post("/v1/auth/restore-account", async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ error: "token is required" });
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.accountRestoreToken, token)).limit(1);
+  if (!user) return res.status(400).json({ error: "Invalid or expired restore link" });
+
+  if (!user.deletedAt) {
+    return res.status(400).json({ error: "This account is already active" });
+  }
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  if (user.deletedAt < thirtyDaysAgo) {
+    return res.status(400).json({ error: "This restore link has expired. The account has already been permanently deleted." });
+  }
+
+  await db.update(usersTable).set({
+    deletedAt: null,
+    accountRestoreToken: null,
+  }).where(eq(usersTable.id, user.id));
+
+  const authToken = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
+  return res.json({
+    message: "Your account has been restored successfully.",
+    token: authToken,
+    user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt },
+  });
 });
 
 router.post("/v1/auth/change-password", requireAuth, async (req, res) => {

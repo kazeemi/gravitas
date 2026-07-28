@@ -101,7 +101,7 @@ type StepId =
   | "welcome"
   | "education" | "experience" | "primary_goal"
   | "industry" | "company" | "role" | "interview_confirmed" | "interview_detail"
-  | "environment" | "current_role" | "high_stakes"
+  | "environment" | "work_organisation" | "current_role" | "high_stakes"
   | "emotional_connect" | "privacy_trust" | "how_it_works"
   | "baseline";
 
@@ -116,7 +116,7 @@ function getStepList(path: Path): StepId[] {
     return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", ...bridge, "baseline"];
   }
   if (path === "workplace") {
-    return [...common, "environment", "current_role", "high_stakes", ...bridge, "baseline"];
+    return [...common, "environment", "work_organisation", "current_role", "high_stakes", ...bridge, "baseline"];
   }
   return common;
 }
@@ -255,6 +255,7 @@ export default function OnboardingPage() {
 
   // Workplace path
   const [workEnvironment, setWorkEnvironment] = useState("");
+  const [workOrganisation, setWorkOrganisation] = useState("");
   const [workEnvironmentCustom, setWorkEnvironmentCustom] = useState("");
   const [workCurrentRole, setWorkCurrentRole] = useState("");
   const [workCurrentRoleCustom, setWorkCurrentRoleCustom] = useState("");
@@ -286,6 +287,7 @@ export default function OnboardingPage() {
         if (d.interviewDate) setInterviewDate(d.interviewDate as string);
         if (d.interviewTimeline) setInterviewTimeline(d.interviewTimeline as string);
         if (d.workEnvironment) setWorkEnvironment(d.workEnvironment as string);
+        if (d.workOrganisation) setWorkOrganisation(d.workOrganisation as string);
         if (d.workEnvironmentCustom) setWorkEnvironmentCustom(d.workEnvironmentCustom as string);
         if (d.workCurrentRole) setWorkCurrentRole(d.workCurrentRole as string);
         if (d.workCurrentRoleCustom) setWorkCurrentRoleCustom(d.workCurrentRoleCustom as string);
@@ -303,7 +305,7 @@ export default function OnboardingPage() {
         educationLevel, workExperienceYears,
         industry, industryCustom, selectedCompanies, companyCustom,
         interviewRole, hasConfirmedInterview, interviewDate, interviewTimeline,
-        workEnvironment, workEnvironmentCustom, workCurrentRole, workCurrentRoleCustom,
+        workEnvironment, workOrganisation, workEnvironmentCustom, workCurrentRole, workCurrentRoleCustom,
         highStakesContexts,
       }));
     } catch {}
@@ -312,7 +314,7 @@ export default function OnboardingPage() {
     educationLevel, workExperienceYears,
     industry, industryCustom, selectedCompanies, companyCustom,
     interviewRole, hasConfirmedInterview, interviewDate, interviewTimeline,
-    workEnvironment, workEnvironmentCustom, workCurrentRole, workCurrentRoleCustom,
+    workEnvironment, workOrganisation, workEnvironmentCustom, workCurrentRole, workCurrentRoleCustom,
     highStakesContexts,
   ]);
 
@@ -376,6 +378,7 @@ export default function OnboardingPage() {
         interviewDate: path === "interview" && hasConfirmedInterview ? (interviewDate || null) : null,
         interviewTimeline: path === "interview" && !hasConfirmedInterview ? (interviewTimeline || null) : null,
         workEnvironment: path === "workplace" ? (workEnvironment || null) : null,
+        workOrganisation: path === "workplace" ? (workOrganisation.trim() || null) : null,
         workCurrentRole: path === "workplace" ? (workCurrentRole || null) : null,
         workCurrentRoleCustom: path === "workplace" && workCurrentRole === "Other" ? (workCurrentRoleCustom.trim() || null) : null,
         highStakesContexts: path === "workplace" && highStakesContexts.length > 0 ? highStakesContexts.join("; ") : null,
@@ -404,6 +407,7 @@ export default function OnboardingPage() {
     interview_confirmed: "Interview Timeline",
     interview_detail: "Interview Timeline",
     environment: "Professional Context",
+    work_organisation: "Professional Context",
     current_role: "Professional Context",
     high_stakes: "Your Priorities",
     emotional_connect: "Welcome",
@@ -823,6 +827,37 @@ export default function OnboardingPage() {
                   <ContinueButton onClick={goNext} disabled={!workEnvironmentCustom.trim()} />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* ── STEP: work_organisation (Workplace) ───────────────────────── */}
+          {currentStep === "work_organisation" && (
+            <div className="space-y-5">
+              <div className="flex items-center gap-3 mb-1">
+                <BackButton onClick={goBack} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-semibold leading-tight" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}>
+                  Where do you work?
+                </h1>
+                <p className="mt-2 text-sm" style={{ color: "#0F1B2D60" }}>
+                  Helps us tailor your coaching to your specific workplace context.
+                </p>
+              </div>
+              <input
+                type="text"
+                value={workOrganisation}
+                onChange={(e) => setWorkOrganisation(e.target.value)}
+                placeholder="e.g. Goldman Sachs, NHS, your own startup"
+                autoFocus
+                className="w-full rounded-xl border-2 px-4 py-3.5 text-sm focus:outline-none transition-colors"
+                style={{ borderColor: workOrganisation ? "#F0953E" : "#0F1B2D15", backgroundColor: "white", color: "#0F1B2D" }}
+                onKeyDown={(e) => { if (e.key === "Enter") goNext(); }}
+              />
+              <ContinueButton
+                onClick={goNext}
+                label={workOrganisation.trim() ? "Continue" : "Skip"}
+              />
             </div>
           )}
 

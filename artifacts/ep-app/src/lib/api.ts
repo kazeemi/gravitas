@@ -40,10 +40,10 @@ async function request<T>(
 
 export const api = {
   auth: {
-    signup: (email: string, password: string, name: string) =>
+    signup: (email: string, password: string, name: string, consentAccepted: boolean) =>
       request<{ message: string }>("/v1/auth/signup", {
         method: "POST",
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, consentAccepted }),
       }),
     login: (email: string, password: string) =>
       request<{ token: string; user: { id: string; email: string; name: string | null } } | { error: string; message?: string }>("/v1/auth/login", {
@@ -71,12 +71,29 @@ export const api = {
       request("/v1/users/me/onboarding", { method: "POST", body: JSON.stringify(data) }),
     markWelcomeSeen: () =>
       request("/v1/users/me", { method: "PATCH", body: JSON.stringify({ hasSeenWelcome: true }) }),
-    export: () => {
+    export: async () => {
       const token = getToken();
-      window.open(`${API_BASE}/v1/users/me/export?token=${token}`, "_blank");
+      const res = await fetch(`${API_BASE}/v1/users/me/export`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gravitas-data-export.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     },
     deleteAccount: () =>
       request<{ message: string }>("/v1/users/me", { method: "DELETE" }),
+    recordConsent: () =>
+      request<Record<string, unknown>>("/v1/users/me/consent", {
+        method: "POST",
+        body: JSON.stringify({ consentAccepted: true }),
+      }),
   },
 
   sessions: {

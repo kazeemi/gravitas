@@ -2,6 +2,9 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api, type SessionSummary, type ChartSession } from "@/lib/api";
+import { computeHighestBadge } from "@/lib/badges";
+import { BadgeIcon } from "@/components/badge-icon";
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getTierColors, PILLARS, DIMENSION_LABELS, TIER_COLORS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,6 +140,32 @@ function MetricDropdown({
         </>
       )}
     </div>
+  );
+}
+
+function LatestBadgeCard({ completed }: { completed: SessionSummary[] }) {
+  const badge = computeHighestBadge(completed);
+  if (!badge) return null;
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild>
+        <div className="rounded-lg border border-gray-200 bg-white px-6 py-5 cursor-default">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">Latest unlock</span>
+            <BadgeIcon badge={badge} size={22} />
+          </div>
+          <p className="mt-2 text-2xl font-bold text-gray-900" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}>
+            {badge.name}
+          </p>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent
+        side="bottom"
+        className="max-w-[220px] text-center leading-snug py-2.5 px-3"
+      >
+        {badge.description}
+      </TooltipContent>
+    </UITooltip>
   );
 }
 
@@ -327,6 +356,8 @@ export default function DashboardPage() {
     return () => clearInterval(id);
   }, [sessions, load]);
 
+  const TIER_ORDER: Record<string, number> = { "Needs Focus": 1, "Developing": 2, "Strong": 3, "Distinguished": 4 };
+
   const completed = sessions.filter(s => s.processingStatus === "complete");
   const recent = sessions.slice(0, 5);
 
@@ -335,6 +366,19 @@ export default function DashboardPage() {
     : null;
 
   const latestTier = completed[0]?.compositeTier;
+
+  // Count consecutive sessions (newest first) at or above the current tier
+  const latestTierRank = TIER_ORDER[latestTier ?? ""] ?? 0;
+  let consistencyStreak = 0;
+  if (latestTierRank >= 2) {
+    for (const s of completed) {
+      if ((TIER_ORDER[s.compositeTier ?? ""] ?? 0) >= latestTierRank) {
+        consistencyStreak++;
+      } else {
+        break;
+      }
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -357,7 +401,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Sessions completed"
           value={completed.length.toString()}
@@ -374,7 +418,41 @@ export default function DashboardPage() {
           tierColor={latestTier ? getTierColors(latestTier).hex : undefined}
           icon={<TrendingUpIcon className="h-5 w-5 text-gray-400" />}
         />
+        {!loading && completed.length > 0 && (
+          <LatestBadgeCard completed={completed} />
+        )}
       </div>
+
+      {!loading && consistencyStreak >= 2 && latestTier && (
+        <div
+          className="rounded-lg border px-6 py-4 flex items-center gap-5"
+          style={{
+            background: `${getTierColors(latestTier).hex}0D`,
+            borderColor: `${getTierColors(latestTier).hex}33`,
+          }}
+        >
+          <span
+            className="text-3xl font-bold tabular-nums flex-shrink-0"
+            style={{ color: getTierColors(latestTier).hex, fontFamily: "DM Mono, monospace" }}
+          >
+            {consistencyStreak}
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">
+              sessions at {latestTier} or above
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {consistencyStreak >= 10
+                ? "Remarkable consistency. This is who you are now."
+                : consistencyStreak >= 5
+                ? "You're building something real. Keep the streak alive."
+                : consistencyStreak >= 3
+                ? "Consistency is taking shape — this is how it compounds."
+                : "Two in a row. Momentum is building."}
+            </p>
+          </div>
+        </div>
+      )}
 
       {!loading && chartSessions.length > 0 && (
         <ProgressChart

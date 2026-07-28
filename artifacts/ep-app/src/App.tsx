@@ -19,6 +19,9 @@ import ProgressPage from "@/pages/progress";
 import SettingsPage from "@/pages/settings";
 import WelcomePage from "@/pages/welcome";
 import NotFound from "@/pages/not-found";
+import PrivacyPolicyPage from "@/pages/privacy";
+import TermsPage from "@/pages/terms";
+import RestoreAccountPage from "@/pages/restore-account";
 
 const queryClient = new QueryClient();
 
@@ -98,6 +101,9 @@ function AppRouter() {
       <Route path="/settings">
         <ProtectedRoute component={SettingsPage} />
       </Route>
+      <Route path="/privacy"><PrivacyPolicyPage /></Route>
+      <Route path="/terms"><TermsPage /></Route>
+      <Route path="/restore-account"><RestoreAccountPage /></Route>
       <Route component={NotFound} />
     </Switch>
   );

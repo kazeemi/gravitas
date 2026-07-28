@@ -1,13 +1,16 @@
 import { Router } from "express";
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, isNull, and } from "drizzle-orm";
+import crypto from "crypto";
 import { db } from "../lib/db.js";
 import { requireAuth } from "../lib/auth.js";
+import { logger } from "../lib/logger.js";
 import { usersTable, sessionsTable, dimensionScoresTable } from "@workspace/db";
+import { sendDeletionConfirmationEmail, sendWelcomeEmail, scheduleNudgeEmail } from "../lib/email.js";
 
 const router = Router();
 
 router.get("/v1/users/me", requireAuth, async (req, res) => {
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
+  const [user] = await db.select().from(usersTable).where(and(eq(usersTable.id, req.user!.userId), isNull(usersTable.deletedAt))).limit(1);
   if (!user) return res.status(404).json({ error: "User not found" });
   const { passwordHash: _ph, ...safe } = user;
   return res.json(safe);
@@ -20,7 +23,7 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
     interviewMode, interviewSector, interviewSectorCustom, interviewCompanies,
     educationLevel, workExperienceYears, primaryGoal,
     interviewRole, interviewTimeline, interviewDate, hasConfirmedInterview,
-    workEnvironment, workCurrentRole, workCurrentRoleCustom, highStakesContexts,
+    workEnvironment, workOrganisation, workCurrentRole, workCurrentRoleCustom, highStakesContexts,
   } = req.body;
   const updates: Partial<typeof usersTable.$inferInsert> = {};
   if (name !== undefined) updates.name = name;
@@ -43,10 +46,11 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
   if (interviewDate !== undefined) updates.interviewDate = interviewDate;
   if (hasConfirmedInterview !== undefined) updates.hasConfirmedInterview = hasConfirmedInterview;
   if (workEnvironment !== undefined) updates.workEnvironment = workEnvironment;
+  if (workOrganisation !== undefined) updates.workOrganisation = workOrganisation;
   if (workCurrentRole !== undefined) updates.workCurrentRole = workCurrentRole;
   if (workCurrentRoleCustom !== undefined) updates.workCurrentRoleCustom = workCurrentRoleCustom;
   if (highStakesContexts !== undefined) updates.highStakesContexts = highStakesContexts;
-  const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, req.user!.userId)).returning();
+  const [user] = await db.update(usersTable).set(updates).where(and(eq(usersTable.id, req.user!.userId), isNull(usersTable.deletedAt))).returning();
   if (!user) return res.status(404).json({ error: "User not found" });
   const { passwordHash: _ph, ...safe } = user;
   return res.json(safe);
@@ -60,7 +64,7 @@ router.post("/v1/users/me/onboarding", requireAuth, async (req, res) => {
     primaryGoal,
     interviewRole, interviewRoleCustom, interviewTimeline, interviewStage,
     interviewDate, hasConfirmedInterview,
-    workEnvironment, workCurrentRole, workCurrentRoleCustom, highStakesContexts,
+    workEnvironment, workOrganisation, workCurrentRole, workCurrentRoleCustom, highStakesContexts,
     selfAssessmentThoughtClarity, selfAssessmentVocalDelivery,
     selfAssessmentVoiceQuality, selfAssessmentPhysicalDelivery,
   } = req.body;
@@ -85,6 +89,7 @@ router.post("/v1/users/me/onboarding", requireAuth, async (req, res) => {
     interviewDate: interviewDate ?? null,
     hasConfirmedInterview: typeof hasConfirmedInterview === "boolean" ? hasConfirmedInterview : null,
     workEnvironment: workEnvironment ?? null,
+    workOrganisation: workOrganisation ?? null,
     workCurrentRole: workCurrentRole ?? null,
     workCurrentRoleCustom: workCurrentRoleCustom ?? null,
     highStakesContexts: highStakesContexts ?? null,
@@ -93,9 +98,25 @@ router.post("/v1/users/me/onboarding", requireAuth, async (req, res) => {
     selfAssessmentVoiceQuality: typeof selfAssessmentVoiceQuality === "number" ? selfAssessmentVoiceQuality : null,
     selfAssessmentPhysicalDelivery: typeof selfAssessmentPhysicalDelivery === "number" ? selfAssessmentPhysicalDelivery : null,
     onboardingCompleted: true,
-  }).where(eq(usersTable.id, req.user!.userId)).returning();
+  }).where(and(eq(usersTable.id, req.user!.userId), isNull(usersTable.deletedAt))).returning();
 
   if (!user) return res.status(404).json({ error: "User not found" });
+
+  try {
+    await sendWelcomeEmail(user.email, user.name ?? "there", user.interviewMode ?? false);
+  } catch (err) {
+    logger.error({ err, userId: user.id }, "Failed to send welcome email after onboarding");
+  }
+
+  try {
+    const nudgeEmailId = await scheduleNudgeEmail(user.email, user.name ?? "there", user.interviewMode ?? false);
+    if (nudgeEmailId) {
+      await db.update(usersTable).set({ nudgeEmailId }).where(eq(usersTable.id, user.id));
+    }
+  } catch (err) {
+    logger.error({ err, userId: user.id }, "Failed to schedule nudge email after onboarding");
+  }
+
   const { passwordHash: _ph, ...safe } = user;
   return res.json(safe);
 });
@@ -117,14 +138,34 @@ router.get("/v1/users/me/export", requireAuth, async (req, res) => {
 
 router.delete("/v1/users/me", requireAuth, async (req, res) => {
   const userId = req.user!.userId;
-  const sessions = await db.select({ id: sessionsTable.id }).from(sessionsTable).where(eq(sessionsTable.userId, userId));
-  const sessionIds = sessions.map(s => s.id);
-  if (sessionIds.length > 0) {
-    await db.delete(dimensionScoresTable).where(inArray(dimensionScoresTable.sessionId, sessionIds));
+  const [user] = await db.select().from(usersTable).where(and(eq(usersTable.id, userId), isNull(usersTable.deletedAt))).limit(1);
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const restoreToken = crypto.randomBytes(32).toString("hex");
+  await db.update(usersTable).set({ deletedAt: new Date(), accountRestoreToken: restoreToken }).where(eq(usersTable.id, userId));
+
+  try {
+    await sendDeletionConfirmationEmail(user.email, user.name ?? "there", restoreToken);
+  } catch {
+    // Non-fatal — deletion proceeds even if email fails
   }
-  await db.delete(sessionsTable).where(eq(sessionsTable.userId, userId));
-  await db.delete(usersTable).where(eq(usersTable.id, userId));
-  return res.json({ message: "Account deleted" });
+
+  return res.json({ message: "Your account is scheduled for deletion. All data will be permanently erased within 30 days." });
+});
+
+router.post("/v1/users/me/consent", requireAuth, async (req, res) => {
+  const { consentAccepted } = req.body;
+  if (!consentAccepted) {
+    return res.status(400).json({ error: "consentAccepted must be true" });
+  }
+  const CURRENT_PRIVACY_POLICY_VERSION = "1.0";
+  const [user] = await db.update(usersTable)
+    .set({ consentAcceptedAt: new Date(), privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION })
+    .where(and(eq(usersTable.id, req.user!.userId), isNull(usersTable.deletedAt)))
+    .returning();
+  if (!user) return res.status(404).json({ error: "User not found" });
+  const { passwordHash: _ph, ...safe } = user;
+  return res.json(safe);
 });
 
 export default router;

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gravitas — Badge Audit</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #F5F1EC;
+    color: #0F1B2D;
+    padding: 48px 24px;
+  }
+  h1 {
+    font-family: Georgia, serif;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #0F1B2D80;
+    margin-bottom: 48px;
+  }
+  .section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #0F1B2D55;
+    margin-bottom: 20px;
+  }
+
+  /* ── Badge grid ── */
+  .badge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    margin-bottom: 60px;
+  }
+  .badge-card {
+    background: white;
+    border: 1px solid #0F1B2D0F;
+    border-radius: 16px;
+    padding: 24px;
+  }
+  .badge-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  /* Current visual: the orange circle with number */
+  .badge-circle {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #F0953E 0%, #C84A18 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .badge-meta {}
+  .badge-eyebrow {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #F0953E;
+    margin-bottom: 3px;
+  }
+  .badge-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #0F1B2D;
+  }
+  .badge-trigger {
+    font-size: 12px;
+    color: #0F1B2D55;
+    line-height: 1.5;
+    margin-bottom: 12px;
+  }
+  .badge-trigger strong {
+    color: #0F1B2D;
+    font-weight: 600;
+  }
+
+  /* The actual current rendered widget (dark bg like the app) */
+  .badge-widget-wrap {
+    background: #0F1B2D;
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    flex-direction: column;
+  }
+  .badge-widget-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 8px;
+  }
+  .badge-widget {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px 10px 10px;
+    border-radius: 10px;
+    background: rgba(240,149,62,0.10);
+    border: 1px solid rgba(240,149,62,0.28);
+  }
+  .badge-widget-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #F0953E 0%, #C84A18 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .badge-widget-text {}
+  .badge-widget-eyebrow {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #F0953E;
+    margin-bottom: 2px;
+  }
+  .badge-widget-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+  }
+
+  /* ── Logic section ── */
+  .logic-block {
+    background: white;
+    border: 1px solid #0F1B2D0F;
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 60px;
+  }
+  .logic-block p {
+    font-size: 13px;
+    color: #0F1B2D80;
+    line-height: 1.7;
+    margin-bottom: 10px;
+  }
+  .logic-block p:last-child { margin-bottom: 0; }
+  .logic-block code {
+    font-family: "SF Mono", monospace;
+    font-size: 11px;
+    background: #0F1B2D08;
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: #C84A18;
+  }
+
+  /* ── Gaps / notes ── */
+  .note-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+  .note-card {
+    background: white;
+    border-radius: 12px;
+    padding: 18px;
+    border-left: 3px solid #F0953E;
+    border-top: 1px solid #0F1B2D08;
+    border-right: 1px solid #0F1B2D08;
+    border-bottom: 1px solid #0F1B2D08;
+  }
+  .note-card h4 { font-size: 12px; font-weight: 700; margin-bottom: 4px; color: #0F1B2D; }
+  .note-card p { font-size: 12px; color: #0F1B2D70; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<h1>Gravitas — Badge System Audit</h1>
+<p class="subtitle">Current state: 6 badges, session-count triggers only, no visual differentiation between tiers.</p>
+
+<!-- ── ALL BADGES ── -->
+<p class="section-title">All 6 badges — current design</p>
+<div class="badge-grid">
+
+  <!-- 1 -->
+  <div class="badge-card">
+    <div class="badge-card-header">
+      <div class="badge-circle">1</div>
+      <div class="badge-meta">
+        <div class="badge-eyebrow">Session 1</div>
+        <div class="badge-name">First Step</div>
+      </div>
+    </div>
+    <p class="badge-trigger">
+      Triggers when this session is ranked <strong>#1</strong> among all completed sessions (sorted oldest → newest). Appears 2.5 s after the score animates in.
+    </p>
+    <div class="badge-widget-wrap">
+      <div class="badge-widget-label">As shown on score slide</div>
+      <div class="badge-widget">
+        <div class="badge-widget-circle">1</div>
+        <div class="badge-widget-text">
+          <div class="badge-widget-eyebrow">Badge unlocked</div>
+          <div class="badge-widget-name">First Step</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="badge-card">
+    <div class="badge-card-header">
+      <div class="badge-circle">3</div>
+      <div class="badge-meta">
+        <div class="badge-eyebrow">Session 3</div>
+        <div class="badge-name">Early Momentum</div>
+      </div>
+    </div>
+    <p class="badge-trigger">
+      Triggers when this session is ranked <strong>#3</strong> among completed sessions. Appears 2.5 s after score animation.
+    </p>
+    <div class="badge-widget-wrap">
+      <div class="badge-widget-label">As shown on score slide</div>
+      <div class="badge-widget">
+        <div class="badge-widget-circle">3</div>
+        <div class="badge-widget-text">
+          <div class="badge-widget-eyebrow">Badge unlocked</div>
+          <div class="badge-widget-name">Early Momentum</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="badge-card">
+    <div class="badge-card-header">
+      <div class="badge-circle">5</div>
+      <div class="badge-meta">
+        <div class="badge-eyebrow">Session 5</div>
+        <div class="badge-name">Committed</div>
+      </div>
+    </div>
+    <p class="badge-trigger">
+      Triggers when this session is ranked <strong>#5</strong> among completed sessions.
+    </p>
+    <div class="badge-widget-wrap">
+      <div class="badge-widget-label">As shown on score slide</div>
+      <div class="badge-widget">
+        <div class="badge-widget-circle">5</div>
+        <div class="badge-widget-text">
+          <div class="badge-widget-eyebrow">Badge unlocked</div>
+          <div class="badge-widget-name">Committed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="badge-card">
+    <div class="badge-card-header">
+      <div class="badge-circle">10</div>
+      <div class="badge-meta">
+        <div class="badge-eyebrow">Session 10</div>
+        <div class="badge-name">Consistent</div>
+      </div>
+    </div>
+    <p class="badge-trigger">
+      Triggers when this session is ranked <strong>#10</strong> among completed sessions.
+    </p>
+    <div class="badge-widget-wrap">
+      <div class="badge-widget-label">As shown on score slide</div>
+      <div class="badge-widget">
+        <div class="badge-widget-circle">10</div>
+        <div class="badge-widget-text">
+          <div class="badge-widget-eyebrow">Badge unlocked</div>
+          <div class="badge-widget-name">Consistent</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 25 -->
+  <div class="badge-card">
+    <div class="badge-card-header">
+      <div class="badge-circle">25</div>
+      <div class="badge-meta">
+        <div class="badge-eyebrow">Session 25</div>
+        <div class="badge-name">Dedicated</div>
+      </div>
+    </div>
+    <p class="badge-trigger">
+      Triggers when this session is ranked <strong>#25</strong> among completed sessions.
+    </p>
+    <div class="badge-widget-wrap">
+      <div class="badge-widget-label">As shown on score slide</div>
+      <div class="badge-widget">
+        <div class="badge-widget-circle">25</div>
+        <div class="badge-widget-text">
+          <div class="badge-widget-eyebrow">Badge unlocked</div>
+          <div class="badge-widget-name">Dedicated</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 50 -->
+  <div class="badge-card">
+    <div class="badge-card-header">
+      <div class="badge-circle">50</div>
+      <div class="badge-meta">
+        <div class="badge-eyebrow">Session 50</div>
+        <div class="badge-name">Elite</div>
+      </div>
+    </div>
+    <p class="badge-trigger">
+      Triggers when this session is ranked <strong>#50</strong> among completed sessions. Highest tier.
+    </p>
+    <div class="badge-widget-wrap">
+      <div class="badge-widget-label">As shown on score slide</div>
+      <div class="badge-widget">
+        <div class="badge-widget-circle">50</div>
+        <div class="badge-widget-text">
+          <div class="badge-widget-eyebrow">Badge unlocked</div>
+          <div class="badge-widget-name">Elite</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── TRIGGER LOGIC ── -->
+<p class="section-title">How triggers work (code logic)</p>
+<div class="logic-block">
+  <p>All 6 badges live in a single <code>SESSION_BADGES</code> array in <code>session-reveal.tsx</code>. Each entry has a <code>threshold</code> (number) and <code>label</code> (string).</p>
+  <p>On the score slide, the app fetches all sessions, filters to <code>processingStatus === "complete"</code>, sorts by <code>createdAt</code> ascending, and finds the index of the current session. That index + 1 = <strong>session number</strong>.</p>
+  <p>If <code>sessionNumber</code> exactly matches any badge threshold, the badge fades in after a <strong>2.5-second delay</strong> (so the score animation finishes first). Only one badge can appear per session.</p>
+  <p>There is also a separate <strong>tier-up</strong> moment (e.g. "Moved up to Strong") that can appear on the same slide — it triggers at 2.2 s and is independent of badges. No badge appears on a progress page or history — only on the live score reveal.</p>
+</div>
+
+<!-- ── WHAT'S MISSING / NOTES ── -->
+<p class="section-title">Gaps &amp; things to consider when redesigning</p>
+<div class="note-grid">
+  <div class="note-card">
+    <h4>All badges look identical</h4>
+    <p>The only visual difference is the number in the circle. A badge for session 50 looks the same as session 1.</p>
+  </div>
+  <div class="note-card">
+    <h4>The number feels generic</h4>
+    <p>Showing "50" in a circle reads as a number, not an achievement. Premium apps use icons, emblems, or unique glyphs per tier.</p>
+  </div>
+  <div class="note-card">
+    <h4>Language is flat</h4>
+    <p>"Badge unlocked" + "First Step" is functional but not emotionally resonant. No copy beneath to mark the moment.</p>
+  </div>
+  <div class="note-card">
+    <h4>No sense of rarity</h4>
+    <p>Nothing signals that "Elite" is rare or significant. A user who reaches 50 sessions should feel it.</p>
+  </div>
+  <div class="note-card">
+    <h4>No persistence</h4>
+    <p>Badges aren't stored or shown anywhere after the reveal moment — no profile, no history wall. Once you leave the screen, it's gone.</p>
+  </div>
+  <div class="note-card">
+    <h4>No score-based badges</h4>
+    <p>All badges are volume (count) only. There are no achievement badges for hitting a score threshold (e.g. first time scoring 8+).</p>
+  </div>
+</div>
+
+</body>
+</html>

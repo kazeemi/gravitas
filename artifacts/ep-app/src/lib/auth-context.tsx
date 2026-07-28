@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import { api, setToken, clearToken, isAuthenticated } from "./api";
+import { ConsentGate } from "@/components/consent-gate";
 
 interface User {
   id: string;
   email: string;
   name: string | null;
+  consentAcceptedAt?: string | null;
   roleTitle?: string | null;
   communicationContext?: string | null;
   goal?: string | null;
@@ -13,6 +15,7 @@ interface User {
   defaultRecordingContext?: string | null;
   emailSummaries?: boolean;
   totalRecordingSeconds?: number;
+  recordingSecondsAllowance?: number;
   notifyOnUpgrade?: boolean;
   isAdmin?: boolean;
   interviewMode?: boolean | null;
@@ -36,7 +39,7 @@ interface AuthContextValue {
   user: User | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  signup: (email: string, password: string, name: string, consentAccepted: boolean) => Promise<void>;
   loginWithGoogle: (credential: string) => Promise<{ isNewUser?: boolean }>;
   loginWithToken: (token: string, userData: User) => void;
   logout: () => void;
@@ -70,8 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u as User);
   };
 
-  const signup = async (email: string, password: string, name: string) => {
-    await api.auth.signup(email, password, name);
+  const signup = async (email: string, password: string, name: string, consentAccepted: boolean) => {
+    await api.auth.signup(email, password, name, consentAccepted);
   };
 
   const loginWithGoogle = async (credential: string) => {
@@ -96,9 +99,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u as unknown as User);
   };
 
+  // Only gate when we positively know consent is missing (null). An undefined field
+  // means the endpoint didn't return it — gating on that would re-prompt users who
+  // have already accepted.
+  const needsConsent = !!user && user.consentAcceptedAt === null;
+
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, loginWithToken, logout, refreshUser }}>
       {children}
+      {needsConsent && (
+        <ConsentGate onAccepted={() => setUser(u => u ? { ...u, consentAcceptedAt: new Date().toISOString() } : u)} />
+      )}
     </AuthContext.Provider>
   );
 }

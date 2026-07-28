@@ -6,6 +6,10 @@ import { usersTable, sessionsTable, dimensionScoresTable } from "@workspace/db";
 
 const router = Router();
 
+// Sanity ceiling on a manually granted allowance — guards against a mistyped
+// figure (e.g. entering seconds into the minutes field) rather than policy.
+const MAX_ALLOWANCE_SECONDS = 24 * 60 * 60;
+
 // Admin data must always be fresh — disable HTTP caching for all admin routes
 router.use((_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
@@ -57,6 +61,7 @@ router.get("/v1/admin/users", requireAdmin, async (_req, res) => {
       communicationContext: usersTable.communicationContext,
       onboardingCompleted: usersTable.onboardingCompleted,
       totalRecordingSeconds: usersTable.totalRecordingSeconds,
+      recordingSecondsAllowance: usersTable.recordingSecondsAllowance,
       notifyOnUpgrade: usersTable.notifyOnUpgrade,
       isAdmin: usersTable.isAdmin,
       createdAt: usersTable.createdAt,
@@ -92,6 +97,7 @@ router.get("/v1/admin/users/:id", requireAdmin, async (req, res) => {
       goal: usersTable.goal,
       onboardingCompleted: usersTable.onboardingCompleted,
       totalRecordingSeconds: usersTable.totalRecordingSeconds,
+      recordingSecondsAllowance: usersTable.recordingSecondsAllowance,
       notifyOnUpgrade: usersTable.notifyOnUpgrade,
       isAdmin: usersTable.isAdmin,
       defaultRecordingContext: usersTable.defaultRecordingContext,
@@ -151,15 +157,33 @@ router.delete("/v1/admin/users/:id", requireAdmin, async (req, res) => {
 });
 
 router.patch("/v1/admin/users/:id", requireAdmin, async (req, res) => {
-  const { isAdmin } = req.body;
+  const { isAdmin, recordingSecondsAllowance } = req.body;
   const updates: Partial<typeof usersTable.$inferInsert> = {};
   if (isAdmin !== undefined) updates.isAdmin = isAdmin;
+  if (recordingSecondsAllowance !== undefined) {
+    const allowance = Number(recordingSecondsAllowance);
+    if (!Number.isInteger(allowance) || allowance < 0 || allowance > MAX_ALLOWANCE_SECONDS) {
+      return res.status(400).json({
+        error: `recordingSecondsAllowance must be a whole number of seconds between 0 and ${MAX_ALLOWANCE_SECONDS}`,
+      });
+    }
+    updates.recordingSecondsAllowance = allowance;
+  }
+  if (Object.keys(updates).length === 0) {
+    return res.status(400).json({ error: "No supported fields to update" });
+  }
   const [user] = await db
     .update(usersTable)
     .set(updates)
     .where(eq(usersTable.id, req.params.id))
-    .returning({ id: usersTable.id, email: usersTable.email, isAdmin: usersTable.isAdmin });
+    .returning({
+      id: usersTable.id,
+      email: usersTable.email,
+      isAdmin: usersTable.isAdmin,
+      recordingSecondsAllowance: usersTable.recordingSecondsAllowance,
+    });
   if (!user) return res.status(404).json({ error: "User not found" });
+  req.log.info({ userId: user.id, updates }, "admin updated user");
   return res.json(user);
 });
 

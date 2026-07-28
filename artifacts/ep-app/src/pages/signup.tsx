@@ -4,11 +4,13 @@ import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [consentAccepted, setConsentAccepted] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
@@ -22,9 +24,13 @@ export default function SignupPage() {
       setError("Password must be at least 8 characters");
       return;
     }
+    if (!consentAccepted) {
+      setError("Please accept the Terms of Service and Privacy Policy to continue");
+      return;
+    }
     setLoading(true);
     try {
-      await signup(email, password, name);
+      await signup(email, password, name, consentAccepted);
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sign up failed");
@@ -105,7 +111,26 @@ export default function SignupPage() {
                 />
                 <p className="mt-1 text-xs text-gray-400">At least 8 characters</p>
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <div className="flex items-start gap-3 pt-1">
+                <Checkbox
+                  id="consent"
+                  checked={consentAccepted}
+                  onCheckedChange={(checked) => setConsentAccepted(checked === true)}
+                  className="mt-0.5 shrink-0"
+                />
+                <label htmlFor="consent" className="text-xs text-gray-600 leading-relaxed cursor-pointer">
+                  I agree to Gravitas's{" "}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-gray-900 underline">
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-gray-900 underline">
+                    Privacy Policy
+                  </a>
+                  , including the processing of my voice and video recordings by AI services (OpenAI and Anthropic) to deliver coaching feedback.
+                </label>
+              </div>
+              <Button type="submit" className="w-full" disabled={loading || !consentAccepted}>
                 {loading ? "Creating account..." : "Create account"}
               </Button>
             </form>

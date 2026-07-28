@@ -1,8 +1,11 @@
 import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 
-const JWT_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
-const JWT_EXPIRY = "7d";
+if (!process.env.SESSION_SECRET) {
+  throw new Error("SESSION_SECRET environment variable is required");
+}
+const JWT_SECRET = process.env.SESSION_SECRET;
+const JWT_EXPIRY = "24h";
 
 export interface JwtPayload {
   userId: string;

@@ -16,7 +16,8 @@ import {
   ChevronDownIcon,
 } from "lucide-react";
 
-const BETA_LIMIT_SECONDS = 1200;
+// Fallback if the user record hasn't loaded yet or predates the allowance column.
+const DEFAULT_ALLOWANCE_SECONDS = 1800;
 
 function getCategoryLabel(text?: string): string {
   if (!text) return "Practice";
@@ -145,6 +146,8 @@ export default function RecordPage() {
   const modeParam = params.get("mode") as "audio" | "video" | null;
   const { user, refreshUser } = useAuth();
 
+  const allowanceSeconds = user?.recordingSecondsAllowance ?? DEFAULT_ALLOWANCE_SECONDS;
+
   const [mode, setMode] = useState<"audio" | "video">(modeParam || "audio");
   const [step, setStep] = useState<Step>("setup");
   const [prompts, setPrompts] = useState<Prompt[]>([]);
@@ -212,7 +215,7 @@ export default function RecordPage() {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const [pendingVideoBlob, setPendingVideoBlob] = useState<Blob | null>(null);
   const [, setLocation] = useLocation();
-  const quotaRemainingAtStartRef = useRef<number>(BETA_LIMIT_SECONDS);
+  const quotaRemainingAtStartRef = useRef<number>(allowanceSeconds);
   const quotaAutoStopRef = useRef(false);
 
   useEffect(() => {
@@ -294,7 +297,7 @@ export default function RecordPage() {
     recordingStateRef.current = recordingState;
   }, [recordingState]);
 
-  // Auto-stop when max duration or beta quota reached
+  // Auto-stop when max duration or recording allowance reached
   useEffect(() => {
     if (recordingState === "recording") {
       if (elapsed >= MAX_DURATION) {
@@ -458,9 +461,10 @@ export default function RecordPage() {
     if (isStartingRef.current) return;
     isStartingRef.current = true;
     setError("");
-    const quotaRemaining = BETA_LIMIT_SECONDS - totalRecordingSeconds;
+    const quotaRemaining = allowanceSeconds - totalRecordingSeconds;
     if (quotaRemaining <= 0) {
-      setTotalRecordingSeconds(BETA_LIMIT_SECONDS);
+      setTotalRecordingSeconds(allowanceSeconds);
+      isStartingRef.current = false;
       return;
     }
     quotaRemainingAtStartRef.current = quotaRemaining;
@@ -484,9 +488,9 @@ export default function RecordPage() {
         });
       } catch (apiErr) {
         const msg = apiErr instanceof Error ? apiErr.message : "";
-        if (msg === "beta_limit_reached") {
+        if (msg === "recording_limit_reached") {
           releaseStream();
-          setTotalRecordingSeconds(BETA_LIMIT_SECONDS);
+          setTotalRecordingSeconds(allowanceSeconds);
           return;
         }
         throw apiErr;
@@ -908,10 +912,11 @@ export default function RecordPage() {
     setPromptIndex(i => (i + 1) % prompts.length);
   };
 
-  const quotaRemaining = Math.max(0, BETA_LIMIT_SECONDS - totalRecordingSeconds);
+  const quotaRemaining = Math.max(0, allowanceSeconds - totalRecordingSeconds);
   const quotaUsedMins = Math.floor(totalRecordingSeconds / 60);
   const quotaUsedSecs = totalRecordingSeconds % 60;
-  const isAtLimit = totalRecordingSeconds >= BETA_LIMIT_SECONDS;
+  const isAtLimit = totalRecordingSeconds >= allowanceSeconds;
+  const allowanceMins = Math.round(allowanceSeconds / 60);
 
   const handleNotifyMe = async () => {
     try {
@@ -927,9 +932,9 @@ export default function RecordPage() {
       <div className="max-w-2xl mx-auto">
         <div className="rounded-2xl border border-gray-200 bg-white px-8 py-10 space-y-6">
           <div className="space-y-3">
-            <h1 className="text-2xl font-bold text-gray-900">You have used your 20 minutes.</h1>
+            <h1 className="text-2xl font-bold text-gray-900">You have used your {allowanceMins} minutes.</h1>
             <p className="text-sm text-gray-600 leading-relaxed">
-              Your beta recording allowance is complete. We hope the sessions so far have given you a clear picture of where you stand and what to work on next. If you have not already done so, please share your feedback with Kanza Azeemi.
+              Your recording allowance is complete. We hope the sessions so far have given you a clear picture of where you stand and what to work on next. If you have not already done so, please share your feedback with Kanza Azeemi.
             </p>
             <p className="text-sm text-gray-600 leading-relaxed">
               When paid plans launch, you will be the first to know. Upgrading will give you continued access to recording, scoring, and coaching so you can keep tracking your progress.
@@ -979,15 +984,15 @@ export default function RecordPage() {
           </p>
         </div>
         <div className="flex-shrink-0 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-right">
-          <p className="text-xs font-medium text-gray-500 whitespace-nowrap">Beta recording</p>
+          <p className="text-xs font-medium text-gray-500 whitespace-nowrap">Recording time</p>
           <p className="text-xs text-gray-700 whitespace-nowrap font-mono">
             {quotaUsedMins}m {quotaUsedSecs.toString().padStart(2, "0")}s
-            <span className="text-gray-400"> / 20m used</span>
+            <span className="text-gray-400"> / {allowanceMins}m used</span>
           </p>
           <div className="mt-1 h-1 w-24 rounded-full bg-gray-200 overflow-hidden">
             <div
               className="h-full rounded-full bg-gray-700 transition-all"
-              style={{ width: `${Math.min(100, (totalRecordingSeconds / BETA_LIMIT_SECONDS) * 100)}%` }}
+              style={{ width: `${Math.min(100, (totalRecordingSeconds / allowanceSeconds) * 100)}%` }}
             />
           </div>
         </div>
@@ -1200,7 +1205,7 @@ export default function RecordPage() {
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-3">
               <AlertTriangleIcon className="h-4 w-4 flex-shrink-0 text-amber-600 mt-0.5" />
               <p className="text-sm text-amber-800">
-                You have <strong>{quotaRemaining} second{quotaRemaining !== 1 ? "s" : ""}</strong> of beta recording remaining. Your session will stop automatically when the limit is reached.
+                You have <strong>{quotaRemaining} second{quotaRemaining !== 1 ? "s" : ""}</strong> of recording time remaining. Your session will stop automatically when the limit is reached.
               </p>
             </div>
           )}
@@ -1346,7 +1351,7 @@ export default function RecordPage() {
                 </p>
               ) : elapsed >= quotaRemainingAtStartRef.current - 60 && elapsed < quotaRemainingAtStartRef.current ? (
                 <p className="mt-1 text-xs text-amber-600">
-                  {quotaRemainingAtStartRef.current - elapsed}s until beta limit — recording will stop automatically
+                  {quotaRemainingAtStartRef.current - elapsed}s until your limit — recording will stop automatically
                 </p>
               ) : elapsed >= MAX_DURATION - 60 ? (
                 <p className="mt-1 text-xs text-red-500">
@@ -1358,7 +1363,7 @@ export default function RecordPage() {
                 </p>
               )}
               <p className="mt-2 text-xs text-gray-400 font-mono">
-                Beta: {Math.floor((totalRecordingSeconds + elapsed) / 60)}m {((totalRecordingSeconds + elapsed) % 60).toString().padStart(2, "0")}s / 20m used
+                {Math.floor((totalRecordingSeconds + elapsed) / 60)}m {((totalRecordingSeconds + elapsed) % 60).toString().padStart(2, "0")}s / {allowanceMins}m used
               </p>
             </div>
           </div>
@@ -1491,14 +1496,19 @@ export default function RecordPage() {
 
         return (
           <div className="py-8 space-y-7">
-            {/* Animated orb */}
+            {/* Waveform animation */}
             <div className="flex flex-col items-center gap-5 pt-2">
-              <div className="relative flex items-center justify-center h-24 w-24">
-                <div className="absolute h-24 w-24 rounded-full bg-[#F0953E]/10 animate-ping" style={{ animationDuration: "2.2s" }} />
-                <div className="absolute h-16 w-16 rounded-full bg-[#F0953E]/15 animate-ping" style={{ animationDuration: "2.2s", animationDelay: "0.4s" }} />
-                <div className="relative h-10 w-10 rounded-full bg-[#0F1B2D] flex items-center justify-center shadow-lg">
-                  <div className="h-3 w-3 rounded-full bg-[#F0953E] animate-pulse" />
-                </div>
+              <div className="flex items-center justify-center gap-[5px] h-12">
+                {[0, 0.18, 0.36, 0.54, 0.72].map((delay, i) => (
+                  <div
+                    key={i}
+                    className="w-[3px] h-10 rounded-full origin-bottom"
+                    style={{
+                      background: i === 2 ? "#C84A18" : i === 1 || i === 3 ? "#F0953E" : "#0F1B2D",
+                      animation: `waveform-bar 1.1s ease-in-out ${delay}s infinite`,
+                    }}
+                  />
+                ))}
               </div>
               <div className="text-center space-y-1.5">
                 <p className="text-base font-semibold text-gray-900">{stepLabel}</p>

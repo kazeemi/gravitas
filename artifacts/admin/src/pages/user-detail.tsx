@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { getUserDetail, patchUser, deleteUser, type SessionRow } from "@/lib/api";
@@ -5,9 +6,18 @@ import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Shield, ShieldOff, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+
+// Presets cover the common cases: standard signup, a serious evaluation, and a
+// full pilot cohort programme.
+const ALLOWANCE_PRESETS = [
+  { label: "30m", minutes: 30 },
+  { label: "2h", minutes: 120 },
+  { label: "5h", minutes: 300 },
+];
 
 function tierLabel(score: number | null) {
   if (score == null) return null;
@@ -45,6 +55,26 @@ export default function UserDetailPage() {
     onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
   });
 
+  const [allowanceMins, setAllowanceMins] = useState("");
+
+  const setAllowance = useMutation({
+    mutationFn: (minutes: number) =>
+      patchUser(params.id, { recordingSecondsAllowance: minutes * 60 }),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["admin-user", params.id] });
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ description: `Recording allowance set to ${Math.round(result.recordingSecondsAllowance / 60)} minutes.` });
+    },
+    onError: (e: Error) => toast({ variant: "destructive", description: e.message }),
+  });
+
+  // Seed the input from the saved allowance once the user loads.
+  useEffect(() => {
+    if (data?.user.recordingSecondsAllowance != null) {
+      setAllowanceMins(String(Math.round(data.user.recordingSecondsAllowance / 60)));
+    }
+  }, [data?.user.recordingSecondsAllowance]);
+
   const deleteUserMutation = useMutation({
     mutationFn: () => deleteUser(params.id),
     onSuccess: (result) => {
@@ -60,6 +90,16 @@ export default function UserDetailPage() {
 
   const { user, sessions } = data;
   const tier = tierLabel(user.avgScore ?? null);
+
+  const currentAllowanceMins = Math.round(user.recordingSecondsAllowance / 60);
+  const parsedAllowance = Number(allowanceMins);
+  // Mirrors the server ceiling of 24h so the button disables before a rejected request.
+  const allowanceValid =
+    allowanceMins.trim() !== "" &&
+    Number.isInteger(parsedAllowance) &&
+    parsedAllowance >= 0 &&
+    parsedAllowance <= 1440;
+  const allowanceChanged = allowanceValid && parsedAllowance !== currentAllowanceMins;
 
   return (
     <Layout title={user.name ?? user.email} backHref="/users" backLabel="Users">
@@ -126,8 +166,57 @@ export default function UserDetailPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Recording time</span>
                   <span className="font-medium tabular-nums">
-                    {user.totalRecordingSeconds > 0 ? `${Math.floor(user.totalRecordingSeconds / 60)}m` : "—"}
+                    {Math.floor(user.totalRecordingSeconds / 60)}m
+                    <span className="text-muted-foreground font-normal">
+                      {" / "}{currentAllowanceMins}m
+                    </span>
                   </span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="pt-5">
+                <p className="text-xs text-muted-foreground mb-3">Recording allowance</p>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={allowanceMins}
+                    onChange={(e) => setAllowanceMins(e.target.value)}
+                    className="h-9"
+                    aria-label="Recording allowance in minutes"
+                  />
+                  <Button
+                    size="sm"
+                    className="h-9 shrink-0"
+                    disabled={setAllowance.isPending || !allowanceChanged}
+                    onClick={() => setAllowance.mutate(parsedAllowance)}
+                  >
+                    {setAllowance.isPending ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  {allowanceMins.trim() !== "" && !allowanceValid
+                    ? "Enter a whole number of minutes, up to 1440."
+                    : "Minutes of total recording time."}
+                </p>
+                <div className="mt-3 flex gap-1.5">
+                  {ALLOWANCE_PRESETS.map((p) => (
+                    <Button
+                      key={p.minutes}
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      disabled={setAllowance.isPending}
+                      onClick={() => {
+                        setAllowanceMins(String(p.minutes));
+                        setAllowance.mutate(p.minutes);
+                      }}
+                    >
+                      {p.label}
+                    </Button>
+                  ))}
                 </div>
               </CardContent>
             </Card>

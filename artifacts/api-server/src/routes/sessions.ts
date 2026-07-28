@@ -9,8 +9,10 @@ import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresen
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { ensureCompatibleFormat, computeRmsMetrics, computeF0Metrics, type RmsMetrics, type F0Metrics } from "@workspace/integrations-openai-ai-server/audio";
 import { getPromptContext } from "./prompts.js";
+import { cancelScheduledEmail } from "../lib/email.js";
 
-const BETA_LIMIT_SECONDS = 1200;
+// Fallback allowance if a user row predates the per-user allowance column.
+const DEFAULT_ALLOWANCE_SECONDS = 1800;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -25,13 +27,28 @@ router.post("/v1/sessions", requireAuth, async (req, res) => {
     return res.status(400).json({ error: "mode must be 'audio' or 'video'" });
   }
 
-  const [user] = await db.select({ totalRecordingSeconds: usersTable.totalRecordingSeconds })
+  const [user] = await db.select({
+    totalRecordingSeconds: usersTable.totalRecordingSeconds,
+    recordingSecondsAllowance: usersTable.recordingSecondsAllowance,
+    nudgeEmailId: usersTable.nudgeEmailId,
+  })
     .from(usersTable)
     .where(eq(usersTable.id, req.user!.userId))
     .limit(1);
 
-  if (user && user.totalRecordingSeconds >= BETA_LIMIT_SECONDS) {
-    return res.status(403).json({ error: "beta_limit_reached", totalRecordingSeconds: user.totalRecordingSeconds });
+  const allowanceSeconds = user?.recordingSecondsAllowance ?? DEFAULT_ALLOWANCE_SECONDS;
+
+  if (user && user.totalRecordingSeconds >= allowanceSeconds) {
+    return res.status(403).json({
+      error: "recording_limit_reached",
+      totalRecordingSeconds: user.totalRecordingSeconds,
+      recordingSecondsAllowance: allowanceSeconds,
+    });
+  }
+
+  if (user?.nudgeEmailId) {
+    await cancelScheduledEmail(user.nudgeEmailId);
+    await db.update(usersTable).set({ nudgeEmailId: null }).where(eq(usersTable.id, req.user!.userId));
   }
 
   const [session] = await db.insert(sessionsTable).values({

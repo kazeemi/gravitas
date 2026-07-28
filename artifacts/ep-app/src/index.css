@@ -494,3 +494,18 @@ input[type="range"]::-moz-range-track {
   border-radius: 9999px;
   background: #0F1B2D15;
 }
+
+@keyframes waveform-bar {
+  0%, 100% { transform: scaleY(0.25); }
+  50%       { transform: scaleY(1); }
+}
+
+@keyframes badge-line {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes badge-in {
+  from { transform: scale(0.88); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}

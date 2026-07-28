@@ -385,11 +385,27 @@ Return JSON with exactly these keys:
   "professionalLanguageFlags": "exact quotes or 'none'"
 }`;
 
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-audio-mini",
+  // Without a system message establishing that it can hear the attached audio,
+  // the current gpt-audio snapshots reply "I can't analyze audio recordings"
+  // instead of assessing it. The audio IS ingested (audio_input_tokens > 0) —
+  // this is a refusal, not a technical failure. The snapshot that previously
+  // complied without this (gpt-audio-mini-2025-10-06) has been deprecated.
+  const AUDIO_SYSTEM_PROMPT =
+    "You are an audio analysis engine for a speech coaching product. You can hear the " +
+    "attached audio recording. Describe only the acoustic qualities of the speech — how " +
+    "words are formed, how the volume behaves, the timbre, and where breaths fall. Do not " +
+    "comment on the speaker's identity or personal characteristics. Always reply with JSON only.";
+
+  // gpt-audio-1.5 complies even without the system prompt, so it is a useful
+  // fallback if the primary model refuses again after a future model update.
+  const AUDIO_MODELS = ["gpt-audio-mini", "gpt-audio-1.5"] as const;
+
+  async function requestAnalysis(model: string) {
+    return openai.chat.completions.create({
+      model,
       modalities: ["text"],
       messages: [
+        { role: "system", content: AUDIO_SYSTEM_PROMPT },
         {
           role: "user",
           content: [
@@ -399,16 +415,47 @@ Return JSON with exactly these keys:
         },
       ],
     } as Parameters<typeof openai.chat.completions.create>[0]);
+  }
+
+  try {
+    let response = await requestAnalysis(AUDIO_MODELS[0]);
+    let usedModel: string = AUDIO_MODELS[0];
+
+    // A reply with no JSON object means the model declined. Passing that prose
+    // downstream is worse than having nothing: the coaching model reads it as
+    // evidence and reports that audio analysis was unavailable.
+    const looksUsable = (r: typeof response) =>
+      /\{[\s\S]*\}/.test(((r.choices[0]?.message as Record<string, unknown>)?.content as string) || "");
+
+    if (!looksUsable(response)) {
+      console.warn(`${AUDIO_MODELS[0]} returned no JSON (likely a refusal) — retrying with ${AUDIO_MODELS[1]}`);
+      response = await requestAnalysis(AUDIO_MODELS[1]);
+      usedModel = AUDIO_MODELS[1];
+      if (!looksUsable(response)) {
+        console.error("audio delivery analysis unavailable: both models declined to analyse the audio");
+        return {
+          analysisText: "",
+          pitchVariationScore: null,
+          breathingScore: null,
+          breathingObservation: null,
+          clarityFlags: null,
+          professionalLanguageFlags: null,
+          fillerWordCount: null,
+          fillerWordObservation: null,
+        };
+      }
+    }
+    console.log(`audio delivery analysis produced by ${usedModel}`);
 
     const u = response.usage as Record<string, unknown> | undefined;
     logger.info({
-      ai_call: "gpt-audio-mini",
+      ai_call: usedModel,
       prompt_tokens: u?.prompt_tokens,
       completion_tokens: u?.completion_tokens,
       total_tokens: u?.total_tokens,
       audio_input_tokens: (u?.prompt_tokens_details as Record<string, unknown> | undefined)?.audio_tokens,
       audio_output_tokens: (u?.completion_tokens_details as Record<string, unknown> | undefined)?.audio_tokens,
-    }, "gpt-audio-mini usage");
+    }, "audio delivery analysis usage");
 
     const message = response.choices[0]?.message as Record<string, unknown>;
     const rawText = (message?.content as string) || "";

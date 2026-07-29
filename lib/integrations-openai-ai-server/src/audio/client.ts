@@ -478,6 +478,14 @@ export async function speechToText(
  * - speechDurationSeconds: first-word start → last-word end (strips leading/trailing silence)
  * - pauseMetrics: structured pause analysis derived from word-level gaps
  */
+// gpt-4o-mini-transcribe does not support response_format: "verbose_json" or
+// timestamp_granularities at all — every call requesting them returns HTTP 400.
+// That 400 was being swallowed by the catch below, so this function has always
+// silently fallen back to plain transcription: speechDurationSeconds, pauseMetrics
+// and wpmWindows have been null on every session ever scored, with nothing in the
+// logs to show it. whisper-1 is the model that actually supports word-level
+// timestamps; confirmed against a real request in
+// scripts/verify-pinned-models.mjs before pinning here.
 export async function speechToTextWithTiming(
   audioBuffer: Buffer,
   format: CompatibleFormat = "wav"
@@ -486,9 +494,10 @@ export async function speechToTextWithTiming(
   try {
     const response = await openai.audio.transcriptions.create({
       file,
-      model: "gpt-4o-mini-transcribe-2025-12-15",
+      model: "whisper-1",
       response_format: "verbose_json",
       timestamp_granularities: ["segment", "word"],
+      language: "en",
     } as Parameters<typeof openai.audio.transcriptions.create>[0]);
 
     const r = response as unknown as {
@@ -512,8 +521,10 @@ export async function speechToTextWithTiming(
     const wpmWindows = words.length > 0 ? computeWpmWindows(words) : null;
 
     return { text, speechDurationSeconds, pauseMetrics, wpmWindows };
-  } catch {
-    // Fallback: plain transcription without timing
+  } catch (err) {
+    // A real failure here (not a capability gap) should be visible — it wasn't
+    // before, which is how the bug above went unnoticed for as long as it did.
+    console.error("speechToTextWithTiming: falling back to plain transcription", err);
     const file2 = await toFile(audioBuffer, `audio.${format}`);
     const response = await openai.audio.transcriptions.create({
       file: file2,

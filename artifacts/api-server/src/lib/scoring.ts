@@ -714,6 +714,10 @@ FEEDBACK STANDARDS — ALL MUST BE MET:
 
 4. ONE CONCRETE SPECIFIC NEXT ACTION — IN THE RECORDING: End every dimension block with a single, specific, actionable instruction framed around recording again. The action must be something the speaker thinks about before or tries during their next recording here — not something they do in isolation.
    NEVER suggest writing, scripting, noting down, or preparing any written material. All preparation is mental: thinking through structure, identifying a key point, deciding on an opening.
+   NEVER recommend a coach, mentor, therapist, class, course, or any other person or service — in any field, for any dimension. There is no onward referral to offer, so suggesting one leaves the speaker with a next step they cannot take. Where something sits deeper than technique, say it is worth exploring further and offer a reflection question instead.
+   WRONG: "That layer is worth exploring with a coach."
+   WRONG: "Consider working with a voice coach on this."
+   RIGHT: "That layer is worth exploring further — worth noticing: what shifts when you speak as though the room is already yours?"
    WRONG: "Write down your three key points and practise delivering them."
    WRONG: "Slow down."
    WRONG: "Before your next session, note the key ideas you want to cover."
@@ -1099,11 +1103,11 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
     // Inner work nudge — appended to nextStepText for trigger dimensions scoring ≤ 5
     const innerWorkNudges: Partial<Record<DimensionKey, string>> = {
       vocal_steadiness:
-        "Steadiness at this level sometimes reflects something worth exploring beneath the technique — how we feel about the room, the stakes, or our right to be there. A conversation with a coach can help surface and shift that layer.",
+        "Steadiness at this level sometimes reflects something worth exploring beneath the technique — how we feel about the room, the stakes, or our right to be there. Worth sitting with: what changes in your voice when you speak as though your place in the room is already settled?",
       confidence_language:
         "The hedging patterns here can be habitual, but they can also reflect something deeper about how certain you feel in your own thinking. That is worth exploring beyond technique alone.",
       eye_contact:
-        "When gaze feels difficult to direct consistently — whether toward the screen or toward the camera — it can sometimes reflect something beneath the technique: discomfort with being seen, uncertainty about the message, or how we relate to our own visibility. That layer is worth exploring with a coach.",
+        "When gaze feels difficult to direct consistently — whether toward the screen or toward the camera — it can sometimes reflect something beneath the technique: discomfort with being seen, uncertainty about the message, or how we relate to our own visibility. That layer is worth exploring further — worth noticing: what would shift if you let yourself be fully seen while you spoke?",
       posture:
         "How we hold ourselves physically can reflect inner states — tension, uncertainty, or how we feel about our right to take up space. That layer is worth exploring beyond physical adjustment alone.",
     };
@@ -1144,7 +1148,7 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
   });
   const innerWorkEscalation =
     needsFocusTriggers.length >= 2
-      ? `A pattern worth noting: several of the signals in this session — ${needsFocusTriggers.map(d => innerWorkTriggerLabels[d]).join(", ")} — can point to something beneath the technique. The outer dimensions are the observable layer, but they are often shaped by inner foundations: how we hold ourselves in relation to the room, the stakes, and our own authority. If you find these patterns persisting across sessions, working with a coach on that inner layer can create change that technique practice alone may not reach.`
+      ? `A pattern worth noting: several of the signals in this session — ${needsFocusTriggers.map(d => innerWorkTriggerLabels[d]).join(", ")} — can point to something beneath the technique. The outer dimensions are the observable layer, but they are often shaped by inner foundations: how we hold ourselves in relation to the room, the stakes, and our own authority. If you find these patterns persisting across sessions, that inner layer is worth exploring further — it often shifts in ways that technique practice alone may not reach.`
       : null;
 
   const needsFocusComposite = compositeTier === "Needs Focus";

@@ -396,9 +396,23 @@ Return JSON with exactly these keys:
     "words are formed, how the volume behaves, the timbre, and where breaths fall. Do not " +
     "comment on the speaker's identity or personal characteristics. Always reply with JSON only.";
 
-  // gpt-audio-1.5 complies even without the system prompt, so it is a useful
-  // fallback if the primary model refuses again after a future model update.
-  const AUDIO_MODELS = ["gpt-audio-mini", "gpt-audio-1.5"] as const;
+  // Even with the system message the refusal is INTERMITTENT — measured at
+  // roughly one in six calls. A single attempt therefore loses vocal analysis on
+  // a meaningful share of sessions, so the primary is retried before switching
+  // models; a plain retry usually succeeds because the refusal is not
+  // deterministic. gpt-audio-1.5 is a different model that also complies, so it
+  // covers the case where the primary starts refusing consistently.
+  //
+  // Snapshots are pinned rather than tracking the moving alias, so a provider
+  // update cannot change scoring behaviour without us choosing it. The tradeoff
+  // is that a pinned snapshot is eventually deprecated and starts returning 404
+  // — which is exactly what scripts/pipeline-canary.mjs exists to catch.
+  // Verify any change here with scripts/verify-pinned-models.mjs first.
+  const AUDIO_ATTEMPTS = [
+    "gpt-audio-mini-2025-12-15",
+    "gpt-audio-mini-2025-12-15",
+    "gpt-audio-1.5",
+  ] as const;
 
   async function requestAnalysis(model: string) {
     return openai.chat.completions.create({
@@ -418,32 +432,47 @@ Return JSON with exactly these keys:
   }
 
   try {
-    let response = await requestAnalysis(AUDIO_MODELS[0]);
-    let usedModel: string = AUDIO_MODELS[0];
-
     // A reply with no JSON object means the model declined. Passing that prose
     // downstream is worse than having nothing: the coaching model reads it as
     // evidence and reports that audio analysis was unavailable.
-    const looksUsable = (r: typeof response) =>
+    const hasJson = (r: Awaited<ReturnType<typeof requestAnalysis>>) =>
       /\{[\s\S]*\}/.test(((r.choices[0]?.message as Record<string, unknown>)?.content as string) || "");
 
-    if (!looksUsable(response)) {
-      console.warn(`${AUDIO_MODELS[0]} returned no JSON (likely a refusal) — retrying with ${AUDIO_MODELS[1]}`);
-      response = await requestAnalysis(AUDIO_MODELS[1]);
-      usedModel = AUDIO_MODELS[1];
-      if (!looksUsable(response)) {
-        console.error("audio delivery analysis unavailable: both models declined to analyse the audio");
-        return {
-          analysisText: "",
-          pitchVariationScore: null,
-          breathingScore: null,
-          breathingObservation: null,
-          clarityFlags: null,
-          professionalLanguageFlags: null,
-          fillerWordCount: null,
-          fillerWordObservation: null,
-        };
+    let response: Awaited<ReturnType<typeof requestAnalysis>> | null = null;
+    let usedModel = "";
+
+    for (const [attempt, model] of AUDIO_ATTEMPTS.entries()) {
+      const candidate = await requestAnalysis(model);
+      if (hasJson(candidate)) {
+        response = candidate;
+        usedModel = model;
+        if (attempt > 0) {
+          console.warn(`audio delivery analysis succeeded on attempt ${attempt + 1} with ${model}`);
+        }
+        break;
       }
+      console.warn(`${model} returned no JSON on attempt ${attempt + 1} (intermittent refusal)`);
+    }
+
+    if (!response) {
+      // Deliberately returns empty rather than surfacing anything to the user.
+      // Re-recording cannot fix a provider-side refusal, so prompting for one
+      // would send the user into a loop that can never succeed. The session
+      // keeps the locally-computed acoustic metrics; this failure is for us to
+      // see in the logs and the canary, not for them to act on.
+      console.error(
+        `audio delivery analysis unavailable after ${AUDIO_ATTEMPTS.length} attempts across ${new Set(AUDIO_ATTEMPTS).size} model(s)`
+      );
+      return {
+        analysisText: "",
+        pitchVariationScore: null,
+        breathingScore: null,
+        breathingObservation: null,
+        clarityFlags: null,
+        professionalLanguageFlags: null,
+        fillerWordCount: null,
+        fillerWordObservation: null,
+      };
     }
     console.log(`audio delivery analysis produced by ${usedModel}`);
 

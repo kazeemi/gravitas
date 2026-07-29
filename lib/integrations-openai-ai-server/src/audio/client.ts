@@ -466,7 +466,7 @@ export async function speechToText(
   const file = await toFile(audioBuffer, `audio.${format}`);
   const response = await openai.audio.transcriptions.create({
     file,
-    model: "gpt-4o-mini-transcribe",
+    model: "gpt-4o-mini-transcribe-2025-12-15",
   });
   return response.text;
 }
@@ -486,7 +486,7 @@ export async function speechToTextWithTiming(
   try {
     const response = await openai.audio.transcriptions.create({
       file,
-      model: "gpt-4o-mini-transcribe",
+      model: "gpt-4o-mini-transcribe-2025-12-15",
       response_format: "verbose_json",
       timestamp_granularities: ["segment", "word"],
     } as Parameters<typeof openai.audio.transcriptions.create>[0]);
@@ -517,7 +517,7 @@ export async function speechToTextWithTiming(
     const file2 = await toFile(audioBuffer, `audio.${format}`);
     const response = await openai.audio.transcriptions.create({
       file: file2,
-      model: "gpt-4o-mini-transcribe",
+      model: "gpt-4o-mini-transcribe-2025-12-15",
     });
     return { text: response.text, speechDurationSeconds: null, pauseMetrics: null, wpmWindows: null };
   }
@@ -616,7 +616,7 @@ export async function speechToTextStream(
   const file = await toFile(audioBuffer, `audio.${format}`);
   const stream = await openai.audio.transcriptions.create({
     file,
-    model: "gpt-4o-mini-transcribe",
+    model: "gpt-4o-mini-transcribe-2025-12-15",
     stream: true,
   });
 

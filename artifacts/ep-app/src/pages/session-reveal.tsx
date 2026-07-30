@@ -6,8 +6,15 @@ import { ArrowRightIcon, ChevronDownIcon, ChevronUpIcon, MicIcon, VideoIcon } fr
 import { format } from "date-fns";
 import { computeSessionBadges, type BadgeDefinition } from "@/lib/badges";
 import { BadgeIcon } from "@/components/badge-icon";
+import { computeSessionMetrics, type MetricStatus } from "@/lib/session-metrics";
 
 // ── Shared utilities ───────────────────────────────────────────────────────
+
+const METRIC_STATUS_COLORS: Record<MetricStatus, string> = {
+  good: "#C84A18",
+  warn: "#F0953E",
+  poor: "rgba(255,255,255,0.45)",
+};
 
 interface OverallFeedback {
   summaryStrengths?: string[];
@@ -105,6 +112,7 @@ export default function SessionRevealPage() {
   const [pillarsRevealed, setPillarsRevealed] = useState(0);
   const [selectedPillarIndex, setSelectedPillarIndex] = useState(0);
   const [expandedDimKey, setExpandedDimKey] = useState<string | null>(null);
+  const [metricsExpanded, setMetricsExpanded] = useState(false);
   const [allSessions, setAllSessions] = useState<SessionSummary[]>([]);
   const [tierUpVisible, setTierUpVisible] = useState(false);
   const [badgeVisible, setBadgeVisible] = useState(false);
@@ -313,6 +321,7 @@ export default function SessionRevealPage() {
   });
 
   const unscoredDimensions = fb?.unscoredDimensions ?? [];
+  const sessionMetrics = computeSessionMetrics(session);
 
   const dimensionsByPillar = PILLARS
     .map(p => ({
@@ -907,22 +916,62 @@ export default function SessionRevealPage() {
                 </p>
               )}
 
-              {/* Session metrics teaser — surfaces the full report's pace/pitch/breath/vocabulary metrics */}
-              <button
-                className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left transition-colors"
-                style={{ background: "rgba(240,149,62,0.08)", border: "1px solid rgba(240,149,62,0.2)" }}
-                onClick={() => setLocation(`/sessions/${id}/full`)}
-              >
+              {/* Session metrics — pace/pitch/breath/vocabulary, expands inline like a dimension */}
+              {sessionMetrics.length > 0 && (
                 <div>
-                  <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.85)" }}>
-                    Session metrics
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
-                    Pace, pitch, breath control &amp; vocabulary — in the full report
-                  </p>
+                  <button
+                    className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left transition-colors"
+                    style={{
+                      background: metricsExpanded ? "rgba(240,149,62,0.14)" : "rgba(240,149,62,0.08)",
+                      border: "1px solid rgba(240,149,62,0.2)",
+                    }}
+                    onClick={() => setMetricsExpanded(!metricsExpanded)}
+                  >
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.85)" }}>
+                        Session metrics
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                        Pace, pitch, breath control &amp; vocabulary
+                      </p>
+                    </div>
+                    {metricsExpanded
+                      ? <ChevronUpIcon className="h-3.5 w-3.5 flex-shrink-0 ml-3" style={{ color: "#F0953E" }} />
+                      : <ChevronDownIcon className="h-3.5 w-3.5 flex-shrink-0 ml-3" style={{ color: "#F0953E" }} />}
+                  </button>
+
+                  {metricsExpanded && (
+                    <div
+                      className="mx-1 mt-1 px-5 py-5 rounded-xl divide-y"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.07)",
+                      }}
+                    >
+                      {sessionMetrics.map(m => (
+                        <div key={m.label} className="py-3 first:pt-0 last:pb-0" style={{ borderColor: "rgba(255,255,255,0.07)" }}>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.8)" }}>
+                              {m.label}
+                            </p>
+                            <p className="text-sm font-semibold text-right" style={{ color: METRIC_STATUS_COLORS[m.status] }}>
+                              {m.value}
+                            </p>
+                          </div>
+                          <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
+                            Benchmark: {m.benchmark}
+                          </p>
+                          {m.note && (
+                            <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                              {m.note}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <ArrowRightIcon className="h-3.5 w-3.5 flex-shrink-0 ml-3" style={{ color: "#F0953E" }} />
-              </button>
+              )}
             </div>
           </div>
         )}

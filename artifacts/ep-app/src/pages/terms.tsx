@@ -40,7 +40,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold mb-2">4. Your account</h2>
             <div className="space-y-2 text-gray-700 leading-relaxed">
               <p>You are responsible for maintaining the confidentiality of your account credentials. You must notify us immediately at{" "}
-                <a href="mailto:support@gravitas.ai" className="text-[#C84A18] underline">support@gravitas.ai</a>{" "}
+                <a href="mailto:info@selfcraftpartners.com" className="text-[#C84A18] underline">info@selfcraftpartners.com</a>{" "}
                 if you suspect unauthorised access to your account.
               </p>
               <p>You are responsible for all activity that occurs under your account. You may not share your account with others or create accounts on behalf of third parties without their consent.</p>
@@ -132,7 +132,7 @@ export default function TermsPage() {
             <h2 className="text-lg font-semibold mb-2">14. Contact</h2>
             <p className="text-gray-700 leading-relaxed">
               For questions about these Terms of Service, contact us at{" "}
-              <a href="mailto:support@gravitas.ai" className="text-[#C84A18] underline">support@gravitas.ai</a>.
+              <a href="mailto:info@selfcraftpartners.com" className="text-[#C84A18] underline">info@selfcraftpartners.com</a>.
             </p>
           </section>
 

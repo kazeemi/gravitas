@@ -60,7 +60,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  placeholder="admin@gravitas.ai"
+                  placeholder="info@selfcraftpartners.com"
                   autoComplete="email"
                   required
                 />

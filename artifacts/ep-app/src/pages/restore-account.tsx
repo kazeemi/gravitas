@@ -79,7 +79,7 @@ export default function RestoreAccountPage() {
             </p>
             <p className="text-xs text-red-600 mt-2">
               If you believe this is an error, contact us at{" "}
-              <a href="mailto:support@gravitas.ai" className="underline">support@gravitas.ai</a>.
+              <a href="mailto:info@selfcraftpartners.com" className="underline">info@selfcraftpartners.com</a>.
             </p>
           </div>
         )}
@@ -89,7 +89,7 @@ export default function RestoreAccountPage() {
             <p className="text-lg font-semibold text-red-800">Something went wrong</p>
             <p className="text-sm text-red-700">
               This restore link is invalid or has already been used. If you need help, contact{" "}
-              <a href="mailto:support@gravitas.ai" className="underline">support@gravitas.ai</a>.
+              <a href="mailto:info@selfcraftpartners.com" className="underline">info@selfcraftpartners.com</a>.
             </p>
           </div>
         )}

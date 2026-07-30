@@ -568,10 +568,11 @@ export async function analyzeVideoPresence(
   promptText?: string,
   recordingContext?: string
 ): Promise<VideoPresenceResult> {
-  // Evenly downsample rather than truncating to the first N, so a long
-  // recording's sample still spans its full length instead of clustering
-  // near the start.
-  const MAX_FRAMES_TO_ANALYZE = 20;
+  // Analyze every frame that was captured, so longer recordings get
+  // proportionally more coverage instead of being squeezed into a fixed
+  // sample size. Only fall back to even downsampling for unusually long
+  // recordings, as a cost/latency backstop rather than the normal path.
+  const MAX_FRAMES_TO_ANALYZE = 500;
   const frames = frameBase64Array.length <= MAX_FRAMES_TO_ANALYZE
     ? frameBase64Array
     : Array.from({ length: MAX_FRAMES_TO_ANALYZE }, (_, i) =>

@@ -18,7 +18,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-lg font-semibold mb-2">1. Who we are</h2>
             <p className="text-gray-700 leading-relaxed">
               Gravitas AI ("Gravitas", "we", "us", "our") is the data controller for personal data processed through this platform. If you have any questions about how we handle your data, please contact us at{" "}
-              <a href="mailto:privacy@gravitas.ai" className="text-[#C84A18] underline">privacy@gravitas.ai</a>.
+              <a href="mailto:info@selfcraftpartners.com" className="text-[#C84A18] underline">info@selfcraftpartners.com</a>.
             </p>
           </section>
 
@@ -100,13 +100,13 @@ export default function PrivacyPolicyPage() {
               <p><strong>Right to rectification:</strong> You can update your profile information at any time in Account Settings.</p>
               <p><strong>Right to erasure:</strong> You can delete your account and all associated data from Account Settings. We will permanently erase everything within 30 days.</p>
               <p><strong>Right to portability:</strong> Your data export (available in Settings) is provided in JSON format, which can be read by any standard tool.</p>
-              <p><strong>Right to object:</strong> You may object to processing based on legitimate interests. Contact us at privacy@gravitas.ai.</p>
+              <p><strong>Right to object:</strong> You may object to processing based on legitimate interests. Contact us at info@selfcraftpartners.com.</p>
               <p><strong>Right to withdraw consent:</strong> Where we process data based on your consent (audio, video, biometric metrics), you may withdraw consent at any time by deleting your account. Withdrawal does not affect the lawfulness of processing before withdrawal.</p>
               <p><strong>Right to lodge a complaint:</strong> You have the right to lodge a complaint with your national data protection supervisory authority.</p>
             </div>
             <p className="text-gray-700 leading-relaxed mt-3">
               To exercise any of these rights, contact us at{" "}
-              <a href="mailto:privacy@gravitas.ai" className="text-[#C84A18] underline">privacy@gravitas.ai</a>.
+              <a href="mailto:info@selfcraftpartners.com" className="text-[#C84A18] underline">info@selfcraftpartners.com</a>.
               We will respond within 30 days.
             </p>
           </section>
@@ -128,7 +128,7 @@ export default function PrivacyPolicyPage() {
           <section>
             <h2 className="text-lg font-semibold mb-2">8. Children</h2>
             <p className="text-gray-700 leading-relaxed">
-              Gravitas is not directed at children under 16. We do not knowingly collect personal data from anyone under 16. If you believe a child has provided us with personal data, please contact us at privacy@gravitas.ai and we will delete it promptly.
+              Gravitas is not directed at children under 16. We do not knowingly collect personal data from anyone under 16. If you believe a child has provided us with personal data, please contact us at info@selfcraftpartners.com and we will delete it promptly.
             </p>
           </section>
 
@@ -143,7 +143,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-lg font-semibold mb-2">10. Contact</h2>
             <p className="text-gray-700 leading-relaxed">
               For any privacy-related questions, data subject access requests, or complaints, contact our privacy team at{" "}
-              <a href="mailto:privacy@gravitas.ai" className="text-[#C84A18] underline">privacy@gravitas.ai</a>.
+              <a href="mailto:info@selfcraftpartners.com" className="text-[#C84A18] underline">info@selfcraftpartners.com</a>.
             </p>
           </section>
 

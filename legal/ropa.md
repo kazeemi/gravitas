@@ -14,7 +14,7 @@ Maintained pursuant to Article 30 GDPR.
 |---|---|
 | Organisation name | Gravitas AI |
 | Data controller | Kanza Azeemi |
-| Contact email | privacy@gravitas.ai |
+| Contact email | info@selfcraftpartners.com |
 | EU/UK establishment | [To be confirmed] |
 
 ---

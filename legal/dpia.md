@@ -13,7 +13,7 @@ This DPIA is conducted pursuant to Article 35 of the UK/EU General Data Protecti
 **Product:** Gravitas AI — an AI-powered communication coaching platform that analyses voice and video recordings to provide feedback on executive presence and communication effectiveness.
 
 **Data Controller:** Gravitas AI / Kanza Azeemi
-**Contact:** privacy@gravitas.ai
+**Contact:** info@selfcraftpartners.com
 
 ---
 
@@ -127,7 +127,7 @@ Gravitas has implemented the following mechanisms to fulfil data subject rights:
 | Erasure (Art. 17) | Account deletion in Settings; all data purged within 30 days |
 | Portability (Art. 20) | JSON export covering all personal data and session history |
 | Withdraw consent (Art. 7(3)) | Delete account at any time; withdrawal does not affect prior lawful processing |
-| Object (Art. 21) | Contact privacy@gravitas.ai |
+| Object (Art. 21) | Contact info@selfcraftpartners.com |
 | Lodge complaint | Right to complain to relevant supervisory authority communicated in Privacy Policy |
 
 ---

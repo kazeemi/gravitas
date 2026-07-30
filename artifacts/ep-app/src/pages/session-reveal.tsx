@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { api, type SessionDetail, type SessionSummary } from "@/lib/api";
-import { getTierColors, DIMENSION_LABELS, PILLARS, DIMENSION_DISPLAY_ORDER } from "@/lib/tier-colors";
+import { getTierColors, DIMENSION_LABELS, PILLARS, DIMENSION_DISPLAY_ORDER, getDimensionDisplayFlags } from "@/lib/tier-colors";
 import { ArrowRightIcon, ChevronDownIcon, ChevronUpIcon, MicIcon, VideoIcon } from "lucide-react";
 import { format } from "date-fns";
 import { computeSessionBadges, type BadgeDefinition } from "@/lib/badges";
@@ -22,6 +22,17 @@ interface OverallFeedback {
   improvements?: string;
   nextStep?: string;
   innerWorkEscalation?: string;
+  unscoredDimensions?: UnscoredDimension[];
+}
+
+// A dimension whose underlying signal was not present in the recording (e.g. eye
+// contact when the speaker's eyes were not visible). It has no score and is not
+// part of the composite, so it renders as an explanatory row rather than a
+// scored one.
+interface UnscoredDimension {
+  dimensionKey: string;
+  label: string;
+  reason: string;
 }
 
 function parseOverallFeedback(raw: string | null | undefined): OverallFeedback | null {
@@ -301,12 +312,15 @@ export default function SessionRevealPage() {
     return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
   });
 
+  const unscoredDimensions = fb?.unscoredDimensions ?? [];
+
   const dimensionsByPillar = PILLARS
     .map(p => ({
       pillar: p,
       dimensions: sortedDimensions.filter(d => p.dimensions.includes(d.dimensionKey)),
+      unscored: unscoredDimensions.filter(u => p.dimensions.includes(u.dimensionKey)),
     }))
-    .filter(g => g.dimensions.length > 0);
+    .filter(g => g.dimensions.length > 0 || g.unscored.length > 0);
 
   const sortedCompleted = [...allSessions]
     .filter(s => s.processingStatus === "complete")
@@ -723,17 +737,28 @@ export default function SessionRevealPage() {
           <div className="flex flex-col flex-1 overflow-hidden gap-5">
 
             {/* Slide heading */}
-            <p
-              className="text-base font-bold uppercase tracking-widest flex-shrink-0"
-              style={{ color: "rgba(255,255,255,0.35)" }}
-            >
-              Your results
-            </p>
+            <div className="flex items-center justify-between flex-shrink-0">
+              <p
+                className="text-base font-bold uppercase tracking-widest"
+                style={{ color: "rgba(255,255,255,0.35)" }}
+              >
+                Your results
+              </p>
+              <p
+                className="text-xs flex items-center gap-1"
+                style={{ color: "rgba(255,255,255,0.32)" }}
+              >
+                Tap a dimension for feedback
+                <ChevronDownIcon className="h-3 w-3" style={{ color: "rgba(255,255,255,0.32)" }} />
+              </p>
+            </div>
 
             {/* Vertical pillar list — each animates in one at a time */}
             <div className="flex-1 overflow-y-auto space-y-6">
-              {dimensionsByPillar.map(({ pillar, dimensions }, pi) => {
-                const avgScore = dimensions.reduce((s, d) => s + d.score, 0) / dimensions.length;
+              {dimensionsByPillar.map(({ pillar, dimensions, unscored }, pi) => {
+                const avgScore = dimensions.length > 0
+                  ? dimensions.reduce((s, d) => s + d.score, 0) / dimensions.length
+                  : 0;
                 const pillarTier = scoreToTier(avgScore);
                 const pillarColors = getTierColors(pillarTier);
 
@@ -769,6 +794,7 @@ export default function SessionRevealPage() {
                         const dColors = getTierColors(d.tier);
                         const isExpanded = expandedDimKey === d.dimensionKey;
                         const label = DIMENSION_LABELS[d.dimensionKey] || d.dimensionKey;
+                        const { showStrength, strengthLabel, showGap, showNextStep } = getDimensionDisplayFlags(d.score);
 
                         return (
                           <div key={d.dimensionKey}>
@@ -794,8 +820,8 @@ export default function SessionRevealPage() {
                                   {d.tier}
                                 </span>
                                 {isExpanded
-                                  ? <ChevronUpIcon className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.3)" }} />
-                                  : <ChevronDownIcon className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.3)" }} />}
+                                  ? <ChevronUpIcon className="h-3.5 w-3.5" style={{ color: "#F0953E" }} />
+                                  : <ChevronDownIcon className="h-3.5 w-3.5" style={{ color: "rgba(255,255,255,0.45)" }} />}
                               </div>
                             </button>
 
@@ -807,17 +833,17 @@ export default function SessionRevealPage() {
                                   border: "1px solid rgba(255,255,255,0.07)",
                                 }}
                               >
-                                {d.strengthText && (
+                                {d.strengthText && showStrength && (
                                   <div>
                                     <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#F0953E" }}>
-                                      What landed
+                                      {strengthLabel}
                                     </p>
                                     <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.68)" }}>
                                       {d.strengthText}
                                     </p>
                                   </div>
                                 )}
-                                {d.gapText && (
+                                {d.gapText && showGap && (
                                   <div>
                                     <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "#C84A18" }}>
                                       What to sharpen
@@ -827,7 +853,7 @@ export default function SessionRevealPage() {
                                     </p>
                                   </div>
                                 )}
-                                {d.nextStepText && d.score < 6.5 && (
+                                {d.nextStepText && showNextStep && (
                                   <div>
                                     <p className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>
                                       Next recording
@@ -842,6 +868,34 @@ export default function SessionRevealPage() {
                           </div>
                         );
                       })}
+
+                      {/* Dimensions that could not be assessed — no score, no
+                          tier, no strength/gap/next-step. Just why. */}
+                      {unscored.map(u => (
+                        <div
+                          key={u.dimensionKey}
+                          className="px-4 py-3 rounded-xl"
+                          style={{
+                            background: "rgba(255,255,255,0.02)",
+                            border: "1px dashed rgba(255,255,255,0.12)",
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.5)" }}>
+                              {u.label}
+                            </span>
+                            <span
+                              className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded flex-shrink-0 ml-3"
+                              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.45)" }}
+                            >
+                              Not scored
+                            </span>
+                          </div>
+                          <p className="text-sm leading-relaxed mt-2" style={{ color: "rgba(255,255,255,0.45)" }}>
+                            {u.reason}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
@@ -852,6 +906,23 @@ export default function SessionRevealPage() {
                   No dimension scores available for this session.
                 </p>
               )}
+
+              {/* Session metrics teaser — surfaces the full report's pace/pitch/breath/vocabulary metrics */}
+              <button
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left transition-colors"
+                style={{ background: "rgba(240,149,62,0.08)", border: "1px solid rgba(240,149,62,0.2)" }}
+                onClick={() => setLocation(`/sessions/${id}/full`)}
+              >
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.85)" }}>
+                    Session metrics
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+                    Pace, pitch, breath control &amp; vocabulary — in the full report
+                  </p>
+                </div>
+                <ArrowRightIcon className="h-3.5 w-3.5 flex-shrink-0 ml-3" style={{ color: "#F0953E" }} />
+              </button>
             </div>
           </div>
         )}

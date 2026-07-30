@@ -158,3 +158,25 @@ export const TIER_THRESHOLDS = {
   strongMax: 8.4,        // 6.5–8.4
   distinguishedMin: 8.5, // 8.5–10.0
 };
+
+// ============================================================
+// DIMENSION FEEDBACK VISIBILITY — shared by session-reveal and
+// session-detail so both pages show identical text for a session.
+// ============================================================
+
+export function getDimensionDisplayFlags(score: number) {
+  const isHighScoring = score >= 6.5;
+  // In the Needs Focus band there is often no genuine strength to name. The
+  // scoring model writes a neutral factual baseline instead of a compliment
+  // there (or null when there is nothing honest to say), so the heading changes
+  // to match — "What landed" would misrepresent that text as praise.
+  const isNeedsFocus = score < 4;
+  return {
+    // Whether there is anything to show is decided by strengthText being
+    // non-null, not by the score. The model owns that call.
+    showStrength: true,
+    strengthLabel: isNeedsFocus ? "Starting point" : "What landed",
+    showGap: true,
+    showNextStep: !isHighScoring,
+  };
+}

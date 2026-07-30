@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import type { SessionDetail } from "./api";
-import { DIMENSION_LABELS, PILLARS, getTierColors } from "./tier-colors";
+import { DIMENSION_LABELS, PILLARS, getTierColors, getDimensionDisplayFlags } from "./tier-colors";
 import { format } from "date-fns";
 
 // ── OverallFeedback — mirrors session-detail.tsx ─────────────────────────────
@@ -18,6 +18,16 @@ interface OverallFeedback {
   nextStep?: string;
   gatingNote?: string;
   innerWorkEscalation?: string;
+  unscoredDimensions?: UnscoredDimension[];
+}
+
+// A dimension whose underlying signal was not present in the recording (e.g. eye
+// contact when the speaker's eyes were not visible). No score, and excluded from
+// the composite.
+interface UnscoredDimension {
+  dimensionKey: string;
+  label: string;
+  reason: string;
 }
 
 function parseOverallFeedback(raw: string | null): OverallFeedback | null {
@@ -304,12 +314,15 @@ export function downloadSessionPdf(session: SessionDetail, userName: string | nu
       return allDims.indexOf(a.dimensionKey) - allDims.indexOf(b.dimensionKey);
     });
 
+    const unscoredDims = overallFeedback?.unscoredDimensions ?? [];
+
     const dimsByPillar = PILLARS.map(pillar => ({
       pillar,
       dims: sortedDims.filter(d => pillar.dimensions.includes(d.dimensionKey)),
-    })).filter(g => g.dims.length > 0);
+      unscored: unscoredDims.filter(u => pillar.dimensions.includes(u.dimensionKey)),
+    })).filter(g => g.dims.length > 0 || g.unscored.length > 0);
 
-    for (const { pillar, dims } of dimsByPillar) {
+    for (const { pillar, dims, unscored } of dimsByPillar) {
       y = checkPage(doc, y, pageH, margin, 20);
 
       doc.setFontSize(8);
@@ -319,8 +332,8 @@ export function downloadSessionPdf(session: SessionDetail, userName: string | nu
       y += 5;
 
       for (const dim of dims) {
-        const isHighScoring = dim.score >= 6.5;
-        const isVeryLow = dim.score <= 2.0;
+        const { strengthLabel, showNextStep } = getDimensionDisplayFlags(dim.score);
+        const isNeedsFocus = strengthLabel === "Starting point";
 
         y = checkPage(doc, y, pageH, margin, 18);
         const label = DIMENSION_LABELS[dim.dimensionKey] || dim.dimensionKey;
@@ -344,13 +357,21 @@ export function downloadSessionPdf(session: SessionDetail, userName: string | nu
         doc.roundedRect(margin, y, (dim.score / 10) * contentW, 2, 0.5, 0.5, "F");
         y += 5;
 
-        // Strength: hidden for very-low scoring dims (mirrors online)
-        if (dim.strengthText && !isVeryLow) {
+        // Strength, or — in the Needs Focus band — a neutral factual baseline.
+        // Absent entirely when the scoring model had nothing genuine to report.
+        // The marker stays neutral for a baseline so the PDF does not read it
+        // back as praise the way a green "+" would.
+        if (dim.strengthText) {
           y = checkPage(doc, y, pageH, margin, 10);
           doc.setFontSize(7.5);
           doc.setFont("helvetica", "normal");
-          doc.setTextColor(45, 106, 45);
-          doc.text("+", margin + 1, y);
+          if (isNeedsFocus) {
+            doc.setTextColor(GRAY_LIGHT);
+            doc.text("•", margin + 1, y);
+          } else {
+            doc.setTextColor(45, 106, 45);
+            doc.text("+", margin + 1, y);
+          }
           doc.setTextColor(GRAY_DARK);
           y = wrapText(doc, dim.strengthText, margin + 5, y, contentW - 5, 4.5);
           y += 1;
@@ -369,7 +390,7 @@ export function downloadSessionPdf(session: SessionDetail, userName: string | nu
         }
 
         // Next step: hidden for Strong and Distinguished dims (score >= 6.5)
-        if (dim.nextStepText && !isHighScoring) {
+        if (dim.nextStepText && showNextStep) {
           y = checkPage(doc, y, pageH, margin, 10);
           doc.setFontSize(7.5);
           doc.setFont("helvetica", "bold");
@@ -383,6 +404,25 @@ export function downloadSessionPdf(session: SessionDetail, userName: string | nu
         }
 
         y += 4;
+      }
+
+      // Dimensions that could not be assessed — reason only, no score or bar.
+      for (const u of unscored) {
+        y = checkPage(doc, y, pageH, margin, 18);
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(GRAY_LIGHT);
+        doc.text(u.label, margin, y);
+        const notScored = "Not scored";
+        doc.setFontSize(8);
+        doc.text(notScored, pageW - margin - doc.getTextWidth(notScored), y);
+        y += 5;
+
+        doc.setFontSize(7.5);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(GRAY_LIGHT);
+        y = wrapText(doc, u.reason, margin + 1, y, contentW - 1, 4.5);
+        y += 5;
       }
     }
   }

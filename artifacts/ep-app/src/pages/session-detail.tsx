@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { api, type SessionDetail, type DimensionScore, type SessionSummary } from "@/lib/api";
-import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, PILLARS } from "@/lib/tier-colors";
+import { getTierColors, DIMENSION_LABELS, DIMENSION_DISPLAY_ORDER, PILLARS, getDimensionDisplayFlags } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
 import {
   ChevronLeftIcon,
@@ -38,6 +38,16 @@ interface OverallFeedback {
   nextStep?: string;
   gatingNote?: string;
   innerWorkEscalation?: string;
+  unscoredDimensions?: UnscoredDimension[];
+}
+
+// A dimension whose underlying signal was not present in the recording (e.g. eye
+// contact when the speaker's eyes were not visible). No score, and excluded from
+// the composite — rendered as an explanatory row instead of a scored one.
+interface UnscoredDimension {
+  dimensionKey: string;
+  label: string;
+  reason: string;
 }
 
 function parseOverallFeedback(raw: string | null): OverallFeedback | null {
@@ -243,10 +253,13 @@ export default function SessionDetailPage() {
     return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
   });
 
+  const unscoredDimensions = overallFeedback?.unscoredDimensions ?? [];
+
   const dimensionsByPillar = PILLARS.map(pillar => ({
     pillar,
     dimensions: sortedDimensions.filter(d => pillar.dimensions.includes(d.dimensionKey)),
-  })).filter(g => g.dimensions.length > 0);
+    unscored: unscoredDimensions.filter(u => pillar.dimensions.includes(u.dimensionKey)),
+  })).filter(g => g.dimensions.length > 0 || g.unscored.length > 0);
 
   const noAudioDetected = session.dimensionScores.length === 0 && !session.compositeScore;
   const hasSilences = (session.silenceEvents ?? 0) > 0;
@@ -500,8 +513,10 @@ export default function SessionDetailPage() {
       {/* SECTION 2 — Pillar headers + dimension cards */}
       {!noAudioDetected && dimensionsByPillar.length > 0 && (
         <div className="mt-6 space-y-7">
-          {dimensionsByPillar.map(({ pillar, dimensions }) => {
-            const avgScore = dimensions.reduce((sum, d) => sum + d.score, 0) / dimensions.length;
+          {dimensionsByPillar.map(({ pillar, dimensions, unscored }) => {
+            const avgScore = dimensions.length > 0
+              ? dimensions.reduce((sum, d) => sum + d.score, 0) / dimensions.length
+              : 0;
             const avgColors = getTierColors(scoreToTier(avgScore));
             return (
               <div key={pillar.name}>
@@ -526,6 +541,23 @@ export default function SessionDetailPage() {
                       revealed={revealed}
                       index={i}
                     />
+                  ))}
+
+                  {/* Dimensions that could not be assessed — no score, no
+                      strength/gap/next-step. Just why. */}
+                  {unscored.map(u => (
+                    <div
+                      key={u.dimensionKey}
+                      className="rounded-lg border border-dashed border-gray-300 bg-gray-50/50 px-4 py-3.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-500">{u.label}</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 flex-shrink-0 ml-3">
+                          Not scored
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-500 leading-relaxed mt-2">{u.reason}</p>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -676,8 +708,7 @@ function DimensionCard({
 }) {
   const colors = getTierColors(score.tier);
   const label = DIMENSION_LABELS[score.dimensionKey] || score.dimensionKey;
-  const isHighScoring = score.score >= 6.5;
-  const isVeryLow = score.score <= 2.0;
+  const { showStrength, showGap, showNextStep } = getDimensionDisplayFlags(score.score);
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
@@ -710,16 +741,17 @@ function DimensionCard({
       {isExpanded && (
         <div className="border-t border-gray-100 px-4 pb-4 pt-3">
           <div className="space-y-2.5">
-            {/* Strength: shown for all except very-low scoring dims */}
-            {score.strengthText && !isVeryLow && (
+            {/* Strength / baseline: omitted when the scoring model had nothing
+                genuine to report rather than filled with a manufactured positive */}
+            {score.strengthText && showStrength && (
               <p className="text-sm text-gray-700 leading-relaxed">{score.strengthText}</p>
             )}
             {/* Gap / development observation: always shown */}
-            {score.gapText && (
+            {score.gapText && showGap && (
               <p className="text-sm text-gray-600 leading-relaxed">{score.gapText}</p>
             )}
             {/* Action: hidden for Strong and Distinguished dimensions */}
-            {score.nextStepText && !isHighScoring && (
+            {score.nextStepText && showNextStep && (
               <div className="mt-3 rounded-md bg-[#FBF7F2] border border-[#F0953E]/20 px-3.5 py-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#C84A18] mb-1.5">
                   Try in your next recording

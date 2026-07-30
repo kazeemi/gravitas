@@ -385,17 +385,35 @@ export default function RecordPage() {
     }
   }, []);
 
+  // Target ~15 frames/minute so a 1-minute (our recording minimum) session
+  // still yields a solid sample, and longer sessions keep pace instead of
+  // being capped early. A failed capture (e.g. a momentary camera hiccup)
+  // is retried almost immediately rather than silently skipped, so a single
+  // bad tick doesn't quietly shrink the sample for the whole session.
+  const FRAME_INTERVAL_MS = 4000;
+  const MAX_FRAMES = 90; // ~6 minutes of coverage at the target rate
+
   const startFrameCapture = useCallback(() => {
     framesRef.current = [];
-    firstFrameTimeoutRef.current = window.setTimeout(() => {
+    const captureWithRetry = () => {
       const frame = captureFrame();
-      if (frame) framesRef.current.push(frame);
+      if (frame) {
+        framesRef.current.push(frame);
+        return;
+      }
+      window.setTimeout(() => {
+        if (recordingStateRef.current !== "recording") return;
+        const retry = captureFrame();
+        if (retry) framesRef.current.push(retry);
+      }, 500);
+    };
+    firstFrameTimeoutRef.current = window.setTimeout(() => {
+      captureWithRetry();
       frameIntervalRef.current = window.setInterval(() => {
         if (recordingStateRef.current !== "recording") return;
-        if (framesRef.current.length >= 20) return;
-        const f = captureFrame();
-        if (f) framesRef.current.push(f);
-      }, 5000);
+        if (framesRef.current.length >= MAX_FRAMES) return;
+        captureWithRetry();
+      }, FRAME_INTERVAL_MS);
     }, 2500);
   }, [captureFrame]);
 

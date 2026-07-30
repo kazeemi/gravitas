@@ -148,7 +148,11 @@ const AUDIO_WEIGHTS: Record<DimensionKey, number> = {
 // ANCHOR DIMENSIONS — v4.0 gating
 // ============================================================
 
-const VIDEO_ANCHORS: DimensionKey[] = ["structure", "vocal_tone", "intonation", "eye_contact"];
+// Anchors are restricted to dimensions built on transcript/acoustic signal —
+// vision-based dimensions (eye_contact, facial_expression, gestures, posture)
+// rely on periodic still frames, not continuous observation, and must never
+// gate the composite score for the whole session.
+const VIDEO_ANCHORS: DimensionKey[] = ["structure", "vocal_tone", "intonation"];
 const AUDIO_ANCHORS: DimensionKey[] = ["structure", "vocal_tone", "intonation"];
 
 // ============================================================
@@ -173,10 +177,13 @@ export function computeCompositeTier(
     weightedSum += (dimensionScores[key] ?? 0) * w;
     totalWeight += w;
   }
-  // Normalise in case not all dimensions are present
+  // Normalise by the weight actually present. When every dimension for the mode
+  // is scored, totalWeight is 1.0 and this is identical to the plain weighted
+  // sum. It only differs when a dimension is deliberately excluded — e.g. eye
+  // contact when the speaker's eyes were not visible — where dividing by the
+  // remaining weight keeps the composite on the same 1–10 scale instead of
+  // deflating it by that dimension's weight.
   let composite = totalWeight > 0 ? weightedSum / totalWeight : 0;
-  // Re-scale to the actual weight sum (should be 1.0 when all dims present)
-  composite = weightedSum;
 
   let gatingNote: string | null = null;
 
@@ -261,12 +268,28 @@ export interface AudioDeliveryResult {
 }
 
 export interface VideoPresenceResult {
+  // False when the speaker's eyes were not actually visible in the frames
+  // (covered, out of frame, or too dark to make out). Gaze direction cannot be
+  // inferred from head orientation alone, so when this is false the eye_contact
+  // dimension is excluded from scoring rather than guessed at.
+  eyeContactObservable: boolean;
   eyeContactObservation: string;
   gestureObservation: string;
   presenceObservation: string;
   professionalAppearanceObservation: string;
   overallVisualPresence: string;
   framesAnalyzed: number;
+  // Derived from framesAnalyzed — a coarse signal-strength indicator for the
+  // vision-based dimensions (eye_contact, facial_expression, gestures, posture)
+  // so we never present a sparse-sample read with the same certainty as a
+  // well-sampled one.
+  visualConfidence: "low" | "medium" | "high";
+}
+
+function deriveVisualConfidence(framesAnalyzed: number): "low" | "medium" | "high" {
+  if (framesAnalyzed < 8) return "low";
+  if (framesAnalyzed < 15) return "medium";
+  return "high";
 }
 
 export interface ScoringInput {
@@ -305,9 +328,19 @@ export interface DimensionResult {
   score: number;
   tier: Tier;
   rawMetrics: Record<string, unknown>;
-  strengthText: string;
+  // Null when the model had no genuine strength (or honest factual baseline) to
+  // report. The UI hides the section entirely rather than showing filler.
+  strengthText: string | null;
   gapText: string;
   nextStepText: string;
+}
+
+// A dimension that could not be assessed because its underlying signal was not
+// present in the recording. Carries no score and is excluded from the composite.
+export interface UnscoredDimension {
+  dimensionKey: DimensionKey;
+  label: string;
+  reason: string;
 }
 
 export interface ScoringResult {
@@ -322,7 +355,7 @@ export interface ScoringResult {
 
 interface AIDimensionEval {
   score: number;
-  strengthText: string;
+  strengthText: string | null;
   gapText: string;
   nextStepText: string;
 }
@@ -535,20 +568,43 @@ export async function analyzeVideoPresence(
   promptText?: string,
   recordingContext?: string
 ): Promise<VideoPresenceResult> {
-  const frames = frameBase64Array.slice(0, 20);
+  // Evenly downsample rather than truncating to the first N, so a long
+  // recording's sample still spans its full length instead of clustering
+  // near the start.
+  const MAX_FRAMES_TO_ANALYZE = 20;
+  const frames = frameBase64Array.length <= MAX_FRAMES_TO_ANALYZE
+    ? frameBase64Array
+    : Array.from({ length: MAX_FRAMES_TO_ANALYZE }, (_, i) =>
+        frameBase64Array[Math.round((i * (frameBase64Array.length - 1)) / (MAX_FRAMES_TO_ANALYZE - 1))]
+      );
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}${recordingContext ? `Recording context: ${recordingContext}.` : ""}
 
-You are a senior executive presence coach reviewing a series of video frames captured at regular intervals during a ${recordingContext || "seated"} presentation. Analyze ONLY what you can directly observe in the images. Be specific and honest.
+You are a senior executive presence coach reviewing a series of ${frames.length} video frames captured at regular intervals during a ${recordingContext || "seated"} presentation. Analyze ONLY what you can directly observe in the images. Be specific and honest.
+
+CALIBRATE YOUR CERTAINTY TO YOUR SAMPLE SIZE: you are working from ${frames.length} still images sampled across the recording, not continuous footage. ${frames.length < 8
+  ? "This is a small sample. Use tentative, hedged language throughout (e.g. \"in the moments captured, ...\", \"the images available suggest...\") and avoid absolute or continuous-sounding claims (e.g. \"consistently\", \"throughout\", \"the whole time\")."
+  : frames.length < 15
+  ? "This is a moderate sample. You may describe general patterns, but qualify strong or absolute claims (e.g. prefer \"for most of the moments captured\" over \"throughout\" or \"consistently\")."
+  : "This is a solid sample. You may describe overall patterns with normal confidence, but still ground claims in what was actually observed rather than implying frame-by-frame continuity."
+} Never claim to have observed something continuously if you only have periodic snapshots — describe what the sampled moments show, not what happened between them.
 
 Assess the following four areas based solely on what you see in the frames:
 
 1. EYE CONTACT: For each image, classify the speaker's gaze using exactly these three categories:
-- DIRECT: The speaker's gaze is aimed at or within a few degrees of the camera lens itself. This is a high bar — the camera lens in a webcam setup sits at the top edge of the screen, so a speaker looking at their screen display (at themselves, at notes, or at other content) will have their gaze angled slightly downward from the lens. That downward-angled gaze does NOT count as DIRECT.
-- NEAR: Gaze is close to the camera but not at the lens — e.g. slightly below toward the display, marginally to one side of the lens.
-- OFF: Gaze is clearly directed away from the camera — to the far side, upward toward the ceiling, downward toward a desk or keyboard, or anywhere else in the room.
+- DIRECT: The speaker's gaze is aimed at or within a few degrees of the camera lens itself.
+- SCREEN: The speaker's gaze is directed at their screen/display — at themselves, at notes, or at other on-screen content. This is the normal, expected, and natural gaze position for someone speaking into a laptop or phone camera (the lens sits at the edge of the screen, so screen-directed gaze is only slightly off-axis from the lens). SCREEN gaze should be treated as good, natural eye contact, not as a deficiency — looking directly into the lens itself is unnatural and should NOT be expected or required for a good score.
+- OFF: Gaze is clearly directed away from both the camera and the screen — to the far side, upward toward the ceiling, downward toward a desk or keyboard, or anywhere else in the room. This is the category that represents an actual eye contact gap.
 
-Calibration bias: Most speakers do NOT maintain consistent camera-directed eye contact. Be conservative — when uncertain between DIRECT and NEAR, classify as NEAR; when uncertain between NEAR and OFF, classify as OFF. Only classify a frame as DIRECT if the speaker's pupils are unmistakably aimed at the camera lens. Tally all three counts, then describe the overall pattern in plain terms (e.g. "throughout most of the recording", "at several points", "consistently"). Do NOT mention "frames" or image numbers.
+OBSERVABILITY GATE — CHECK THIS FIRST, BEFORE CLASSIFYING ANY GAZE:
+Gaze can only be assessed if you can actually see the speaker's eyes. Head and face orientation is NOT a substitute — a person can face the camera squarely while their eyes are directed elsewhere, so head position tells you nothing reliable about gaze.
+Set "eyeContactObservable" to false if the speaker's eyes are not visible in most of the images for ANY reason: covered or obscured by anything, eyes closed, face turned away, out of frame, or lighting/resolution too poor to make out where the pupils are directed.
+If eyeContactObservable is false: set "eyeContactObservation" to a brief, factual, neutral statement that their eyes were not visible in this recording so gaze could not be assessed. State it as a limitation of what the recording captured, NOT as a fault, a criticism, or something to fix in their behaviour, and do NOT name or describe the cause if the cause is an item they are wearing (see the appearance prohibition below — it still applies in full). Then STOP: do not tally DIRECT/NEAR/OFF, do not describe a gaze pattern, and do not characterise the quality of their camera connection.
+Never produce a confident-sounding gaze assessment from head pose. Guessing here is a worse failure than reporting that the signal was unavailable.
+
+Only if eyeContactObservable is true, proceed with the classification below.
+
+Scoring guidance: DIRECT and SCREEN both count as good eye contact — a speaker whose gaze stays on the screen/display throughout should score well on this dimension, just as if they were looking at the camera lens itself. Do NOT penalise screen-directed gaze as a deficiency or treat DIRECT as a higher-value tier than SCREEN. Only OFF (gaze wandering away from both the camera and the screen — to the room, the ceiling, a desk, etc.) represents an actual eye contact gap and should bring the score down. When uncertain between DIRECT and SCREEN, classify as SCREEN; when uncertain between SCREEN and OFF, classify based on whether the gaze is still oriented toward the screen/device (SCREEN) or has left it entirely (OFF). Tally all three counts, then describe the overall pattern in plain terms (e.g. "throughout most of the recording", "at several points", "consistently"). Feedback may still gently suggest looking at the camera lens for an extra layer of polish, but this should never be framed as a fault or cost the speaker a strong score if their gaze was on the screen. Do NOT mention "frames" or image numbers.
 
 2. FACIAL EXPRESSION: Is the expression flat, neutral, warm, animated, or incongruent with what appears to be serious content? Does the face convey genuine engagement? Is there visible tension (tight jaw, pressed lips, furrowed brow) or warmth? Does expression vary across the recording to match content importance?
 
@@ -569,7 +625,8 @@ CRITICAL LANGUAGE RULE: Your written observations must NEVER use the words "fram
 
 Return your analysis as a JSON object with these exact keys:
 {
-  "eyeContactObservation": "gaze pattern classification (DIRECT/NEAR/OFF counts expressed as proportions or plain descriptions), description of gaze direction and consistency, quality of camera connection — NO frame numbers",
+  "eyeContactObservable": <true only if the speaker's eyes are visible clearly enough to tell where their gaze is directed in most of the images; false otherwise>,
+  "eyeContactObservation": "if eyeContactObservable is true: gaze pattern classification (DIRECT/SCREEN/OFF counts expressed as proportions or plain descriptions, remembering DIRECT and SCREEN both count as good eye contact and only OFF is a gap), description of gaze direction and consistency, quality of engagement with the viewer. If false: one neutral factual sentence that their eyes were not visible so gaze could not be assessed, with no cause named if the cause is something worn, and no gaze pattern claimed — NO frame numbers",
   "gestureObservation": "specific description of gesture types observed, whether purposeful or distracting, body openness/closedness — NO frame numbers",
   "presenceObservation": "specific description of facial expression throughout the recording — range, congruence, warmth, tension signals, engagement quality — NO frame numbers",
   "professionalAppearanceObservation": "specific assessment of POSTURE ONLY (upright/settled vs slumped/tense, open vs closed, forward lean on key moments, consistency) — say nothing about clothing, grooming, hair, accessories, physical features, or background — NO frame numbers",
@@ -616,12 +673,17 @@ Return your analysis as a JSON object with these exact keys:
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]) as Record<string, unknown>;
       return {
+        // Absent key defaults to observable, so a model that ignores the new
+        // field behaves exactly as before rather than silently dropping the
+        // dimension for every session.
+        eyeContactObservable: parsed.eyeContactObservable !== false,
         eyeContactObservation: String(parsed.eyeContactObservation || ""),
         gestureObservation: String(parsed.gestureObservation || ""),
         presenceObservation: String(parsed.presenceObservation || ""),
         professionalAppearanceObservation: String(parsed.professionalAppearanceObservation || ""),
         overallVisualPresence: String(parsed.overallVisualPresence || ""),
         framesAnalyzed: frames.length,
+        visualConfidence: deriveVisualConfidence(frames.length),
       };
     }
     throw new Error("No JSON found in vision response");
@@ -917,7 +979,9 @@ ${input.professionalLanguageFlags}` : ""}
 ${input.mode === "video" ? `SOURCE D — CLAUDE VISION VIDEO ANALYSIS (use for: eye_contact, facial_expression, gestures, posture):
 ${input.videoPresenceAnalysis
   ? `Frames analyzed: ${input.videoPresenceAnalysis.framesAnalyzed}
-Eye contact: ${input.videoPresenceAnalysis.eyeContactObservation}
+Eye contact: ${input.videoPresenceAnalysis.eyeContactObservable
+    ? input.videoPresenceAnalysis.eyeContactObservation
+    : `[NOT OBSERVABLE — the speaker's eyes were not visible in this recording, so gaze could not be assessed. The eye_contact dimension has been removed from the dimension list below and is excluded from the composite score. Do NOT score it, do NOT write feedback for it, and do NOT infer gaze from head or face orientation. Do not reference eye contact, gaze, or camera connection anywhere in your summary, priority action, or any other dimension's feedback.]`}
 Facial expression (from presenceObservation): ${input.videoPresenceAnalysis.presenceObservation}
 Gestures and posture: ${input.videoPresenceAnalysis.gestureObservation}
 Professional appearance / posture details: ${input.videoPresenceAnalysis.professionalAppearanceObservation}
@@ -978,7 +1042,7 @@ Return a JSON object (no markdown, no code fences):
       .map(
         d => `"${d}": {
       "score": <integer 1-10>,
-      "strengthText": "<max 40 words — reference something specific that happened in this session. Named evidence. With measured values where available.>",
+      "strengthText": "<max 40 words, or null. If you score this dimension 4 or above: name a genuine strength, referencing something specific that happened in this session — named evidence, with measured values where available. If you score this dimension 3 or below: this field is shown to the user under the heading 'Starting point', NOT as praise. Write a neutral, factual description of where they currently are on this dimension — what the recording actually showed, stated plainly and without evaluation. If there is nothing factual and non-trivial to state, return null. NEVER manufacture a positive. Do not use consolation framing ('at least', 'at the very least', 'on the plus side', 'while X, you did manage Y') and do not present the absence of a further problem as an achievement. Returning null is always better than reaching for a compliment that is not there.>",
       "gapText": "<max 45 words — name the primary gap with specific evidence from this session, then state its impact on the listener. Warm and direct, not clinical.>",
       "nextStepText": "<max 45 words — one specific thing to try in their next recording here. Frame as mental preparation or an in-recording experiment. NEVER suggest writing, scripting, or noting anything down — all prep is mental. Use language like 'in your next recording, try' or 'record again and notice whether'. Do not recommend external tools.>"
     }`
@@ -1037,7 +1101,7 @@ function buildFallbackEvaluation(
   for (const d of dimensions) {
     result.dimensions[d] = {
       score: baseScore,
-      strengthText: `Some foundational elements present in ${DIMENSION_LABELS[d]}.`,
+      strengthText: null,
       gapText: `Significant development needed in ${DIMENSION_LABELS[d]}.`,
       nextStepText: `In your next recording, try giving yourself more time on ${DIMENSION_LABELS[d]} — notice what changes when you slow down and focus on it.`,
     };
@@ -1050,8 +1114,31 @@ function buildFallbackEvaluation(
 // ============================================================
 
 export async function scoreSession(input: ScoringInput): Promise<ScoringResult> {
-  const dimensions =
+  const allDimensions =
     input.mode === "audio" ? AUDIO_DIMENSIONS : VIDEO_DIMENSIONS;
+
+  // Gaze cannot be read from head orientation, so when the vision pass reports
+  // that the speaker's eyes were not visible we drop eye_contact entirely rather
+  // than let the model produce a confident-sounding guess. It is left out of the
+  // AI prompt (no wasted tokens), out of the composite, and out of the anchor
+  // gating; the UI surfaces it as explicitly not scored.
+  const eyeContactUnobservable =
+    input.mode === "video" &&
+    input.videoPresenceAnalysis != null &&
+    input.videoPresenceAnalysis.eyeContactObservable === false;
+
+  const dimensions = eyeContactUnobservable
+    ? allDimensions.filter(d => d !== "eye_contact")
+    : allDimensions;
+
+  const unscoredDimensions: UnscoredDimension[] = eyeContactUnobservable
+    ? [{
+        dimensionKey: "eye_contact",
+        label: DIMENSION_LABELS.eye_contact,
+        reason:
+          "Your eyes were not visible in this recording, so gaze could not be assessed. This dimension has not been scored and is not included in your composite score. To get eye contact feedback, record again with your eyes clearly visible to the camera.",
+      }]
+    : [];
 
   const context = classifyContext(input.promptText, input.promptContext);
 
@@ -1063,7 +1150,9 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
   const dimensionResults: DimensionResult[] = dimensions.map(key => {
     const aiDim = aiResult.dimensions[key] ?? {
       score: 3,
-      strengthText: `Limited evidence of ${DIMENSION_LABELS[key]} in this session.`,
+      // No strength claimed on the fallback path — there is no evidence to
+      // base one on, and inventing one is exactly what we are removing.
+      strengthText: null,
       gapText: `${DIMENSION_LABELS[key]} needs significant development.`,
       nextStepText: `Focus on ${DIMENSION_LABELS[key]} in your next session.`,
     };
@@ -1118,6 +1207,21 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       rawMetrics.boundaryPauses = input.pauseMetrics.pauses.filter(p => p.isSentenceBoundary).length;
       rawMetrics.midSentencePauses = input.pauseMetrics.pauses.filter(p => !p.isSentenceBoundary).length;
     }
+    // Vision-based dimensions carry a weaker signal than acoustic/transcript
+    // dimensions (periodic still frames vs. continuous audio/text), so tag
+    // them with the sample size and derived confidence they were scored from.
+    if (
+      (key === "eye_contact" || key === "facial_expression" || key === "gestures" || key === "posture") &&
+      input.videoPresenceAnalysis != null
+    ) {
+      rawMetrics.signalSource = "vision";
+      rawMetrics.framesAnalyzed = input.videoPresenceAnalysis.framesAnalyzed;
+      rawMetrics.confidence = input.videoPresenceAnalysis.visualConfidence;
+    } else if (key !== "eye_contact" && key !== "facial_expression" && key !== "gestures" && key !== "posture") {
+      rawMetrics.signalSource = key === "confidence_language" || key === "structure" || key === "conciseness"
+        ? "transcript"
+        : "acoustic";
+    }
 
     // Inner work nudge — appended to nextStepText for trigger dimensions scoring ≤ 5
     const innerWorkNudges: Partial<Record<DimensionKey, string>> = {
@@ -1141,7 +1245,7 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       score,
       tier,
       rawMetrics,
-      strengthText: aiDim.strengthText || "",
+      strengthText: aiDim.strengthText?.trim() ? aiDim.strengthText.trim() : null,
       gapText: aiDim.gapText || "",
       nextStepText: nextStepWithNudge,
     };
@@ -1199,6 +1303,7 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
         : null,
     gatingNote,
     innerWorkEscalation,
+    unscoredDimensions,
     // Legacy fields preserved for old-format fallback in frontend
     strengths: aiResult.overallStrengths || null,
     improvements: aiResult.overallImprovements || null,

@@ -1,6 +1,7 @@
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { openai } from "@workspace/integrations-openai-ai-server";
 import { logger } from "./logger.js";
+import type { StructureFamily } from "../routes/prompts.js";
 import {
   ensureCompatibleFormat,
   speechToText,
@@ -312,6 +313,7 @@ export interface ScoringInput {
   recordingContext?: string;
   promptText?: string;
   promptContext?: string;
+  structureFamily?: StructureFamily;
   rmsMetrics?: RmsMetrics | null;
   f0Metrics?: F0Metrics | null;
   pauseMetrics?: PauseMetrics | null;
@@ -841,17 +843,19 @@ Do not just score the pattern. Always name specific moments and their impact.
 - Never give only a pattern-level summary. Always name the moment and the impact.
 
 COMMUNICATION FRAMEWORK DETECTION (structure dimension only):
+This prompt's expected structural yardstick has been pre-classified as: ${input.structureFamily ?? "unclassified"}. This classification is authoritative — it is based on the prompt's actual intent, not a guess you need to make. Apply the matching rule set below. If unclassified, use the generic rules that follow.
+
+GENERIC RULES (apply only when no more specific family rule below overrides them):
 Analyse the transcript for evidence of structured communication frameworks: STAR (Situation, Task, Action, Result), SCR (Situation, Complication, Resolution), Pyramid Principle or point-first delivery (recommendation before rationale), PREP (Point, Reason, Example, Point), Problem-Solution-Benefit.
-Rules:
 - Only flag a framework when it is clearly and intentionally present. Do not force-fit a label onto loose structure.
 - If used well: name it and credit it specifically: "You led with your recommendation before giving context — that is point-first communication, and it immediately signals a senior, confident thinker."
 - If used loosely or partially: comment on structure without naming the framework label: "You set up the situation well, but the response ended before reaching a clear resolution or recommendation. Your listener is left doing the work of drawing the conclusion themselves."
-- If no structure is evident and the prompt is one where structure would be expected (interview question, presentation prompt, stakeholder update): "This response would have landed more powerfully with a clear opening statement of your main point, followed by your supporting reasoning."
+- If no structure is evident and the prompt is one where structure would be expected: "This response would have landed more powerfully with a clear opening statement of your main point, followed by your supporting reasoning."
 - If the structure is genuinely ambiguous, say nothing about frameworks.
 - Incorporate this into the structure dimension feedback block. Do not create a separate section.
 
-${input.interviewMode ? `INTERVIEW ANSWER STRUCTURE — ELEVATED PRIORITY (this user is preparing for a job interview):
-For interview answers, structure is not a nice-to-have — it is what separates a forgettable answer from one that lands. Treat the structure dimension feedback as the most important coaching block in this session. Go deeper and be more specific than you would in a standard session.
+${(input.structureFamily === "story" || input.structureFamily === "resilience") ? `STORY / BEHAVIOURAL ANSWER STRUCTURE (structureFamily: ${input.structureFamily}):
+This prompt asks for a retrospective account of something that happened. Structure is not a nice-to-have here — it is what separates a forgettable answer from one that lands. Treat the structure dimension feedback as the most important coaching block in this session. Go deeper and be more specific than you would for a looser prompt.
 
 STEP 1 — IDENTIFY: Determine explicitly whether the answer used STAR (Situation → Task → Action → Result), SCR (Situation → Complication → Resolution), PREP (Point → Reason → Example → Point), or another recognisable structure. If the answer is genuinely unstructured, name that directly.
 
@@ -863,32 +867,49 @@ STEP 2 — WHEN A FRAMEWORK WAS USED:
 
 STEP 3 — WHEN NO FRAMEWORK WAS USED:
 - Do not just note the absence. Recommend the specific framework that would have served this answer best and explain why — not as a formula, but as a tool to make the message clearer for the listener.
-- Example: "This answer would have landed more powerfully with a STAR structure. You shared what you did, but your interviewer had no context for the situation you were walking into or what specifically was at stake. That context is what makes the action feel consequential. Without it, the achievement sounds smaller than it probably was."
 - Give one concrete next step: what element to lead with or add in the next recording
 
 STEP 4 — PARTIAL OR BROKEN STRUCTURE:
-- Name the exact moment the structure broke down: "You set up the situation clearly and described your approach well, but the response ended before reaching the result — your interviewer is left without a clear landing point."
-- Name the listener experience: "That gap puts the burden of interpretation on the interviewer. In a high-stakes interview, you want to close the loop explicitly."
+- Name the exact moment the structure broke down and the listener experience it creates.
+${input.structureFamily === "resilience" ? `- RESILIENCE EXCEPTION: This prompt asks about a recent setback the speaker may still be working through. "What I am doing about it now" or "here is my plan going forward" IS a valid, complete result — do NOT demand a fully resolved, happy-ending outcome. Only flag the structure as incomplete if the speaker names the setback and stops, with no stated action or plan at all.` : `- Do not accept an answer that ends before reaching a result as complete. The listener is left doing the work of drawing the conclusion themselves.`}
 
-RULE: Never use a framework label as a generic compliment. If you say STAR, demonstrate it — show which specific lines earned which letters.
+RULE: Never use a framework label as a generic compliment. If you say STAR, demonstrate it — show which specific lines earned which letters.` : ""}
 
-CLOSING QUESTION RULE (interview mode, structure dimension only):
+${input.structureFamily === "narrative" ? `NARRATIVE / SELF-INTRODUCTION STRUCTURE (structureFamily: narrative):
+This prompt asks for a self-introduction or a walkthrough of something ongoing (background, or a project currently in progress) — not a competency demonstration or a decision that needs resolving.
+
+1. CORRECT FRAMEWORK: The expected structure is a narrative arc — Past → Present → Future, or Present → Past → Future. STAR, SCR, and PREP are NOT appropriate frameworks for this prompt. Do not recommend them.
+
+2. CORRECT CLOSE: A strong close is a forward-looking bridge — a brief statement of what's next, what the speaker is pursuing, or why it matters going forward. Examples: "…which is why I'm now looking for a role where I can [X]" or "…and that's what brought me to this conversation" or a stated ambition/goal for the work described. The close does NOT need to report a completed outcome, a proof point, or evidence that the effort "has worked" — if the prompt describes something ongoing or in progress, demanding proof of a finished result contradicts the prompt itself.
+
+3. STRICTLY PROHIBITED: Do NOT penalise or flag the absence of a resolved outcome, a "so what for me" proof point, or company-specific motivation ("why this company/role/now") — those belong to different questions and have no place in the structural evaluation of a narrative answer. Calling a missing proof point a gap here is a coaching error.
+
+4. MISSING CLOSE: If the narrative ends without any forward-looking statement at all — the speaker simply stops mid-story with no landing — flag it as: "The response ended without a forward-looking close. A brief statement of what comes next would give the listener a clear landing point."` : ""}
+
+${input.structureFamily === "vision" ? `FUTURE-FACING / VISION STRUCTURE (structureFamily: vision):
+This prompt explicitly asks the speaker to describe a future state or ambition (e.g. "what does success look like in three years," "where do you want to be"). It is not asking for a story or a completed achievement.
+
+1. CORRECT FRAMEWORK: Expect a clear picture of the future state, why it matters, and — optionally — a bridge to present-day action. A bold, unresolved ambition stated at the close (e.g. a specific goal, number, or milestone) IS the correct and expected ending for this prompt.
+
+2. STRICTLY PROHIBITED: Do NOT flag the absence of a completed result, a proof point, or evidence that the vision "has worked" or "has been achieved" — the prompt asks about the future, so nothing can yet be proven. Framing an unresolved ambition as an unfinished SCR arc is a coaching error for this prompt type.
+
+3. What IS a legitimate gap: vagueness about what the future state actually looks like, no clear "why it matters," or a vision with no connection at all to what the speaker is doing today.` : ""}
+
+${input.structureFamily === "rationale" ? `DIRECT-ANSWER / RATIONALE STRUCTURE (structureFamily: rationale):
+This prompt asks a direct question — an opinion, a self-assessment, a motivation, or a reflection — not a narrated story with a plot.
+
+1. CORRECT FRAMEWORK: Expect PREP-style point-first reasoning — a clear position stated early, followed by the reasoning or example that supports it. STAR and SCR are NOT appropriate frameworks here; do not recommend them or flag their absence.
+
+2. STRICTLY PROHIBITED: Do NOT flag the absence of a "situation," a narrated sequence of events, or a resolved "result" — this prompt was never asking for a story.
+
+3. What IS a legitimate gap: leading with reasoning before ever stating the actual point or position, or ending without ever landing on a clear answer to the question asked.` : ""}
+
+${input.interviewMode ? `CLOSING QUESTION RULE (interview mode, structure dimension only):
 If the speaker ends their answer with a genuine, substantive question directed back at the interviewer — an actual invitation for dialogue, not a rhetorical device — credit it as a structural strength. It is rare and signals intellectual confidence and curiosity. Examples of what qualifies: "What does success look like for this role in the first 90 days?" or "How does this team typically approach [topic the speaker just mentioned]?" Examples of what does NOT qualify: trailing check-ins ("…does that make sense?", "…right?") or rhetorical questions the speaker immediately answers themselves.
 
 When it qualifies: name it in strengthText as a structural choice, not just a nice moment — explain why it works ("it signals that you are engaged with their world, not just selling yourself").
 
-CRITICAL: Do NOT penalise or flag the absence of a closing question. This rule only fires when the behaviour is present. Never suggest the speaker should have asked a question if they did not.
-
-NARRATIVE PROMPT RULE — "TELL ME ABOUT YOURSELF" AND SIMILAR (interview mode, structure dimension only):
-When the prompt is a career narrative invitation — "Tell me about yourself", "Walk me through your background", "Tell me about your journey", "Introduce yourself", or any variation that asks for a self-introduction rather than a competency demonstration — apply the following rules:
-
-1. CORRECT FRAMEWORK: The expected structure is a narrative arc — Past → Present → Future or Present → Past → Future. STAR, SCR, and PREP are NOT appropriate frameworks for this question type. Do not recommend them here.
-
-2. CORRECT CLOSE: A strong close for this prompt is a forward-looking bridge — a brief statement of what the speaker is seeking next, what kind of challenge or move they are pursuing, or why they are in this conversation. Examples of a strong close: "…which is why I'm now looking for a role where I can [X]" or "…and that's what brought me to this conversation." The close does not need to name the company or explain company-specific motivation.
-
-3. STRICTLY PROHIBITED: Do NOT penalise or flag the absence of "why this company", "why now", or company-specific motivation in a "Tell me about yourself" answer. Those belong to a separate interview question ("Why are you interested in this role?" / "Why us?") and have no place in the structural evaluation of a self-introduction. Calling them out as a gap in this answer is a coaching error.
-
-4. MISSING CLOSE: If the narrative ends without any forward-looking statement — the speaker simply stops mid-story with no landing — flag it as: "The response ended without a forward-looking close. A brief statement of what you're looking for next would give the interviewer a clear bridge into the next part of the conversation."` : ""}
+CRITICAL: Do NOT penalise or flag the absence of a closing question. This rule only fires when the behaviour is present. Never suggest the speaker should have asked a question if they did not.` : ""}
 
 INTONATION — EMOTIONAL CONGRUENCE RULE:
 For the intonation dimension only, cross-reference SOURCE C (transcript) against SOURCE A (audio delivery analysis) to check whether the pitch and vocal energy carry the emotional weight of the words.

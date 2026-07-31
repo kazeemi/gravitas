@@ -8,7 +8,7 @@ import { sessionsTable, dimensionScoresTable, usersTable } from "@workspace/db";
 import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresence, type VideoPresenceResult } from "../lib/scoring.js";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { ensureCompatibleFormat, computeRmsMetrics, computeF0Metrics, type RmsMetrics, type F0Metrics } from "@workspace/integrations-openai-ai-server/audio";
-import { getPromptContext } from "./prompts.js";
+import { getPromptContext, getPromptStructureFamily } from "./prompts.js";
 import { cancelScheduledEmail } from "../lib/email.js";
 
 // Fallback allowance if a user row predates the per-user allowance column.
@@ -363,6 +363,7 @@ router.post(
           recordingContext: session.recordingContext || "seated",
           promptText: session.promptText || undefined,
           promptContext: getPromptContext(session.promptText || "") || undefined,
+          structureFamily: getPromptStructureFamily(session.promptText || ""),
           sessionNumber,
           previousCompositeScore,
           interviewMode: sessionUser?.interviewMode ?? false,

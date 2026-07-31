@@ -1016,7 +1016,9 @@ Facial expression (from presenceObservation): ${input.videoPresenceAnalysis.pres
 Gestures and posture: ${input.videoPresenceAnalysis.gestureObservation}
 Professional appearance / posture details: ${input.videoPresenceAnalysis.professionalAppearanceObservation}
 Overall visual presence: ${input.videoPresenceAnalysis.overallVisualPresence}`
-  : "[No video frame analysis available — visual dimensions (eye_contact, facial_expression, gestures, posture) cannot be assessed. Mark each as unavailable.]"}` : ""}
+  : "[No video frame analysis available — visual dimensions (eye_contact, facial_expression, gestures, posture) cannot be assessed. Mark each as unavailable.]"}
+
+GESTURE VOLUME SCORING RULE (gestures dimension only): The gesture observation above may describe two separate signals — gesture quality (well-formed vs fidgety/erratic) and gesture volume (how much of the recording was spent gesturing). These do NOT average together, and quality does NOT offset volume. If the observation describes gesture volume as constant, relentless, near-continuous, or consistently high with little to no stillness, that alone caps this dimension at 4 (Needs Focus / low Developing) regardless of how purposeful or well-formed the individual gestures were — relentless motion reads as anxious, ungrounded energy to a viewer even when each gesture is individually clean, and that experience is what this dimension measures. Do not let language praising gesture quality in the same observation pull the score back into Strong or Distinguished territory; a "yes, but constant" pattern is a low score with the quality noted as a secondary, smaller strength. Reserve Strong/Distinguished for sessions where gesturing is purposeful AND interspersed with genuine stillness — motion that has room to land because it is not continuous.` : ""}
 
 SOURCE C — TRANSCRIPT (use only for: confidence_language, structure, conciseness — do NOT use for audio or video dimensions):
 ${input.transcript ? `"${input.transcript}"` : "[No transcript captured]"}

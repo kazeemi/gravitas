@@ -243,6 +243,9 @@ export default function RecordPage() {
           p => p.sector !== undefined && (p.sector === sector || p.sector === "all")
         );
         if (interviewPool.length > 0) pool = interviewPool;
+      } else {
+        const workplacePool = data.prompts.filter(p => p.sector === undefined);
+        if (workplacePool.length > 0) pool = workplacePool;
       }
       setPrompts(pool);
       if (promptParam) {

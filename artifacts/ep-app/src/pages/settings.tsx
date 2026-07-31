@@ -87,8 +87,6 @@ export default function SettingsPage() {
 
   // ── Profile ──
   const [name, setName] = useState(user?.name || "");
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
   // ── Password ──
   const [currentPassword, setCurrentPassword] = useState("");
@@ -163,19 +161,6 @@ export default function SettingsPage() {
   const customCompaniesInList = selectedCompanies.filter(c => !knownCompanies.includes(c));
 
   // ── Handlers ──
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setSaved(false);
-    try {
-      await api.users.update({ name });
-      await refreshUser();
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch {}
-    setSaving(false);
-  };
-
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwError("");
@@ -207,6 +192,7 @@ export default function SettingsPage() {
         companies.push(companyCustom.trim());
       }
       await api.users.update({
+        name,
         educationLevel: educationLevel || null,
         workExperienceYears: workExperienceYears || null,
         primaryGoal: isInterview ? "interview_prep" : isWorkplace ? "workplace_presence" : null,
@@ -237,23 +223,6 @@ export default function SettingsPage() {
         <p className="mt-1 text-sm text-gray-500">Manage your account and preferences</p>
       </div>
 
-      {/* ── Profile ── */}
-      <section className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900">Profile</h2>
-        <form onSubmit={handleSaveProfile} className="space-y-4">
-          <div>
-            <Label htmlFor="name">Full name</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
-          </div>
-          <div className="flex items-center gap-3">
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Save changes"}
-            </Button>
-            {saved && <span className="text-sm text-[#C84A18]">Saved!</span>}
-          </div>
-        </form>
-      </section>
-
       {/* ── Coaching profile ── */}
       <section className="rounded-lg border border-gray-200 bg-white p-6 space-y-6">
         <div>
@@ -261,6 +230,12 @@ export default function SettingsPage() {
           <p className="text-sm text-gray-500 mt-1">
             Gravitas uses this to tailor your practice prompts and feedback.
           </p>
+        </div>
+
+        {/* Name */}
+        <div>
+          <Label htmlFor="name">Full name</Label>
+          <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
         </div>
 
         {/* Education */}

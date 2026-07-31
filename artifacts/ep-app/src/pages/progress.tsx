@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth-context";
+import { getRecordHref } from "@/lib/baseline";
 import { api, type SessionSummary } from "@/lib/api";
 import { getTierColors, DIMENSION_LABELS } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,7 @@ export default function ProgressPage() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   useEffect(() => {
     api.sessions.progress()
@@ -50,7 +53,7 @@ export default function ProgressPage() {
           <h1 className="text-2xl font-bold text-gray-900">Your progress</h1>
           <p className="mt-1 text-sm text-gray-500">Track your executive presence over time</p>
         </div>
-        <Button onClick={() => setLocation("/record")} className="gap-2">
+        <Button onClick={() => setLocation(getRecordHref(user))} className="gap-2">
           <PlusIcon className="h-4 w-4" />
           New session
         </Button>
@@ -61,7 +64,7 @@ export default function ProgressPage() {
       ) : sessions.length < 2 ? (
         <div className="rounded-lg border border-gray-200 bg-white py-16 text-center">
           <p className="text-sm text-gray-500">Complete at least 2 sessions to see your progress trend.</p>
-          <Button className="mt-4" variant="outline" onClick={() => setLocation("/record")}>
+          <Button className="mt-4" variant="outline" onClick={() => setLocation(getRecordHref(user))}>
             Start a session
           </Button>
         </div>

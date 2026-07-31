@@ -2,21 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
+import { BASELINE_PROMPTS } from "@/lib/baseline";
 
 const ONBOARDING_DRAFT_KEY = "gravitas_onboarding_draft";
-
-const BASELINE_PROMPTS = {
-  interview: {
-    prompt: "Tell me about yourself.",
-    instruction: "Take 30 seconds to think and structure your thoughts in your mind. Do not script it. Then speak as if you are opening a real interview. This is your starting point — not a test.",
-    duration: "90 seconds recommended",
-  },
-  workplace: {
-    prompt: "Walk me through a project you're currently working on and why it matters.",
-    instruction: "Take 30 seconds to think and structure your thoughts in your mind. Do not script it. Speak as if you are briefing a senior leader. This is your starting point — not a test.",
-    duration: "90 seconds recommended",
-  },
-};
 
 // ── Data constants ────────────────────────────────────────────────────────────
 

@@ -1,5 +1,6 @@
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
+import { getRecordHref } from "@/lib/baseline";
 import { LayoutDashboardIcon, MicIcon, SettingsIcon, LogOutIcon } from "lucide-react";
 
 const navItems = [
@@ -10,7 +11,8 @@ const navItems = [
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const hrefFor = (path: string) => (path === "/record" ? getRecordHref(user) : path);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -42,7 +44,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             return (
               <button
                 key={item.path}
-                onClick={() => setLocation(item.path)}
+                onClick={() => setLocation(hrefFor(item.path))}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                   active
                     ? "bg-accent font-medium text-accent-foreground"
@@ -92,7 +94,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             return (
               <button
                 key={item.path}
-                onClick={() => setLocation(item.path)}
+                onClick={() => setLocation(hrefFor(item.path))}
                 className={`flex flex-col items-center gap-0.5 rounded px-2 py-1 text-xs transition-colors ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
+import { getRecordHref } from "@/lib/baseline";
 import { api, type SessionSummary, type ChartSession } from "@/lib/api";
 import { computeHighestBadge } from "@/lib/badges";
 import { BadgeIcon } from "@/components/badge-icon";
@@ -392,7 +393,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <button
-          onClick={() => setLocation("/record")}
+          onClick={() => setLocation(getRecordHref(user))}
           className="flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80"
           style={{ background: "linear-gradient(120deg, #F0953E 0%, #C84A18 100%)" }}
         >
@@ -476,7 +477,7 @@ export default function DashboardPage() {
         ) : recent.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <p className="text-sm text-gray-500">No sessions yet.</p>
-            <Button onClick={() => setLocation("/record")} className="mt-4 gap-2" variant="outline">
+            <Button onClick={() => setLocation(getRecordHref(user))} className="mt-4 gap-2" variant="outline">
               <PlusIcon className="h-4 w-4" />
               Start your first session
             </Button>
@@ -491,7 +492,7 @@ export default function DashboardPage() {
       </div>
 
       <button
-        onClick={() => setLocation("/record")}
+        onClick={() => setLocation(getRecordHref(user))}
         className="group relative w-full overflow-hidden rounded-2xl px-8 py-7 text-left transition-opacity hover:opacity-90 active:opacity-80"
         style={{ background: "linear-gradient(120deg, #F0953E 0%, #C84A18 100%)" }}
       >

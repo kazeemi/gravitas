@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useAuth } from "@/lib/auth-context";
+import { getRecordHref } from "@/lib/baseline";
 import { Button } from "@/components/ui/button";
 
 type State = "loading" | "success" | "expired" | "error";
@@ -9,7 +10,7 @@ export default function RestoreAccountPage() {
   const [state, setState] = useState<State>("loading");
   const search = useSearch();
   const token = new URLSearchParams(search).get("token");
-  const { loginWithToken } = useAuth();
+  const { loginWithToken, user } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function RestoreAccountPage() {
               Your account has been fully restored. All your sessions and progress are exactly as you left them.
             </p>
             <Button
-              onClick={() => setLocation("/record")}
+              onClick={() => setLocation(getRecordHref(user))}
               className="w-full mt-2"
               style={{ background: "linear-gradient(120deg,#F0953E 0%,#C84A18 100%)" }}
             >

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth-context";
+import { getRecordHref } from "@/lib/baseline";
 import { api, type SessionSummary } from "@/lib/api";
 import { getTierColors } from "@/lib/tier-colors";
 import { Button } from "@/components/ui/button";
@@ -10,6 +12,7 @@ export default function HistoryPage() {
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
 
   const load = () => {
     api.sessions.list()
@@ -34,7 +37,7 @@ export default function HistoryPage() {
           <h1 className="text-2xl font-bold text-gray-900">Session history</h1>
           <p className="mt-1 text-sm text-gray-500">All your recorded sessions</p>
         </div>
-        <Button onClick={() => setLocation("/record")} className="gap-2">
+        <Button onClick={() => setLocation(getRecordHref(user))} className="gap-2">
           <PlusIcon className="h-4 w-4" />
           New session
         </Button>
@@ -45,7 +48,7 @@ export default function HistoryPage() {
       ) : sessions.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-sm text-gray-500">No sessions yet.</p>
-          <Button className="mt-4" variant="outline" onClick={() => setLocation("/record")}>
+          <Button className="mt-4" variant="outline" onClick={() => setLocation(getRecordHref(user))}>
             Start your first session
           </Button>
         </div>

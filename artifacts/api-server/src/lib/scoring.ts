@@ -275,8 +275,19 @@ export interface VideoPresenceResult {
   // dimension is excluded from scoring rather than guessed at.
   eyeContactObservable: boolean;
   eyeContactObservation: string;
+  // False only when hands/arms never appear gesturing in any analyzed image —
+  // occasional or partial visibility is enough for this to stay true. Unlike
+  // eye_contact, gestures is never dropped: total absence is itself scored
+  // (forced to 1) rather than excluded, since it reflects a real behaviour
+  // (no visible gesturing) rather than a missing signal.
+  handsEverVisible: boolean;
   gestureObservation: string;
   presenceObservation: string;
+  // False when shoulders/upper torso were not visible in most analyzed images.
+  // Like handsEverVisible, this is never dropped from scoring — it forces the
+  // posture score to 1, since framing yourself so posture can't be seen is
+  // itself something the speaker should be told to address.
+  shouldersVisible: boolean;
   professionalAppearanceObservation: string;
   overallVisualPresence: string;
   framesAnalyzed: number;
@@ -597,11 +608,11 @@ export async function analyzeVideoPresence(
 You are a senior executive presence coach reviewing a series of ${frames.length} video frames captured at regular intervals during a ${recordingContext || "seated"} presentation. Analyze ONLY what you can directly observe in the images. Be specific and honest.
 
 CALIBRATE YOUR CERTAINTY TO YOUR SAMPLE SIZE: you are working from ${frames.length} still images sampled across the recording, not continuous footage. ${frames.length < 8
-  ? "This is a small sample. Use tentative, hedged language throughout (e.g. \"in the moments captured, ...\", \"the images available suggest...\") and avoid absolute or continuous-sounding claims (e.g. \"consistently\", \"throughout\", \"the whole time\")."
+  ? "This is a small sample. Use tentative, hedged language (e.g. \"in the moments captured, ...\", \"what's available suggests...\")."
   : frames.length < 15
-  ? "This is a moderate sample. You may describe general patterns, but qualify strong or absolute claims (e.g. prefer \"for most of the moments captured\" over \"throughout\" or \"consistently\")."
-  : "This is a solid sample. You may describe overall patterns with normal confidence, but still ground claims in what was actually observed rather than implying frame-by-frame continuity."
-} Never claim to have observed something continuously if you only have periodic snapshots — describe what the sampled moments show, not what happened between them.
+  ? "This is a moderate sample. You may describe general patterns, but qualify strong claims (e.g. prefer \"at multiple points\" over an absolute claim)."
+  : "This is a solid sample. You may describe overall patterns with normal confidence, but still ground claims in what was actually observed rather than implying continuous coverage."
+} Regardless of sample size, never use "always", "never", "consistently", "throughout", or "constantly" — describe what the sampled moments show using phrasing like "at multiple points", "at times", "on occasion", not what happened continuously between them.
 
 Assess the following four areas based solely on what you see in the frames:
 
@@ -618,7 +629,7 @@ Never produce a confident-sounding gaze assessment from head pose. Guessing here
 
 Only if eyeContactObservable is true, proceed with the classification below.
 
-Scoring guidance: DIRECT and SCREEN both count as good eye contact — a speaker whose gaze stays on the screen/display throughout should score well on this dimension, just as if they were looking at the camera lens itself. Do NOT penalise screen-directed gaze as a deficiency or treat DIRECT as a higher-value tier than SCREEN. Only OFF (gaze wandering away from both the camera and the screen — to the room, the ceiling, a desk, etc.) represents an actual eye contact gap and should bring the score down. When uncertain between DIRECT and SCREEN, classify as SCREEN; when uncertain between SCREEN and OFF, classify based on whether the gaze is still oriented toward the screen/device (SCREEN) or has left it entirely (OFF). Describe the overall pattern in plain, qualitative terms only (e.g. "throughout most of the recording", "at several points", "consistently") — never as a numeric tally, count, or proportion (e.g. do NOT write "13 of 16", "roughly 80% of moments", or any "X out of Y" phrasing). The viewer only needs to know how the gaze read, not how many samples were analysed. Feedback may still gently suggest looking at the camera lens for an extra layer of polish, but this should never be framed as a fault or cost the speaker a strong score if their gaze was on the screen. Do NOT mention "frames" or image numbers.
+Scoring guidance: DIRECT and SCREEN both count as good eye contact — a speaker whose gaze stays on the screen/display throughout should score well on this dimension, just as if they were looking at the camera lens itself. Do NOT penalise screen-directed gaze as a deficiency or treat DIRECT as a higher-value tier than SCREEN. Only OFF (gaze wandering away from both the camera and the screen — to the room, the ceiling, a desk, etc.) represents an actual eye contact gap and should bring the score down. When uncertain between DIRECT and SCREEN, classify as SCREEN; when uncertain between SCREEN and OFF, classify based on whether the gaze is still oriented toward the screen/device (SCREEN) or has left it entirely (OFF). Describe the overall pattern in plain, qualitative terms only (e.g. "at several points", "on occasion", "during parts of the recording") — never as a numeric tally, count, or proportion (e.g. do NOT write "13 of 16", "roughly 80% of moments", or any "X out of Y" phrasing), and never with absolutist words like "throughout" or "consistently". The viewer only needs to know how the gaze read, not how many samples were analysed. Feedback may still gently suggest looking at the camera lens for an extra layer of polish, but this should never be framed as a fault or cost the speaker a strong score if their gaze was on the screen. Do NOT mention "frames" or image numbers.
 
 2. FACIAL EXPRESSION: Is the expression flat, neutral, warm, animated, or incongruent with what appears to be serious content? Does the face convey genuine engagement? Is there visible tension (tight jaw, pressed lips, furrowed brow) or warmth? Does expression vary across the recording to match content importance?
 
@@ -629,6 +640,8 @@ ANIMATION INTENSITY — SEPARATE FROM WARMTH/CONGRUENCE: More animation is not a
 
 3. GESTURES: Are hand or arm gestures visible? Classify each as: purposeful (emphasise points, enumerate ideas), neutral (hands still or naturally positioned), or distracting (fidgeting, self-touching, erratic movement). Note posture — open vs closed body position.
 
+HANDS VISIBILITY: It is fine for hands to be out of frame some or even most of the time — only set "handsEverVisible" to false if hands are not visible gesturing in ANY of the images provided. If hands appear and gesture in even one image, set "handsEverVisible" to true and score gesture quality/volume normally from whatever is visible. If "handsEverVisible" is false, do not describe gesture quality or volume — instead, "gestureObservation" should state plainly that no hand or arm movement was visible at any point in the recording, and note that this itself is a meaningful gap: visible gesturing is part of how executive presence reads on camera, and its total absence should be treated as a real weakness to address, not a neutral non-event.
+
 GESTURE VOLUME — SEPARATE FROM GESTURE QUALITY: A gesture can be well-formed (open palm, clear counting, purposeful framing) and still be a problem purely because of how much of the recording it occupies. Relentless, near-continuous gesturing with little to no stillness reads as anxious or manic energy, regardless of how clean each individual gesture looks. Assess this as its own signal, separate from whether individual gestures are purposeful or distracting in form.
 - Only describe the volume as "constant", "relentless", or "rarely still" if a clear majority of ALL the images you were given show hands actively gesturing. Do not generalise a volume judgment from a handful of frames, and do not let a few energetic images stand in for the whole session.
 - If the images show a genuine mix — some gesturing, some stillness — describe it neutrally as a moderate or varied pattern. Do not round a mixed pattern up to "constant" or down to "minimal".
@@ -636,7 +649,9 @@ GESTURE VOLUME — SEPARATE FROM GESTURE QUALITY: A gesture can be well-formed (
 
 SELF-TOUCH — REQUIRES RESTING CONTACT, NOT PROXIMITY: A hand near the face, neck, or hair is not, by itself, self-touching — it is extremely common for a purposeful gesture (framing an idea, counting, an open-palm emphasis) to pass through that space. Only classify something as self-touching, grooming, or self-soothing when the hand shape and position show genuine static contact: fingers curled or resting against skin/hair/collar in a shape inconsistent with an active gesture (not open-palmed, not pointing, not mid-count), ideally appearing in more than one sampled image in a similar resting position. If you are not confident the contact is resting rather than transiting through an active gesture, do NOT report it as self-touching — describe the moment as a gesture instead, or say nothing about it. Do not let the vocabulary of this category ("self-touching", "neckline", "grooming") lead you to search for it in ambiguous frames — absence of evidence is the default, not a fallback.
 
-4. POSTURE: Is the speaker upright, open, and settled? Or slumped, tense, or physically withdrawn? Is there evidence of deliberate forward lean on key moments? Is posture consistent throughout the recording?
+4. POSTURE: Is the speaker upright, open, and settled? Or slumped, tense, or physically withdrawn? Is there evidence of deliberate forward lean on key moments?
+
+SHOULDER VISIBILITY: Posture can only be judged if the shoulders/upper torso are actually visible. Set "shouldersVisible" to false if the shoulders/upper torso are not visible in most of the images (e.g. the camera is framed too tight on the face, or the speaker is positioned so their upper body is out of shot). If "shouldersVisible" is false, do not describe posture quality at all — instead, "professionalAppearanceObservation" should state plainly that the shoulders/upper body were not in frame for this recording, and note that this itself is on the speaker to fix: how you frame the camera is part of showing up prepared, and a tightly cropped or badly positioned shot should be named as something to correct next time, not treated as a neutral technical limitation.
 
 ABSOLUTE PROHIBITION — APPEARANCE, IDENTITY, AND CULTURE:
 Assess only what the speaker is DOING — where they are looking, how they are holding themselves, how they are moving, what their face is expressing. Never assess how they LOOK.
@@ -647,16 +662,18 @@ WRONG: "The sunglasses on your head and casual sweatshirt read as informal for a
 WRONG: "A more formal collared shirt would strengthen your presence."
 RIGHT: "You held an upright, open position throughout, with a slight forward lean as you made your central point."
 
-CRITICAL LANGUAGE RULE: Your written observations must NEVER use the words "frame", "frames", "image", or image numbers (e.g. "frame 6", "in image 3"). Describe everything in plain, user-friendly language as if you are a human coach who watched a video — use terms like "throughout your recording", "at several points during your session", "consistently", "for most of the session", "at times", etc.
+CRITICAL LANGUAGE RULE: Your written observations must NEVER use the words "frame", "frames", "image", or image numbers (e.g. "frame 6", "in image 3") — the viewer does not care how the recording was sampled, only what it showed. Separately, because you are working from periodic stills rather than continuous footage, NEVER use absolutist or continuity-implying words: "always", "never", "consistently", "throughout", "constantly". Use sampling-honest, plain-language alternatives instead: "at multiple points", "at times", "on occasion", "during parts of the recording", "in several moments". This applies to every observation field below.
 
 Return your analysis as a JSON object with these exact keys:
 {
   "eyeContactObservable": <true only if the speaker's eyes are visible clearly enough to tell where their gaze is directed in most of the images; false otherwise>,
-  "eyeContactObservation": "if eyeContactObservable is true: gaze pattern described in plain qualitative language only (remembering DIRECT and SCREEN both count as good eye contact and only OFF is a gap), description of gaze direction and consistency, quality of engagement with the viewer. NEVER express the pattern as a count, tally, or proportion (no 'X of Y', no percentages, no fractions) — describe frequency only in words like 'consistently', 'at several points', 'occasionally'. If false: one neutral factual sentence that their eyes were not visible so gaze could not be assessed, with no cause named if the cause is something worn, and no gaze pattern claimed — NO frame numbers",
-  "gestureObservation": "specific description of gesture types observed, whether purposeful or distracting IN FORM, PLUS a separate volume/frequency read (constant/relentless vs moderate/varied vs minimal — only when the evidence threshold above is met), body openness/closedness. Only mention self-touching if the resting-contact bar above is met — otherwise do not mention it at all. NO frame numbers",
-  "presenceObservation": "specific description of facial expression throughout the recording — range, congruence, warmth, tension signals, engagement quality, PLUS a separate animation-intensity read (exaggerated/theatrical vs measured/proportionate — only when the evidence threshold above is met) — NO frame numbers",
-  "professionalAppearanceObservation": "specific assessment of POSTURE ONLY (upright/settled vs slumped/tense, open vs closed, forward lean on key moments, consistency) — say nothing about clothing, grooming, hair, accessories, physical features, or background — NO frame numbers",
-  "overallVisualPresence": "2-sentence summary of the speaker's overall visual executive presence — NO frame numbers"
+  "eyeContactObservation": "if eyeContactObservable is true: gaze pattern described in plain qualitative language only (remembering DIRECT and SCREEN both count as good eye contact and only OFF is a gap), description of gaze direction, quality of engagement with the viewer. NEVER express the pattern as a count, tally, or proportion (no 'X of Y', no percentages, no fractions) — describe frequency only in words like 'at several points', 'on occasion'. If false: one neutral factual sentence that their eyes were not visible so gaze could not be assessed, with no cause named if the cause is something worn, and no gaze pattern claimed — NO frame numbers, NO absolutist words",
+  "handsEverVisible": <true if hands/arms appear gesturing in at least one image, however briefly; false only if hands never appear gesturing in any image provided>,
+  "gestureObservation": "if handsEverVisible is true: specific description of gesture types observed, whether purposeful or distracting IN FORM, PLUS a separate volume/frequency read (constant/relentless vs moderate/varied vs minimal — only when the evidence threshold above is met), body openness/closedness. Only mention self-touching if the resting-contact bar above is met — otherwise do not mention it at all. If handsEverVisible is false: one direct sentence stating no hand or arm movement was visible at any point, framed as a real gap in executive presence, not a neutral limitation. NO frame numbers, NO absolutist words",
+  "presenceObservation": "specific description of facial expression across the recording — range, congruence, warmth, tension signals, engagement quality, PLUS a separate animation-intensity read (exaggerated/theatrical vs measured/proportionate — only when the evidence threshold above is met) — NO frame numbers, NO absolutist words",
+  "shouldersVisible": <true only if the speaker's shoulders/upper torso are visible in most of the images; false otherwise>,
+  "professionalAppearanceObservation": "if shouldersVisible is true: specific assessment of POSTURE ONLY (upright/settled vs slumped/tense, open vs closed, forward lean on key moments) — say nothing about clothing, grooming, hair, accessories, physical features, or background. If shouldersVisible is false: one direct sentence stating the shoulders/upper body were not in frame so posture could not be assessed, framed as something to correct in how the camera is set up next time, not a neutral limitation. NO frame numbers, NO absolutist words",
+  "overallVisualPresence": "2-sentence summary of the speaker's overall visual executive presence — NO frame numbers, NO absolutist words"
 }`;
 
   const imageContent = frames.map(frame => ({
@@ -707,8 +724,12 @@ Return your analysis as a JSON object with these exact keys:
         // dimension for every session.
         eyeContactObservable: parsed.eyeContactObservable !== false,
         eyeContactObservation: String(parsed.eyeContactObservation || ""),
+        // Absent key defaults to true (observable) for the same
+        // don't-silently-change-past-behaviour reason as eyeContactObservable.
+        handsEverVisible: parsed.handsEverVisible !== false,
         gestureObservation: String(parsed.gestureObservation || ""),
         presenceObservation: String(parsed.presenceObservation || ""),
+        shouldersVisible: parsed.shouldersVisible !== false,
         professionalAppearanceObservation: String(parsed.professionalAppearanceObservation || ""),
         overallVisualPresence: String(parsed.overallVisualPresence || ""),
         framesAnalyzed: frames.length,
@@ -1035,8 +1056,12 @@ Eye contact: ${input.videoPresenceAnalysis.eyeContactObservable
     ? input.videoPresenceAnalysis.eyeContactObservation
     : `[NOT OBSERVABLE — the speaker's eyes were not visible in this recording, so gaze could not be assessed. The eye_contact dimension has been removed from the dimension list below and is excluded from the composite score. Do NOT score it, do NOT write feedback for it, and do NOT infer gaze from head or face orientation. Do not reference eye contact, gaze, or camera connection anywhere in your summary, priority action, or any other dimension's feedback.]`}
 Facial expression (from presenceObservation): ${input.videoPresenceAnalysis.presenceObservation}
-Gestures and posture: ${input.videoPresenceAnalysis.gestureObservation}
-Professional appearance / posture details: ${input.videoPresenceAnalysis.professionalAppearanceObservation}
+Gestures: ${input.videoPresenceAnalysis.handsEverVisible
+    ? input.videoPresenceAnalysis.gestureObservation
+    : `[NO HANDS EVER VISIBLE — hands/arms did not appear gesturing in any analyzed image. This is a real gap, not a missing signal: score gestures at 1 and write gapText/nextStepText explaining that no visible gesturing means the speaker isn't using hand movement to reinforce their points on camera, and that framing themselves so hands are visible is the fix.]`}
+Posture: ${input.videoPresenceAnalysis.shouldersVisible
+    ? input.videoPresenceAnalysis.professionalAppearanceObservation
+    : `[SHOULDERS NOT VISIBLE — the upper body was not in frame for this recording. This is a real gap, not a missing signal: score posture at 1 and write gapText/nextStepText explaining that the camera framing excluded the shoulders/upper body, so posture couldn't register, and that this is on the speaker to fix by framing the shot from the chest/shoulders up.]`}
 Overall visual presence: ${input.videoPresenceAnalysis.overallVisualPresence}`
   : "[No video frame analysis available — visual dimensions (eye_contact, facial_expression, gestures, posture) cannot be assessed. Mark each as unavailable.]"}
 
@@ -1211,8 +1236,22 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
 
   const aiResult = await runAIEvaluation(input, dimensions, context);
 
+  // Unlike eye_contact (dropped from scoring when unobservable), total absence
+  // of shoulders/hands is itself a real, scorable behaviour — poor framing or
+  // a genuine lack of gesturing — so these are forced to the lowest score
+  // rather than trusted to the second LLM call, which only sees the vision
+  // pass's text and may not reliably apply a 1/10.
+  const shouldersUnobservable =
+    input.mode === "video" &&
+    input.videoPresenceAnalysis != null &&
+    input.videoPresenceAnalysis.shouldersVisible === false;
+  const handsNeverVisible =
+    input.mode === "video" &&
+    input.videoPresenceAnalysis != null &&
+    input.videoPresenceAnalysis.handsEverVisible === false;
+
   const dimensionResults: DimensionResult[] = dimensions.map(key => {
-    const aiDim = aiResult.dimensions[key] ?? {
+    let aiDim = aiResult.dimensions[key] ?? {
       score: 3,
       // No strength claimed on the fallback path — there is no evidence to
       // base one on, and inventing one is exactly what we are removing.
@@ -1220,6 +1259,23 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
       gapText: `${DIMENSION_LABELS[key]} needs significant development.`,
       nextStepText: `Focus on ${DIMENSION_LABELS[key]} in your next session.`,
     };
+
+    if (key === "posture" && shouldersUnobservable) {
+      aiDim = {
+        score: 1,
+        strengthText: null,
+        gapText: "Your shoulders and upper body weren't visible in this recording, so posture couldn't be read as open or upright. That's a framing issue, and it counts against you — viewers form judgments about presence partly from visible body language, and none was available here.",
+        nextStepText: "In your next recording, frame the camera so your shoulders and upper torso are in view — that's what lets your posture actually register.",
+      };
+    }
+    if (key === "gestures" && handsNeverVisible) {
+      aiDim = {
+        score: 1,
+        strengthText: null,
+        gapText: "Your hands weren't visible at any point in this recording, so no gesturing could be observed. That reads as static — hand movement is part of how executive presence comes through on camera, and its total absence is a real gap, not a neutral limitation.",
+        nextStepText: "In your next recording, frame yourself so your hands are visible, and notice whether you naturally gesture as you make your key points.",
+      };
+    }
 
     const score = Math.round(Math.min(10, Math.max(1, aiDim.score)));
     const tier = scoreToTier(score);

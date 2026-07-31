@@ -489,7 +489,7 @@ export async function speechToText(
 export async function speechToTextWithTiming(
   audioBuffer: Buffer,
   format: CompatibleFormat = "wav"
-): Promise<{ text: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null; wpmWindows: WpmWindow[] | null }> {
+): Promise<{ text: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null; wpmWindows: WpmWindow[] | null; model: string }> {
   const file = await toFile(audioBuffer, `audio.${format}`);
   try {
     const response = await openai.audio.transcriptions.create({
@@ -520,7 +520,7 @@ export async function speechToTextWithTiming(
     const pauseMetrics = computePauseMetrics(words, text);
     const wpmWindows = words.length > 0 ? computeWpmWindows(words) : null;
 
-    return { text, speechDurationSeconds, pauseMetrics, wpmWindows };
+    return { text, speechDurationSeconds, pauseMetrics, wpmWindows, model: "whisper-1" };
   } catch (err) {
     // A real failure here (not a capability gap) should be visible — it wasn't
     // before, which is how the bug above went unnoticed for as long as it did.
@@ -530,7 +530,7 @@ export async function speechToTextWithTiming(
       file: file2,
       model: "gpt-4o-mini-transcribe-2025-12-15",
     });
-    return { text: response.text, speechDurationSeconds: null, pauseMetrics: null, wpmWindows: null };
+    return { text: response.text, speechDurationSeconds: null, pauseMetrics: null, wpmWindows: null, model: "gpt-4o-mini-transcribe-2025-12-15 (fallback)" };
   }
 }
 

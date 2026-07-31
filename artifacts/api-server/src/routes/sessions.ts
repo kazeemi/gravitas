@@ -214,7 +214,8 @@ router.post(
             ? analyzeVideoPresence(
                 videoFrames,
                 session.promptText || undefined,
-                session.recordingContext || "seated"
+                session.recordingContext || "seated",
+                session.id
               ).then(result => {
                 logger.info({ sessionId: session.id }, "video presence analysis complete");
                 return result;
@@ -245,8 +246,8 @@ router.post(
           }
 
           const [transcriptResult, deliveryResult] = await Promise.allSettled([
-            transcribeAudio(wavBuffer),
-            analyzeAudioDelivery(wavBuffer, format, session.promptText || undefined),
+            transcribeAudio(wavBuffer, session.id),
+            analyzeAudioDelivery(wavBuffer, format, session.promptText || undefined, session.id),
           ]);
 
           if (transcriptResult.status === "fulfilled") {
@@ -340,6 +341,7 @@ router.post(
             : null;
 
         const result = await scoreSession({
+          sessionId: session.id,
           mode: session.mode as "audio" | "video",
           durationSeconds,
           speechDurationSeconds,

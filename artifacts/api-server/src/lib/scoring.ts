@@ -294,6 +294,7 @@ function deriveVisualConfidence(framesAnalyzed: number): "low" | "medium" | "hig
 }
 
 export interface ScoringInput {
+  sessionId?: string;
   mode: "audio" | "video";
   durationSeconds: number;
   speechDurationSeconds?: number | null;
@@ -383,9 +384,11 @@ interface AIEvalResult {
 export async function analyzeAudioDelivery(
   audioBuffer: Buffer,
   format: CompatibleFormat,
-  promptText?: string
+  promptText?: string,
+  sessionId?: string
 ): Promise<AudioDeliveryResult> {
   const audioBase64 = audioBuffer.toString("base64");
+  const t0 = Date.now();
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}
 
@@ -478,18 +481,17 @@ Return JSON with exactly these keys:
 
     let response: Awaited<ReturnType<typeof requestAnalysis>> | null = null;
     let usedModel = "";
+    let attemptsUsed = 0;
 
     for (const [attempt, model] of AUDIO_ATTEMPTS.entries()) {
       const candidate = await requestAnalysis(model);
+      attemptsUsed = attempt + 1;
       if (hasJson(candidate)) {
         response = candidate;
         usedModel = model;
-        if (attempt > 0) {
-          console.warn(`audio delivery analysis succeeded on attempt ${attempt + 1} with ${model}`);
-        }
         break;
       }
-      console.warn(`${model} returned no JSON on attempt ${attempt + 1} (intermittent refusal)`);
+      logger.warn({ session_id: sessionId, ai_call: "audio-delivery", model, attempt: attempt + 1 }, "audio delivery analysis refused, retrying");
     }
 
     if (!response) {
@@ -498,9 +500,13 @@ Return JSON with exactly these keys:
       // would send the user into a loop that can never succeed. The session
       // keeps the locally-computed acoustic metrics; this failure is for us to
       // see in the logs and the canary, not for them to act on.
-      console.error(
-        `audio delivery analysis unavailable after ${AUDIO_ATTEMPTS.length} attempts across ${new Set(AUDIO_ATTEMPTS).size} model(s)`
-      );
+      logger.error({
+        session_id: sessionId,
+        ai_call: "audio-delivery",
+        attempts: AUDIO_ATTEMPTS.length,
+        models_tried: new Set(AUDIO_ATTEMPTS).size,
+        elapsed_ms: Date.now() - t0,
+      }, "audio delivery analysis unavailable after all attempts");
       return {
         analysisText: "",
         pitchVariationScore: null,
@@ -512,11 +518,14 @@ Return JSON with exactly these keys:
         fillerWordObservation: null,
       };
     }
-    console.log(`audio delivery analysis produced by ${usedModel}`);
 
     const u = response.usage as Record<string, unknown> | undefined;
     logger.info({
-      ai_call: usedModel,
+      session_id: sessionId,
+      ai_call: "audio-delivery",
+      model: usedModel,
+      attempts: attemptsUsed,
+      elapsed_ms: Date.now() - t0,
       prompt_tokens: u?.prompt_tokens,
       completion_tokens: u?.completion_tokens,
       total_tokens: u?.total_tokens,
@@ -556,7 +565,7 @@ Return JSON with exactly these keys:
 
     return { analysisText: rawText, pitchVariationScore, breathingScore, breathingObservation, clarityFlags, professionalLanguageFlags, fillerWordCount, fillerWordObservation };
   } catch (err) {
-    console.error("gpt-audio delivery analysis failed:", err);
+    logger.error({ session_id: sessionId, ai_call: "audio-delivery", err, elapsed_ms: Date.now() - t0 }, "gpt-audio delivery analysis failed");
     return { analysisText: "", pitchVariationScore: null, breathingScore: null, breathingObservation: null, clarityFlags: null, professionalLanguageFlags: null, fillerWordCount: null, fillerWordObservation: null };
   }
 }
@@ -568,8 +577,10 @@ Return JSON with exactly these keys:
 export async function analyzeVideoPresence(
   frameBase64Array: string[],
   promptText?: string,
-  recordingContext?: string
+  recordingContext?: string,
+  sessionId?: string
 ): Promise<VideoPresenceResult> {
+  const t0 = Date.now();
   // Analyze every frame that was captured, so longer recordings get
   // proportionally more coverage instead of being squeezed into a fixed
   // sample size. Only fall back to even downsampling for unusually long
@@ -673,7 +684,10 @@ Return your analysis as a JSON object with these exact keys:
     });
 
     logger.info({
+      session_id: sessionId,
       ai_call: "claude-vision",
+      model: "claude-sonnet-4-6",
+      elapsed_ms: Date.now() - t0,
       input_tokens: response.usage.input_tokens,
       output_tokens: response.usage.output_tokens,
       frames_sent: frames.length,
@@ -703,7 +717,7 @@ Return your analysis as a JSON object with these exact keys:
     }
     throw new Error("No JSON found in vision response");
   } catch (err) {
-    console.error("Video presence analysis failed:", err);
+    logger.error({ session_id: sessionId, ai_call: "claude-vision", err, elapsed_ms: Date.now() - t0 }, "video presence analysis failed");
     throw err;
   }
 }
@@ -713,20 +727,23 @@ Return your analysis as a JSON object with these exact keys:
 // ============================================================
 
 export async function transcribeAudio(
-  audioBuffer: Buffer
+  audioBuffer: Buffer,
+  sessionId?: string
 ): Promise<{ transcript: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null; wpmWindows: WpmWindow[] | null }> {
   const { buffer, format } = await ensureCompatibleFormat(audioBuffer);
   const t0 = Date.now();
   const result = await speechToTextWithTiming(buffer, format);
   const elapsedMs = Date.now() - t0;
   logger.info({
-    ai_call: "gpt-4o-mini-transcribe",
+    session_id: sessionId,
+    ai_call: "transcription",
+    model: result.model,
     audio_bytes: buffer.length,
     audio_mb: Math.round(buffer.length / 1024 / 1024 * 100) / 100,
     speech_duration_seconds: result.speechDurationSeconds,
     elapsed_ms: elapsedMs,
     word_count: result.text ? result.text.trim().split(/\s+/).filter(Boolean).length : 0,
-  }, "gpt-4o-mini-transcribe usage");
+  }, "transcription usage");
   return {
     transcript: result.text,
     speechDurationSeconds: result.speechDurationSeconds,
@@ -1095,6 +1112,7 @@ Return a JSON object (no markdown, no code fences):
 }`;
 
   try {
+    const t0 = Date.now();
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 4500,
@@ -1103,7 +1121,10 @@ Return a JSON object (no markdown, no code fences):
     });
 
     logger.info({
+      session_id: input.sessionId,
       ai_call: "claude-scoring",
+      model: "claude-sonnet-4-6",
+      elapsed_ms: Date.now() - t0,
       input_tokens: message.usage.input_tokens,
       output_tokens: message.usage.output_tokens,
     }, "claude-scoring usage");

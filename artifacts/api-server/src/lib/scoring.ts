@@ -282,6 +282,11 @@ export interface VideoPresenceResult {
   // (no visible gesturing) rather than a missing signal.
   handsEverVisible: boolean;
   gestureObservation: string;
+  // False when the mouth/jaw/lower face was not visible in most analyzed
+  // images (e.g. a crop showing only forehead/eyes). Like shouldersVisible,
+  // this forces facial_expression to score 1 rather than being dropped —
+  // the speaker can fix their framing, so it's told to them directly.
+  lowerFaceVisible: boolean;
   presenceObservation: string;
   // False when shoulders/upper torso were not visible in most analyzed images.
   // Like handsEverVisible, this is never dropped from scoring — it forces the
@@ -631,7 +636,15 @@ Only if eyeContactObservable is true, proceed with the classification below.
 
 Scoring guidance: DIRECT and SCREEN both count as good eye contact — a speaker whose gaze stays on the screen/display throughout should score well on this dimension, just as if they were looking at the camera lens itself. Do NOT penalise screen-directed gaze as a deficiency or treat DIRECT as a higher-value tier than SCREEN. Only OFF (gaze wandering away from both the camera and the screen — to the room, the ceiling, a desk, etc.) represents an actual eye contact gap and should bring the score down. When uncertain between DIRECT and SCREEN, classify as SCREEN; when uncertain between SCREEN and OFF, classify based on whether the gaze is still oriented toward the screen/device (SCREEN) or has left it entirely (OFF). Describe the overall pattern in plain, qualitative terms only (e.g. "at several points", "on occasion", "during parts of the recording") — never as a numeric tally, count, or proportion (e.g. do NOT write "13 of 16", "roughly 80% of moments", or any "X out of Y" phrasing), and never with absolutist words like "throughout" or "consistently". The viewer only needs to know how the gaze read, not how many samples were analysed. Feedback may still gently suggest looking at the camera lens for an extra layer of polish, but this should never be framed as a fault or cost the speaker a strong score if their gaze was on the screen. Do NOT mention "frames" or image numbers.
 
-2. FACIAL EXPRESSION: Is the expression flat, neutral, warm, animated, or incongruent with what appears to be serious content? Does the face convey genuine engagement? Is there visible tension (tight jaw, pressed lips, furrowed brow) or warmth? Does expression vary across the recording to match content importance?
+2. FACIAL EXPRESSION: Is the expression flat, neutral, warm, animated, or incongruent with what appears to be serious content? Does the face convey genuine engagement? Is there visible tension (tight jaw, pressed lips, furrowed brow) or warmth? Does expression vary to match content importance?
+
+VISIBILITY GATE — CHECK THIS FIRST, BEFORE ASSESSING EXPRESSION AT ALL:
+Facial expression can only be judged if the lower face — mouth, lips, jaw, cheeks — is actually visible. Forehead, eyebrows, and eyes alone are NOT enough: warmth, tension, and congruence with what's being said show up mainly in the mouth and jaw, and a person can have furrowed brows while smiling or a relaxed brow while tense-jawed.
+Set "lowerFaceVisible" to false if the mouth/jaw/lower face is not clearly visible in most of the images — including when the shot is cropped so only the forehead/eyes are in view, the camera is angled from below or above, or the lower face is otherwise cut off or obscured.
+If "lowerFaceVisible" is false: set "presenceObservation" to one neutral, factual sentence stating that the lower face was not visible in this recording so expression could not be assessed. Do NOT describe warmth, tension, congruence, or animation, and do NOT infer expression from the eyes/eyebrows alone. This should still be named as something for the speaker to fix — framing the camera to capture the full face is within their control — but it must not be dressed up as an expression observation.
+Never produce a confident-sounding expression assessment when the mouth/jaw aren't in view. Guessing here from eyes/eyebrows alone is a worse failure than correctly reporting that expression could not be assessed.
+
+Only if lowerFaceVisible is true, proceed with the assessment below.
 
 ANIMATION INTENSITY — SEPARATE FROM WARMTH/CONGRUENCE: More animation is not automatically better. An expression can be warm and clearly congruent with the content and still be a problem if it is disproportionate to what's being said — exaggerated, theatrical, or erratic facial movement (wide eyes, big reactions, constant eyebrow or mouth movement) that reads as performative or unnatural rather than genuinely engaged. Assess this as its own signal, separate from warmth and congruence.
 - Only describe the expression as "exaggerated", "theatrical", or "overly animated" if a clear majority of ALL the images you were given show this pattern. Do not generalise from a handful of expressive frames, and do not let a few animated images stand in for the whole session.
@@ -668,18 +681,21 @@ WRONG: "The sunglasses on your head and casual sweatshirt read as informal for a
 WRONG: "A more formal collared shirt would strengthen your presence."
 RIGHT: "You held an upright, open position throughout, with a slight forward lean as you made your central point."
 
-CRITICAL LANGUAGE RULE: Your written observations must NEVER use the words "frame", "frames", "image", or image numbers (e.g. "frame 6", "in image 3") — the viewer does not care how the recording was sampled, only what it showed. Separately, because you are working from periodic stills rather than continuous footage, NEVER use absolutist or continuity-implying words: "always", "never", "consistently", "throughout", "constantly". Use sampling-honest, plain-language alternatives instead: "at multiple points", "at times", "on occasion", "during parts of the recording", "in several moments". This applies to every observation field below.
+CRITICAL LANGUAGE RULE: Your written observations must NEVER use the words "frame", "frames", "image", or image numbers (e.g. "frame 6", "in image 3") — the viewer does not care how the recording was sampled, only what it showed. Separately, because you are working from periodic stills rather than continuous footage, NEVER use absolutist or continuity-implying words or phrases, including but not limited to: "always", "never" (as a frequency claim, e.g. "never breaks eye contact"), "consistently", "throughout", "constantly", "the whole time", "entire recording", "entirely", "across the session", "dominant pattern across the session". Use sampling-honest, plain-language alternatives instead: "at multiple points", "at times", "on occasion", "during parts of the recording", "in several moments", "for a good portion of the recording". This applies to every observation field below, with no exceptions.
+
+MANDATORY SELF-CHECK BEFORE YOU RETURN YOUR ANSWER: After drafting "eyeContactObservation", "gestureObservation", "presenceObservation", "professionalAppearanceObservation", and "overallVisualPresence", re-read each one specifically hunting for the banned words above. If you find any, rewrite that sentence using an allowed alternative before returning the JSON. Do not skip this check — it has been missed in past outputs and is the most common failure mode.
 
 Return your analysis as a JSON object with these exact keys:
 {
   "eyeContactObservable": <true only if the speaker's eyes are visible clearly enough to tell where their gaze is directed in most of the images; false otherwise>,
-  "eyeContactObservation": "if eyeContactObservable is true: gaze pattern described in plain qualitative language only (remembering DIRECT and SCREEN both count as good eye contact and only OFF is a gap), description of gaze direction, quality of engagement with the viewer. NEVER express the pattern as a count, tally, or proportion (no 'X of Y', no percentages, no fractions) — describe frequency only in words like 'at several points', 'on occasion'. If false: one neutral factual sentence that their eyes were not visible so gaze could not be assessed, with no cause named if the cause is something worn, and no gaze pattern claimed — NO frame numbers, NO absolutist words",
+  "eyeContactObservation": "if eyeContactObservable is true: gaze pattern described in plain qualitative language only (remembering DIRECT and SCREEN both count as good eye contact and only OFF is a gap), description of gaze direction, quality of engagement with the viewer. NEVER express the pattern as a count, tally, or proportion (no 'X of Y', no percentages, no fractions) — describe frequency only in words like 'at several points', 'on occasion'. If false: one neutral factual sentence that their eyes were not visible so gaze could not be assessed, with no cause named if the cause is something worn, and no gaze pattern claimed — NO frame numbers, NO absolutist words (see banned list above)",
   "handsEverVisible": <true if hands/arms appear gesturing in at least one image, however briefly; false only if hands never appear gesturing in any image provided>,
-  "gestureObservation": "if handsEverVisible is true: specific description of gesture types observed, whether purposeful or distracting IN FORM, PLUS a separate volume/frequency read (constant/relentless vs moderate/varied vs minimal — only when the evidence threshold above is met), body openness/closedness. Only mention self-touching if the resting-contact bar above is met — otherwise do not mention it at all. If handsEverVisible is false: one direct sentence stating no hand or arm movement was visible at any point, framed as a real gap in executive presence, not a neutral limitation. NO frame numbers, NO absolutist words",
-  "presenceObservation": "specific description of facial expression across the recording — range, congruence, warmth, tension signals, engagement quality, PLUS a separate animation-intensity read (exaggerated/theatrical vs measured/proportionate — only when the evidence threshold above is met) — NO frame numbers, NO absolutist words",
+  "gestureObservation": "if handsEverVisible is true: specific description of gesture types observed, whether purposeful or distracting IN FORM, PLUS a separate volume/frequency read (constant/relentless vs moderate/varied vs minimal — only when the evidence threshold above is met), body openness/closedness. Only mention self-touching if the resting-contact bar above is met — otherwise do not mention it at all. If handsEverVisible is false: one direct sentence stating no hand or arm movement was visible at any point, framed as a real gap in executive presence, not a neutral limitation. NO frame numbers, NO absolutist words (see banned list above)",
+  "lowerFaceVisible": <true only if the mouth/jaw/lower face is clearly visible in most of the images — NOT inferable from eyes/eyebrows alone; false otherwise, including tight crops showing only the upper face>,
+  "presenceObservation": "if lowerFaceVisible is true: specific description of facial expression — range, congruence, warmth, tension signals, engagement quality, PLUS a separate animation-intensity read (exaggerated/theatrical vs measured/proportionate — only when the evidence threshold above is met). If lowerFaceVisible is false: one direct sentence stating the lower face/mouth was not visible so expression could not be assessed, framed as something to correct in how the camera is set up next time, not a neutral limitation — NO frame numbers, NO absolutist words (see banned list above)",
   "shouldersVisible": <true only if the actual shoulder line/upper-torso outline is clearly visible in most of the images — NOT inferable from face/neck framing alone; false otherwise, including tight face crops>,
-  "professionalAppearanceObservation": "if shouldersVisible is true: specific assessment of POSTURE ONLY (upright/settled vs slumped/tense, open vs closed, forward lean on key moments) — say nothing about clothing, grooming, hair, accessories, physical features, or background. If shouldersVisible is false: one direct sentence stating the shoulders/upper body were not in frame so posture could not be assessed, framed as something to correct in how the camera is set up next time, not a neutral limitation. NO frame numbers, NO absolutist words",
-  "overallVisualPresence": "2-sentence summary of the speaker's overall visual executive presence — NO frame numbers, NO absolutist words"
+  "professionalAppearanceObservation": "if shouldersVisible is true: specific assessment of POSTURE ONLY (upright/settled vs slumped/tense, open vs closed, forward lean on key moments) — say nothing about clothing, grooming, hair, accessories, physical features, or background. If shouldersVisible is false: one direct sentence stating the shoulders/upper body were not in frame so posture could not be assessed, framed as something to correct in how the camera is set up next time, not a neutral limitation. NO frame numbers, NO absolutist words (see banned list above)",
+  "overallVisualPresence": "2-sentence summary of the speaker's overall visual executive presence — NO frame numbers, NO absolutist words (see banned list above)"
 }`;
 
   const imageContent = frames.map(frame => ({
@@ -734,6 +750,7 @@ Return your analysis as a JSON object with these exact keys:
         // don't-silently-change-past-behaviour reason as eyeContactObservable.
         handsEverVisible: parsed.handsEverVisible !== false,
         gestureObservation: String(parsed.gestureObservation || ""),
+        lowerFaceVisible: parsed.lowerFaceVisible !== false,
         presenceObservation: String(parsed.presenceObservation || ""),
         shouldersVisible: parsed.shouldersVisible !== false,
         professionalAppearanceObservation: String(parsed.professionalAppearanceObservation || ""),
@@ -1061,7 +1078,9 @@ ${input.videoPresenceAnalysis
 Eye contact: ${input.videoPresenceAnalysis.eyeContactObservable
     ? input.videoPresenceAnalysis.eyeContactObservation
     : `[NOT OBSERVABLE — the speaker's eyes were not visible in this recording, so gaze could not be assessed. The eye_contact dimension has been removed from the dimension list below and is excluded from the composite score. Do NOT score it, do NOT write feedback for it, and do NOT infer gaze from head or face orientation. Do not reference eye contact, gaze, or camera connection anywhere in your summary, priority action, or any other dimension's feedback.]`}
-Facial expression (from presenceObservation): ${input.videoPresenceAnalysis.presenceObservation}
+Facial expression: ${input.videoPresenceAnalysis.lowerFaceVisible
+    ? input.videoPresenceAnalysis.presenceObservation
+    : `[LOWER FACE NOT VISIBLE — the mouth/jaw was not visible in any analyzed image. This is a real gap, not a missing signal: score facial_expression at 1 and write gapText/nextStepText explaining that the camera framing excluded the mouth/lower face, so expression couldn't be read, and that framing themselves so the full face is visible is the fix.]`}
 Gestures: ${input.videoPresenceAnalysis.handsEverVisible
     ? input.videoPresenceAnalysis.gestureObservation
     : `[NO HANDS EVER VISIBLE — hands/arms did not appear gesturing in any analyzed image. This is a real gap, not a missing signal: score gestures at 1 and write gapText/nextStepText explaining that no visible gesturing means the speaker isn't using hand movement to reinforce their points on camera, and that framing themselves so hands are visible is the fix.]`}
@@ -1255,6 +1274,10 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
     input.mode === "video" &&
     input.videoPresenceAnalysis != null &&
     input.videoPresenceAnalysis.handsEverVisible === false;
+  const lowerFaceUnobservable =
+    input.mode === "video" &&
+    input.videoPresenceAnalysis != null &&
+    input.videoPresenceAnalysis.lowerFaceVisible === false;
 
   const dimensionResults: DimensionResult[] = dimensions.map(key => {
     let aiDim = aiResult.dimensions[key] ?? {
@@ -1280,6 +1303,14 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
         strengthText: null,
         gapText: "Your hands weren't visible at any point in this recording, so no gesturing could be observed. That reads as static — hand movement is part of how executive presence comes through on camera, and its total absence is a real gap, not a neutral limitation.",
         nextStepText: "In your next recording, frame yourself so your hands are visible, and notice whether you naturally gesture as you make your key points.",
+      };
+    }
+    if (key === "facial_expression" && lowerFaceUnobservable) {
+      aiDim = {
+        score: 1,
+        strengthText: null,
+        gapText: "Your mouth and lower face weren't visible in this recording, so your expression couldn't be read. That's a framing issue, and it counts against you — warmth, tension, and engagement mostly show up in the mouth and jaw, and none of that was available here.",
+        nextStepText: "In your next recording, frame the camera so your full face — forehead to chin — is in view, so your expression can actually register.",
       };
     }
 

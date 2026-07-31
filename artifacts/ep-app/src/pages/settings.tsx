@@ -5,7 +5,6 @@ import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { CheckIcon } from "lucide-react";
 
 const EDUCATION_LEVELS = [
@@ -88,8 +87,6 @@ export default function SettingsPage() {
 
   // ── Profile ──
   const [name, setName] = useState(user?.name || "");
-  const [roleTitle, setRoleTitle] = useState(user?.roleTitle || "");
-  const [goal, setGoal] = useState(user?.goal || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -171,7 +168,7 @@ export default function SettingsPage() {
     setSaving(true);
     setSaved(false);
     try {
-      await api.users.update({ name, roleTitle, goal });
+      await api.users.update({ name });
       await refreshUser();
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -248,14 +245,6 @@ export default function SettingsPage() {
             <Label htmlFor="name">Full name</Label>
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
           </div>
-          <div>
-            <Label htmlFor="roleTitle">Role / title</Label>
-            <Input id="roleTitle" value={roleTitle} onChange={(e) => setRoleTitle(e.target.value)} className="mt-1" />
-          </div>
-          <div>
-            <Label htmlFor="goal">Goal</Label>
-            <Textarea id="goal" value={goal} onChange={(e) => setGoal(e.target.value)} rows={2} className="mt-1" />
-          </div>
           <div className="flex items-center gap-3">
             <Button type="submit" disabled={saving}>
               {saving ? "Saving…" : "Save changes"}
@@ -268,7 +257,7 @@ export default function SettingsPage() {
       {/* ── Coaching profile ── */}
       <section className="rounded-lg border border-gray-200 bg-white p-6 space-y-6">
         <div>
-          <h2 className="font-semibold text-gray-900">Coaching profile</h2>
+          <h2 className="font-semibold text-gray-900">Your profile</h2>
           <p className="text-sm text-gray-500 mt-1">
             Gravitas uses this to tailor your practice prompts and feedback.
           </p>
@@ -621,7 +610,7 @@ export default function SettingsPage() {
             onClick={handleSaveCoachingProfile}
             disabled={coachingSaving}
           >
-            {coachingSaving ? "Saving…" : "Save coaching profile"}
+            {coachingSaving ? "Saving…" : "Save profile"}
           </Button>
           {coachingSaved && <span className="text-sm text-[#C84A18]">Saved!</span>}
         </div>

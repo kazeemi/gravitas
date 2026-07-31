@@ -474,3 +474,36 @@ export async function cancelScheduledEmail(emailId: string): Promise<void> {
     logger.error({ err, emailId }, "Failed to cancel scheduled email");
   }
 }
+
+const ADMIN_NOTIFICATION_EMAIL = "kanza@selfcraftpartners.com";
+
+// Internal alerts, not user-facing — plain and low-effort by design so they
+// stay cheap to read at a glance, unlike the branded templates above.
+export async function notifyAdminNewAccount(userEmail: string, userName: string): Promise<void> {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject: `New Gravitas account: ${userName}`,
+    html: `<p>New account created.</p><p><strong>Name:</strong> ${userName}<br/><strong>Email:</strong> ${userEmail}</p>`,
+  });
+  if (error) {
+    logger.error({ err: error, userEmail }, "Failed to send new-account admin notification");
+  }
+}
+
+export async function notifyAdminSessionScored(
+  userEmail: string,
+  userName: string,
+  compositeScore: number,
+  compositeTier: string
+): Promise<void> {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject: `Recording scored: ${userName} (${compositeScore.toFixed(1)} — ${compositeTier})`,
+    html: `<p>A recording was just scored.</p><p><strong>User:</strong> ${userName} (${userEmail})<br/><strong>Composite score:</strong> ${compositeScore.toFixed(1)}<br/><strong>Tier:</strong> ${compositeTier}</p>`,
+  });
+  if (error) {
+    logger.error({ err: error, userEmail }, "Failed to send session-scored admin notification");
+  }
+}

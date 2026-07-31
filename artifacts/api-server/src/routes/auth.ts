@@ -6,7 +6,7 @@ import { rateLimit } from "express-rate-limit";
 import { db } from "../lib/db.js";
 import { signToken, requireAuth } from "../lib/auth.js";
 import { usersTable } from "@workspace/db";
-import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/email.js";
+import { sendVerificationEmail, sendPasswordResetEmail, notifyAdminNewAccount } from "../lib/email.js";
 import { logger } from "../lib/logger.js";
 
 const router = Router();
@@ -65,6 +65,11 @@ router.post("/v1/auth/signup", authLimiter, async (req, res) => {
     emailSent = false;
     logger.error({ err, userId: user.id }, "Failed to send verification email after signup");
   }
+
+  // Admin notification — best-effort, must never block or fail the signup response.
+  notifyAdminNewAccount(user.email, user.name ?? "there").catch(err => {
+    logger.error({ err, userId: user.id }, "Failed to send new-account admin notification");
+  });
 
   return res.status(201).json({
     message: emailSent

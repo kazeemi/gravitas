@@ -9,7 +9,7 @@ import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresen
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 import { ensureCompatibleFormat, computeRmsMetrics, computeF0Metrics, type RmsMetrics, type F0Metrics } from "@workspace/integrations-openai-ai-server/audio";
 import { getPromptContext, getPromptStructureFamily } from "./prompts.js";
-import { cancelScheduledEmail } from "../lib/email.js";
+import { cancelScheduledEmail, notifyAdminSessionScored } from "../lib/email.js";
 
 // Fallback allowance if a user row predates the per-user allowance column.
 const DEFAULT_ALLOWANCE_SECONDS = 1800;
@@ -328,7 +328,7 @@ router.post(
             ))
             .orderBy(desc(sessionsTable.createdAt)),
           db
-            .select({ interviewMode: usersTable.interviewMode })
+            .select({ interviewMode: usersTable.interviewMode, email: usersTable.email, name: usersTable.name })
             .from(usersTable)
             .where(eq(usersTable.id, session.userId))
             .limit(1),
@@ -405,6 +405,18 @@ router.post(
           .update(usersTable)
           .set({ totalRecordingSeconds: sql`total_recording_seconds + ${durationSeconds}` })
           .where(eq(usersTable.id, session.userId));
+
+        // Admin notification — best-effort, must never block or fail scoring.
+        if (sessionUser?.email) {
+          notifyAdminSessionScored(
+            sessionUser.email,
+            sessionUser.name ?? "there",
+            result.compositeScore,
+            result.compositeTier
+          ).catch(err => {
+            logger.error({ err, sessionId: session.id }, "Failed to send session-scored admin notification");
+          });
+        }
       } catch (err) {
         await db
           .update(sessionsTable)

@@ -11,7 +11,7 @@ import { computeSessionMetrics, type MetricStatus } from "@/lib/session-metrics"
 // ── Shared utilities ───────────────────────────────────────────────────────
 
 const METRIC_STATUS_COLORS: Record<MetricStatus, string> = {
-  good: "#C84A18",
+  good: "#6B9B7A",
   warn: "#F0953E",
   poor: "rgba(255,255,255,0.45)",
 };

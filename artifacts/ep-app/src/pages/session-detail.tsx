@@ -771,7 +771,7 @@ function CollapsibleMetrics({ session }: { session: SessionDetail }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const STATUS_COLORS: Record<MetricStatus, string> = {
-    good: "text-[#C84A18]",
+    good: "text-[#6B9B7A]",
     warn: "text-[#F0953E]",
     poor: "text-[#78736A]",
   };

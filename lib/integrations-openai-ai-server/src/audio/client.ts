@@ -517,7 +517,7 @@ export async function speechToTextWithTiming(
       speechDurationSeconds = Math.max(1, speechEnd - speechStart);
     }
 
-    const pauseMetrics = computePauseMetrics(words);
+    const pauseMetrics = computePauseMetrics(words, text);
     const wpmWindows = words.length > 0 ? computeWpmWindows(words) : null;
 
     return { text, speechDurationSeconds, pauseMetrics, wpmWindows };
@@ -582,18 +582,60 @@ export function computeWpmWindows(
 const SENTENCE_BOUNDARY_RE = /[.?!,;:]$/;
 const MIN_PAUSE_SECONDS = 0.5;
 
+const normalizeToken = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/**
+ * Whisper's word-level timestamp array strips all punctuation from each word
+ * (e.g. "test." becomes "test"), so punctuation can only be recovered from the
+ * full transcript text. This walks both in parallel, matching each timestamped
+ * word to its punctuated counterpart in the text (within a small lookahead, to
+ * tolerate minor tokenization drift), and returns whether each word is
+ * immediately followed by sentence/clause-ending punctuation.
+ */
+function alignSentenceBoundaries(
+  words: Array<{ word: string }>,
+  text: string
+): boolean[] {
+  const textTokens = text.trim().split(/\s+/).filter(Boolean);
+  const LOOKAHEAD = 5;
+  const result: boolean[] = new Array(words.length).fill(false);
+  let cursor = 0;
+
+  for (let i = 0; i < words.length; i++) {
+    const target = normalizeToken(words[i].word);
+    if (!target) continue;
+
+    let match = -1;
+    for (let j = cursor; j < Math.min(textTokens.length, cursor + LOOKAHEAD); j++) {
+      if (normalizeToken(textTokens[j]) === target) {
+        match = j;
+        break;
+      }
+    }
+
+    if (match !== -1) {
+      result[i] = SENTENCE_BOUNDARY_RE.test(textTokens[match]);
+      cursor = match + 1;
+    }
+  }
+
+  return result;
+}
+
 /**
  * Derive structured pause metrics from Whisper word-level timestamps.
  * A pause is any gap between consecutive words >= 0.5 s.
- * Sentence-boundary: the word preceding the gap ends with . ? ! , ; :
+ * Sentence-boundary: the word preceding the gap is followed by . ? ! , ; : in the transcript.
  */
 function computePauseMetrics(
-  words: Array<{ word: string; start: number; end: number }>
+  words: Array<{ word: string; start: number; end: number }>,
+  text: string
 ): PauseMetrics {
   if (words.length < 2) {
     return { pauseCount: 0, avgPauseDurationSeconds: 0, pauses: [] };
   }
 
+  const isBoundary = alignSentenceBoundaries(words, text);
   const pauses: PauseEvent[] = [];
 
   for (let i = 0; i < words.length - 1; i++) {
@@ -602,7 +644,7 @@ function computePauseMetrics(
       pauses.push({
         startSeconds: Math.round(words[i].end * 100) / 100,
         durationSeconds: Math.round(gap * 100) / 100,
-        isSentenceBoundary: SENTENCE_BOUNDARY_RE.test(words[i].word.trim()),
+        isSentenceBoundary: isBoundary[i],
       });
     }
   }

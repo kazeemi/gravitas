@@ -8,6 +8,7 @@ import { signToken, requireAuth } from "../lib/auth.js";
 import { usersTable } from "@workspace/db";
 import { sendVerificationEmail, sendPasswordResetEmail, notifyAdminNewAccount } from "../lib/email.js";
 import { logger } from "../lib/logger.js";
+import { CURRENT_PRIVACY_POLICY_VERSION, CURRENT_TERMS_VERSION, computeNeedsConsent } from "../lib/consent.js";
 
 const router = Router();
 
@@ -26,8 +27,6 @@ const passwordLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: "Too many password reset requests. Please wait an hour and try again." },
 });
-
-const CURRENT_PRIVACY_POLICY_VERSION = "1.0";
 
 router.post("/v1/auth/signup", authLimiter, async (req, res) => {
   const { email, password, name, consentAccepted } = req.body;
@@ -54,6 +53,7 @@ router.post("/v1/auth/signup", authLimiter, async (req, res) => {
     emailVerificationExpiresAt: verificationExpires,
     consentAcceptedAt: new Date(),
     privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION,
+    termsVersion: CURRENT_TERMS_VERSION,
   }).returning();
 
   // The account exists either way, so this is not fatal — but the client must
@@ -97,7 +97,7 @@ router.post("/v1/auth/verify-email", async (req, res) => {
   }).where(eq(usersTable.id, user.id));
 
   const authToken = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
-  return res.json({ token: authToken, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt } });
+  return res.json({ token: authToken, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt, needsConsent: computeNeedsConsent(user) } });
 });
 
 router.post("/v1/auth/login", authLimiter, async (req, res) => {
@@ -117,7 +117,7 @@ router.post("/v1/auth/login", authLimiter, async (req, res) => {
     return res.status(403).json({ error: "email_not_verified", message: "Please verify your email before signing in. Check your inbox for a verification link." });
   }
   const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
-  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt } });
+  return res.json({ token, user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt, needsConsent: computeNeedsConsent(user) } });
 });
 
 router.post("/v1/auth/logout", requireAuth, (_req, res) => {
@@ -218,13 +218,14 @@ router.post("/v1/auth/google", authLimiter, async (req, res) => {
         emailVerified: true,
         consentAcceptedAt: new Date(),
         privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION,
+        termsVersion: CURRENT_TERMS_VERSION,
       }).returning();
     }
 
     const token = signToken({ userId: user.id, email: user.email, isAdmin: user.isAdmin });
     return res.json({
       token,
-      user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt },
+      user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt, needsConsent: computeNeedsConsent(user) },
       isNewUser: !user.onboardingCompleted,
     });
   } catch {
@@ -257,7 +258,7 @@ router.post("/v1/auth/restore-account", async (req, res) => {
   return res.json({
     message: "Your account has been restored successfully.",
     token: authToken,
-    user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt },
+    user: { id: user.id, email: user.email, name: user.name, isAdmin: user.isAdmin, onboardingCompleted: user.onboardingCompleted, consentAcceptedAt: user.consentAcceptedAt, needsConsent: computeNeedsConsent(user) },
   });
 });
 

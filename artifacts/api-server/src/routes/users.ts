@@ -6,6 +6,7 @@ import { requireAuth } from "../lib/auth.js";
 import { logger } from "../lib/logger.js";
 import { usersTable, sessionsTable, dimensionScoresTable } from "@workspace/db";
 import { sendDeletionConfirmationEmail, sendWelcomeEmail, scheduleNudgeEmail } from "../lib/email.js";
+import { CURRENT_PRIVACY_POLICY_VERSION, CURRENT_TERMS_VERSION, computeNeedsConsent } from "../lib/consent.js";
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get("/v1/users/me", requireAuth, async (req, res) => {
   const [user] = await db.select().from(usersTable).where(and(eq(usersTable.id, req.user!.userId), isNull(usersTable.deletedAt))).limit(1);
   if (!user) return res.status(404).json({ error: "User not found" });
   const { passwordHash: _ph, ...safe } = user;
-  return res.json(safe);
+  return res.json({ ...safe, needsConsent: computeNeedsConsent(user) });
 });
 
 router.patch("/v1/users/me", requireAuth, async (req, res) => {
@@ -158,14 +159,13 @@ router.post("/v1/users/me/consent", requireAuth, async (req, res) => {
   if (!consentAccepted) {
     return res.status(400).json({ error: "consentAccepted must be true" });
   }
-  const CURRENT_PRIVACY_POLICY_VERSION = "1.0";
   const [user] = await db.update(usersTable)
-    .set({ consentAcceptedAt: new Date(), privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION })
+    .set({ consentAcceptedAt: new Date(), privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION, termsVersion: CURRENT_TERMS_VERSION })
     .where(and(eq(usersTable.id, req.user!.userId), isNull(usersTable.deletedAt)))
     .returning();
   if (!user) return res.status(404).json({ error: "User not found" });
   const { passwordHash: _ph, ...safe } = user;
-  return res.json(safe);
+  return res.json({ ...safe, needsConsent: computeNeedsConsent(user) });
 });
 
 export default router;

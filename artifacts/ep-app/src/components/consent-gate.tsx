@@ -44,7 +44,7 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
               We've updated our Terms & Privacy Policy
             </h2>
             <p className="text-sm text-gray-600 leading-relaxed">
-              To continue using Gravitas, please review and accept our updated policies. These cover how we handle your voice recordings, session data, and AI-generated feedback.
+              To continue using Gravitas, please review and accept our updated policies. These cover how we handle your voice recordings, session data, and AI-generated feedback, as well as important updates to your rights and responsibilities as a trial user.
             </p>
           </div>
 
@@ -52,6 +52,8 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
             <p><strong className="text-[#0F1B2D]">What we process:</strong> Your audio/video recordings, transcripts, and coaching feedback.</p>
             <p><strong className="text-[#0F1B2D]">Who sees it:</strong> OpenAI (transcription) and Anthropic (coaching analysis). Neither trains on your data.</p>
             <p><strong className="text-[#0F1B2D]">How long we keep it:</strong> Session history is kept for the lifetime of your account so you can track long-term progress. You can delete individual sessions or your entire account at any time.</p>
+            <p><strong className="text-[#0F1B2D]">Trial service:</strong> Gravitas is provided on a trial/demo basis, "as is," at your own risk, with no guarantee of availability, accuracy, or outcomes.</p>
+            <p><strong className="text-[#0F1B2D]">Liability:</strong> Our liability to you is limited (to zero for trial and demo accounts), and you agree to be responsible for — and to indemnify us against — your own misuse of the Service or content you submit.</p>
           </div>
 
           <div className="flex items-start gap-3">
@@ -70,7 +72,7 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
               <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-gray-900 underline">
                 Privacy Policy
               </a>
-              , including processing of my voice and video by AI services to deliver coaching.
+              , including processing of my voice and video by AI services to deliver coaching, and my use of this trial service on the terms described above, including the liability and indemnification terms.
             </label>
           </div>
 

@@ -9,7 +9,7 @@ export default function TermsPage() {
           >
             Terms of Service
           </h1>
-          <p className="text-sm text-gray-500">Last updated: 30 July 2026</p>
+          <p className="text-sm text-gray-500">Last updated: 28 August 2026 — Version 2.0</p>
         </div>
 
         <div className="prose prose-sm max-w-none text-[#0F1B2D] space-y-8">
@@ -24,9 +24,14 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold mb-2">2. Description of service</h2>
-            <p className="text-gray-700 leading-relaxed">
-              Gravitas is an AI-powered communication coaching platform that analyses voice and video recordings to provide feedback on executive presence, communication effectiveness, and delivery. The platform is currently in Beta and is provided for personal professional development purposes.
-            </p>
+            <div className="space-y-2 text-gray-700 leading-relaxed">
+              <p className="rounded-lg border border-[#C84A18]/30 bg-[#C84A18]/5 px-4 py-3">
+                <strong className="text-[#0F1B2D]">Trial / demonstration service.</strong> Gravitas is currently made available on a trial and demonstration basis, for evaluation purposes only. It is not intended for business-critical, high-stakes, or reliance use of any kind, and is not a substitute for professional coaching, psychological, medical, or career advice. You use the Service entirely at your own risk.
+              </p>
+              <p>
+                Gravitas is an AI-powered communication coaching platform that analyses voice and video recordings to provide feedback on executive presence, communication effectiveness, and delivery. The platform is currently in Beta and is provided for personal professional development purposes.
+              </p>
+            </div>
           </section>
 
           <section>
@@ -74,6 +79,7 @@ export default function TermsPage() {
             <div className="space-y-2 text-gray-700 leading-relaxed">
               <p>Gravitas is currently in Beta. This means the service may be unstable, contain bugs, or change significantly. We provide the Beta service "as is" and make no guarantees about its availability, accuracy, or fitness for any particular purpose. Feedback you provide during Beta may be used to improve the service.</p>
               <p>Our scoring methodology, dimensions, and criteria may be updated, recalibrated, or changed over time as the service evolves. Scores and feedback generated at different points in time, or under different methodology versions, may not be directly comparable.</p>
+              <p>To the fullest extent permitted by law, the Service — including all content, features, scoring, and outputs — is provided strictly "as is" and "as available", without warranties of any kind, whether express, implied, or statutory, including without limitation implied warranties of merchantability, fitness for a particular purpose, accuracy, reliability, uninterrupted operation, or non-infringement. We do not warrant that the Service will be uninterrupted, secure, timely, or error-free, or that any defects will be corrected.</p>
             </div>
           </section>
 
@@ -102,15 +108,32 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold mb-2">10. Limitation of liability</h2>
             <div className="space-y-2 text-gray-700 leading-relaxed">
-              <p>To the maximum extent permitted by applicable law, Gravitas AI shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits or data, arising from your use of the service. Our total liability to you for any claim arising from these terms shall not exceed the amount you paid us in the 12 months preceding the claim.</p>
-              <p>Gravitas shall not be liable for any failure or delay in performance resulting from causes beyond its reasonable control, including but not limited to failure or unavailability of third-party AI models, cloud infrastructure, or internet service providers.</p>
+              <p>To the maximum extent permitted by applicable law, Gravitas AI shall not be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages of any kind, including loss of profits, revenue, business, goodwill, reputation, or data, arising from your use of, or inability to use, the service, however caused and under any theory of liability (including contract, tort, and negligence), even if Gravitas has been advised of the possibility of such damages.</p>
+              <p>Our total aggregate liability to you for any and all claims arising out of or relating to these Terms or the Service shall not exceed the total subscription fees paid by you to Gravitas in the 12 months preceding the claim. Where you have accessed the Service under a free trial, demonstration, or Beta account without a paid subscription, our total liability to you is limited to zero (0).</p>
+              <p>Gravitas shall not be liable for any failure or delay in performance resulting from causes beyond its reasonable control, including but not limited to failure or unavailability of third-party AI models, cloud infrastructure, or internet service providers, cyberattacks, denial-of-service attacks, security incidents, or other events beyond its reasonable control.</p>
+              <p>Nothing in these Terms limits or excludes liability that cannot be limited or excluded under applicable law, including liability for death or personal injury caused by negligence, or for fraud.</p>
             </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold mb-2">10a. Data security and cyber incidents</h2>
+            <p className="text-gray-700 leading-relaxed">
+              Gravitas implements reasonable technical and organisational measures designed to protect your data, as described in our{" "}
+              <a href="/privacy" className="text-[#C84A18] underline">Privacy Policy</a>. No method of transmission or storage is completely secure, and we cannot guarantee the absolute security of your data. In the event of a security incident, data breach, or unauthorised access affecting your data, Gravitas's obligations are limited to those required by applicable data protection law (including notifying affected individuals and/or regulators where required). To the maximum extent permitted by law, Gravitas excludes all liability for any loss, damage, or expense arising from such an incident, including where it results from the acts or omissions of a third party, a third-party service provider (including but not limited to our AI, hosting, or database providers), or a cyberattack.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold mb-2">10b. Indemnification</h2>
+            <p className="text-gray-700 leading-relaxed">
+              You agree to indemnify, defend, and hold harmless Gravitas AI and its founders, employees, and personnel from and against any claims, damages, losses, liabilities, costs, and expenses (including reasonable legal fees) arising out of or relating to: (a) your breach of these Terms; (b) your misuse of the Service; (c) any content or recordings you submit, including recordings of third parties submitted without their consent; or (d) your violation of any applicable law or the rights of any third party.
+            </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold mb-2">11. Termination</h2>
             <p className="text-gray-700 leading-relaxed">
-              You may delete your account at any time from Account Settings. We may suspend or terminate your account if you violate these terms, with or without notice. Upon termination, your right to use the service ceases immediately.
+              You may delete your account at any time from Account Settings. We may suspend, restrict, or terminate your account or access to the Service, in whole or in part, at any time and with or without notice, including if you violate these terms or during the trial/demonstration period. Upon termination, your right to use the service ceases immediately. Gravitas is not liable to you or any third party for any suspension, restriction, or discontinuation of the Service.
             </p>
           </section>
 
@@ -124,7 +147,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold mb-2">13. Governing law</h2>
             <p className="text-gray-700 leading-relaxed">
-              These terms are governed by and construed in accordance with applicable law. Any disputes arising from these terms or the use of the service shall be subject to the exclusive jurisdiction of the appropriate courts.
+              These Terms are governed by and construed in accordance with the laws of the Province of Ontario and the federal laws of Canada applicable therein, without regard to conflict of law principles. You and Gravitas each irrevocably submit to the exclusive jurisdiction of the courts of Ontario, Canada, for any dispute arising out of or relating to these Terms or the Service. If you are a consumer resident in a jurisdiction that grants you the benefit of mandatory local consumer protection laws that cannot be excluded by agreement, nothing in this section removes those protections.
             </p>
           </section>
 
@@ -140,7 +163,7 @@ export default function TermsPage() {
 
         <div className="mt-12 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-400 text-center">
-            Gravitas AI · Terms of Service · Last updated 30 July 2026
+            Gravitas AI · Terms of Service v2.0 · Last updated 28 August 2026
           </p>
         </div>
       </div>

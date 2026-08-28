@@ -67,9 +67,13 @@ export const usersTable = pgTable("users", {
   // GDPR consent tracking
   consentAcceptedAt: timestamp("consent_accepted_at", { withTimezone: true }),
   privacyPolicyVersion: varchar("privacy_policy_version", { length: 20 }),
+  termsVersion: varchar("terms_version", { length: 20 }),
 
   // Account restoration (valid for 30 days after deletion request)
   accountRestoreToken: varchar("account_restore_token", { length: 255 }),
+  // Set when the day-23 "deleting in 7 days" warning email has been sent,
+  // so the purge job does not resend it on every run.
+  deletionWarningSentAt: timestamp("deletion_warning_sent_at", { withTimezone: true }),
 
   // Scheduled email IDs (Resend) — nulled when cancelled or no longer needed
   nudgeEmailId: varchar("nudge_email_id", { length: 255 }),

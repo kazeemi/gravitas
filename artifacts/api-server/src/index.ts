@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { startDeletionPurgeScheduler } from "./lib/deletion-purge";
 
 const rawPort = process.env["PORT"] ?? "8080";
 const port = Number(rawPort);
@@ -15,6 +16,10 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  // GDPR Art. 17 erasure: warns accounts 23 days after deletion request,
+  // then permanently purges them (and all cascaded data) at day 30.
+  startDeletionPurgeScheduler();
 
   // On startup, mark any sessions stuck in "processing" as "error".
   // These are orphaned by a previous server crash or SIGTERM mid-scoring.

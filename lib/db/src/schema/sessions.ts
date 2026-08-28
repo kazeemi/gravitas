@@ -14,7 +14,7 @@ import { usersTable } from "./users";
 
 export const sessionsTable = pgTable("sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().references(() => usersTable.id),
+  userId: uuid("user_id").notNull().references(() => usersTable.id, { onDelete: "cascade" }),
   mode: varchar("mode", { length: 10 }).notNull(),
   methodologyVersion: varchar("methodology_version", { length: 10 }).notNull().default("4.0"),
   promptText: text("prompt_text"),

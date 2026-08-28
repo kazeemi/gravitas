@@ -7,6 +7,7 @@ interface User {
   email: string;
   name: string | null;
   consentAcceptedAt?: string | null;
+  needsConsent?: boolean;
   roleTitle?: string | null;
   communicationContext?: string | null;
   goal?: string | null;
@@ -102,16 +103,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(u as unknown as User);
   };
 
-  // Only gate when we positively know consent is missing (null). An undefined field
-  // means the endpoint didn't return it — gating on that would re-prompt users who
-  // have already accepted.
-  const needsConsent = !!user && user.consentAcceptedAt === null;
+  // The server computes this by comparing the user's accepted policy version
+  // against the current one, so it re-gates on policy updates, not just first
+  // consent. Only gate when the server positively says so (`=== true`) — an
+  // undefined field means the endpoint didn't return it, and gating on that
+  // would re-prompt users who have already accepted.
+  const needsConsent = user?.needsConsent === true;
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, loginWithToken, logout, refreshUser }}>
       {children}
       {needsConsent && (
-        <ConsentGate onAccepted={() => setUser(u => u ? { ...u, consentAcceptedAt: new Date().toISOString() } : u)} />
+        <ConsentGate onAccepted={() => setUser(u => u ? { ...u, consentAcceptedAt: new Date().toISOString(), needsConsent: false } : u)} />
       )}
     </AuthContext.Provider>
   );

@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
           >
             Privacy Policy
           </h1>
-          <p className="text-sm text-gray-500">Last updated: 25 June 2026 — Version 1.0</p>
+          <p className="text-sm text-gray-500">Last updated: 28 August 2026 — Version 1.1</p>
         </div>
 
         <div className="prose prose-sm max-w-none text-[#0F1B2D] space-y-8">
@@ -88,7 +88,8 @@ export default function PrivacyPolicyPage() {
             <div className="space-y-2 text-gray-700 leading-relaxed">
               <p><strong>Active accounts:</strong> We keep your account data and session history for as long as your account is active. Tracking your progress over time is a core purpose of the service, so we retain your session history to show you long-term improvement. You can delete individual sessions or all data at any time from your account settings.</p>
               <p><strong>Audio and video:</strong> Not stored — deleted immediately after processing (typically within seconds).</p>
-              <p><strong>Deleted accounts:</strong> When you delete your account, it is immediately deactivated and all personal data — including your profile, session transcripts, scores, and performance metrics — is permanently and irreversibly erased within 30 days. You will receive a reminder email 7 days before the final deletion, with a link to restore your account if you change your mind.</p>
+              <p><strong>Deleted accounts:</strong> When you delete your account, it is immediately deactivated and all personal data — including your profile, session transcripts, scores, and performance metrics — is permanently and irreversibly erased from our live systems within 30 days. You will receive a reminder email 7 days before the final deletion, with a link to restore your account if you change your mind.</p>
+              <p><strong>Backups:</strong> Our database provider (Supabase) maintains daily backups for disaster recovery, retained for up to 7 days. After your data is erased from our live systems, a copy may remain in these backups for up to 7 additional days before being permanently overwritten. Backups are not accessed except to restore the database in the event of a failure.</p>
             </div>
           </section>
 
@@ -98,7 +99,7 @@ export default function PrivacyPolicyPage() {
             <div className="space-y-2 text-gray-700 leading-relaxed">
               <p><strong>Right of access:</strong> You can download a copy of all data we hold about you from your Account Settings page.</p>
               <p><strong>Right to rectification:</strong> You can update your profile information at any time in Account Settings.</p>
-              <p><strong>Right to erasure:</strong> You can delete your account and all associated data from Account Settings. We will permanently erase everything within 30 days.</p>
+              <p><strong>Right to erasure:</strong> You can delete your account and all associated data from Account Settings. We will erase everything from our live systems within 30 days, and from backups within a further 7 days (see Section 4).</p>
               <p><strong>Right to portability:</strong> Your data export (available in Settings) is provided in JSON format, which can be read by any standard tool.</p>
               <p><strong>Right to object:</strong> You may object to processing based on legitimate interests. Contact us at info@selfcraftpartners.com.</p>
               <p><strong>Right to withdraw consent:</strong> Where we process data based on your consent (audio, video, biometric metrics), you may withdraw consent at any time by deleting your account. Withdrawal does not affect the lawfulness of processing before withdrawal.</p>
@@ -151,7 +152,7 @@ export default function PrivacyPolicyPage() {
 
         <div className="mt-12 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-400 text-center">
-            Gravitas AI · Privacy Policy v1.0 · Last updated 25 June 2026
+            Gravitas AI · Privacy Policy v1.1 · Last updated 28 August 2026
           </p>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc, count, avg, sum, isNotNull, and } from "drizzle-orm";
+import { eq, desc, count, avg, sum, isNotNull, isNull, and } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { requireAdmin } from "../lib/auth.js";
 import { usersTable, sessionsTable, dimensionScoresTable } from "@workspace/db";
@@ -17,7 +17,7 @@ router.use((_req, res, next) => {
 });
 
 router.get("/v1/admin/stats", requireAdmin, async (_req, res) => {
-  const [userCount] = await db.select({ count: count() }).from(usersTable).where(isNotNull(usersTable.id));
+  const [userCount] = await db.select({ count: count() }).from(usersTable).where(isNull(usersTable.deletedAt));
   const [sessionCount] = await db.select({ count: count() }).from(sessionsTable);
   const [completedCount] = await db
     .select({ count: count() })
@@ -67,6 +67,7 @@ router.get("/v1/admin/users", requireAdmin, async (_req, res) => {
       createdAt: usersTable.createdAt,
     })
     .from(usersTable)
+    .where(isNull(usersTable.deletedAt))
     .orderBy(desc(usersTable.createdAt));
 
   const sessionCounts = await db
@@ -106,7 +107,7 @@ router.get("/v1/admin/users/:id", requireAdmin, async (req, res) => {
       updatedAt: usersTable.updatedAt,
     })
     .from(usersTable)
-    .where(eq(usersTable.id, req.params.id))
+    .where(and(eq(usersTable.id, req.params.id), isNull(usersTable.deletedAt)))
     .limit(1);
 
   if (!user) return res.status(404).json({ error: "User not found" });
@@ -132,8 +133,10 @@ router.get("/v1/admin/sessions/:id", requireAdmin, async (req, res) => {
   const [user] = await db
     .select({ id: usersTable.id, email: usersTable.email, name: usersTable.name })
     .from(usersTable)
-    .where(eq(usersTable.id, session.userId))
+    .where(and(eq(usersTable.id, session.userId), isNull(usersTable.deletedAt)))
     .limit(1);
+
+  if (!user) return res.status(404).json({ error: "Session not found" });
 
   const scores = await db
     .select()

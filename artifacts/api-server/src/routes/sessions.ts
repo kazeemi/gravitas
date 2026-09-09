@@ -200,6 +200,9 @@ router.post(
         let professionalLanguageFlags: string | null = null;
         let fillerWordCount: number | null = null;
         let fillerWordObservation: string | null = null;
+        let confidenceLanguageObservation: string | null = null;
+        let structureObservation: string | null = null;
+        let concisenessObservation: string | null = null;
         let videoPresenceAnalysis: VideoPresenceResult | null = null;
         let rmsMetrics: RmsMetrics | null = null;
         let f0Metrics: F0Metrics | null = null;
@@ -275,6 +278,9 @@ router.post(
             professionalLanguageFlags = dr.professionalLanguageFlags;
             fillerWordCount = dr.fillerWordCount;
             fillerWordObservation = dr.fillerWordObservation;
+            confidenceLanguageObservation = dr.confidenceLanguageObservation;
+            structureObservation = dr.structureObservation;
+            concisenessObservation = dr.concisenessObservation;
             logger.info({ sessionId: session.id, pitchVariationScore, breathingScore, fillerWordCount, hasClarityFlags: !!clarityFlags, hasProfessionalLanguageFlags: !!professionalLanguageFlags }, "delivery analysis complete");
           } else {
             logger.error({
@@ -358,6 +364,9 @@ router.post(
           professionalLanguageFlags,
           fillerWordCount,
           fillerWordObservation,
+          confidenceLanguageObservation,
+          structureObservation,
+          concisenessObservation,
           rmsMetrics,
           f0Metrics,
           pauseMetrics,

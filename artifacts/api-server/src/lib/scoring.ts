@@ -266,6 +266,15 @@ export interface AudioDeliveryResult {
   professionalLanguageFlags: string | null;
   fillerWordCount: number | null;
   fillerWordObservation: string | null;
+  // Content signals heard directly from the raw audio — NOT read from the
+  // transcript. The transcript is auto-generated and may mis-hear or
+  // silently clean up words, so confidence_language, structure, and
+  // conciseness (which quote and score exact wording) must come from what
+  // gpt-audio actually heard, the same source already trusted over the
+  // transcript for filler words and profanity.
+  confidenceLanguageObservation: string | null;
+  structureObservation: string | null;
+  concisenessObservation: string | null;
 }
 
 export interface VideoPresenceResult {
@@ -326,6 +335,9 @@ export interface ScoringInput {
   professionalLanguageFlags?: string | null;
   fillerWordCount?: number | null;
   fillerWordObservation?: string | null;
+  confidenceLanguageObservation?: string | null;
+  structureObservation?: string | null;
+  concisenessObservation?: string | null;
   videoPresenceAnalysis?: VideoPresenceResult | null;
   recordingContext?: string;
   promptText?: string;
@@ -408,9 +420,9 @@ export async function analyzeAudioDelivery(
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}
 
-You are a senior executive presence coach listening to this audio recording. Focus exclusively on the RAW SONIC QUALITIES of the voice — what you hear in the audio itself. Be specific; no generic statements. Ignore silence at the start/end; analyse only from first word to last word. Keep each field to 1-2 sentences.
+You are a senior executive presence coach listening to this audio recording. Be specific; no generic statements. Ignore silence at the start/end; analyse only from first word to last word. Keep each field to 1-2 sentences unless stated otherwise.
 
-Assess the following:
+Assess the following ACOUSTIC qualities — the RAW SONIC QUALITIES of the voice, what you hear in the audio itself:
 
 1. Articulation — Clarity and precision of word formation. Are endings dropped, words mumbled or slurred?
    The distinction that matters: HOW the words sound (accent — out of scope) versus WHETHER the words can be made out (intelligibility — in scope, and must be flagged when it is a problem).
@@ -424,6 +436,12 @@ Assess the following:
 7. Filler Words — Count and name any filler words or verbal tics heard. Listen specifically for: "um", "uh", "like" (only when used as a gap-filler, NOT when used as a comparison — e.g. "like a project" is NOT a filler), "you know", "basically", "right?" (when used as a trailing check-in), "I mean", "so" (only when used as a sentence-starter filler, NOT as a logical connector). Count each occurrence separately. Be conservative — only flag clear filler usage. Write "none detected" if none heard.
 8. clarityFlags — Any words/phrases mumbled, swallowed, or likely misheared by auto-transcription? Note timestamp and what you heard. Write "none" if all clear.
 9. professionalLanguageFlags — Any profanity, crude language, or personally demeaning language? Quote exact words and timestamp. Write "none" if none.
+
+Now assess the following CONTENT qualities — what was actually said, based on what you hear in the audio, NOT on any transcript. You are the only reliable source of exact wording for these; an automated transcript of this same audio may mis-hear words or silently clean up disfluencies, so do not defer to it. Quote the exact words/phrases you heard as evidence.
+
+10. confidenceLanguageObservation — Quote any hedging language heard ("I think", "maybe", "kind of", "sort of", "I'm not sure but", "hopefully"), any clear declarative/confident language ("I recommend", "We will", "The evidence shows"), and any aggressive or demeaning language (name-calling, inflammatory phrases). For each, quote the exact words heard. 2-4 sentences. Write "no notable confidence-language signal" if the language was neutral throughout.
+11. structureObservation — Describe the communication structure you heard: did the speaker open with a clear point, situation, or recommendation? Was there a recognisable arc (e.g. situation → action → result, point → reasoning, or a narrative past → present → future)? Quote the specific moment(s) that mark the structural transitions (e.g. the exact phrase where they moved from context into their recommendation). 2-4 sentences.
+12. concisenessObservation — Note any restatement (the same idea repeated in different words without adding meaning) or circular reasoning (returning to an earlier point without building on it) you heard. Quote the repeated phrase or idea and roughly where in the response it recurred. Write "no notable redundancy" if the response covered new ground throughout.
 
 Return JSON with exactly these keys:
 {
@@ -439,7 +457,10 @@ Return JSON with exactly these keys:
   "fillerWordObservation": "list each filler word type heard and its count, e.g. 'um x3, uh x1, like x2 (as filler)' — or 'none detected'",
   "fillerWordCount": <integer, total filler word instances across all types, 0 if none>,
   "clarityFlags": "observations or 'none'",
-  "professionalLanguageFlags": "exact quotes or 'none'"
+  "professionalLanguageFlags": "exact quotes or 'none'",
+  "confidenceLanguageObservation": "quoted hedging/confident/aggressive language heard, or 'no notable confidence-language signal'",
+  "structureObservation": "described structure with quoted transition moments",
+  "concisenessObservation": "quoted restatement/circular reasoning, or 'no notable redundancy'"
 }`;
 
   // Without a system message establishing that it can hear the attached audio,
@@ -449,8 +470,9 @@ Return JSON with exactly these keys:
   // complied without this (gpt-audio-mini-2025-10-06) has been deprecated.
   const AUDIO_SYSTEM_PROMPT =
     "You are an audio analysis engine for a speech coaching product. You can hear the " +
-    "attached audio recording. Describe only the acoustic qualities of the speech — how " +
-    "words are formed, how the volume behaves, the timbre, and where breaths fall. Do not " +
+    "attached audio recording. Describe the acoustic qualities of the speech — how " +
+    "words are formed, how the volume behaves, the timbre, and where breaths fall — AND " +
+    "the content of what was said, quoting exact words and phrases you hear. Do not " +
     "comment on the speaker's identity or personal characteristics. Always reply with JSON only.";
 
   // Even with the system message the refusal is INTERMITTENT — measured at
@@ -532,6 +554,9 @@ Return JSON with exactly these keys:
         professionalLanguageFlags: null,
         fillerWordCount: null,
         fillerWordObservation: null,
+        confidenceLanguageObservation: null,
+        structureObservation: null,
+        concisenessObservation: null,
       };
     }
 
@@ -559,6 +584,9 @@ Return JSON with exactly these keys:
     let professionalLanguageFlags: string | null = null;
     let fillerWordCount: number | null = null;
     let fillerWordObservation: string | null = null;
+    let confidenceLanguageObservation: string | null = null;
+    let structureObservation: string | null = null;
+    let concisenessObservation: string | null = null;
 
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
@@ -574,15 +602,18 @@ Return JSON with exactly these keys:
         const fwc = Number(parsed.fillerWordCount);
         if (!isNaN(fwc) && fwc >= 0) fillerWordCount = fwc;
         if (typeof parsed.fillerWordObservation === "string" && parsed.fillerWordObservation !== "none detected") fillerWordObservation = parsed.fillerWordObservation;
+        if (typeof parsed.confidenceLanguageObservation === "string" && parsed.confidenceLanguageObservation !== "no notable confidence-language signal") confidenceLanguageObservation = parsed.confidenceLanguageObservation;
+        if (typeof parsed.structureObservation === "string") structureObservation = parsed.structureObservation;
+        if (typeof parsed.concisenessObservation === "string" && parsed.concisenessObservation !== "no notable redundancy") concisenessObservation = parsed.concisenessObservation;
       }
     } catch {
       // parsing failure — scores remain null
     }
 
-    return { analysisText: rawText, pitchVariationScore, breathingScore, breathingObservation, clarityFlags, professionalLanguageFlags, fillerWordCount, fillerWordObservation };
+    return { analysisText: rawText, pitchVariationScore, breathingScore, breathingObservation, clarityFlags, professionalLanguageFlags, fillerWordCount, fillerWordObservation, confidenceLanguageObservation, structureObservation, concisenessObservation };
   } catch (err) {
     logger.error({ session_id: sessionId, ai_call: "audio-delivery", err, elapsed_ms: Date.now() - t0 }, "gpt-audio delivery analysis failed");
-    return { analysisText: "", pitchVariationScore: null, breathingScore: null, breathingObservation: null, clarityFlags: null, professionalLanguageFlags: null, fillerWordCount: null, fillerWordObservation: null };
+    return { analysisText: "", pitchVariationScore: null, breathingScore: null, breathingObservation: null, clarityFlags: null, professionalLanguageFlags: null, fillerWordCount: null, fillerWordObservation: null, confidenceLanguageObservation: null, structureObservation: null, concisenessObservation: null };
   }
 }
 
@@ -837,10 +868,11 @@ METHODOLOGY v4.0 — SCORING TIERS:
 CRITICAL RULE — SIGNAL SOURCE SEPARATION (DO NOT MIX):
 Every dimension must be scored from its designated source only. Mixing sources is a scoring error.
 
-SOURCE A (gpt-audio): articulation, projection, vocal_tone, vocal_steadiness, intonation, breath_control
+SOURCE A (gpt-audio): articulation, projection, vocal_tone, vocal_steadiness, intonation, breath_control, AND — via its content observations (confidenceLanguageObservation, structureObservation, concisenessObservation) — confidence_language, structure, conciseness. Never penalise word choices when speaker is reciting/reading.
 SOURCE B (audio waveform numerics): pace (WPM, windows, SD), pausing (pause count, duration, placement)
-SOURCE C (transcript): confidence_language, structure, conciseness — NEVER infer these from audio tone, never penalise transcript word choices when speaker is reciting/reading
 SOURCE D (Claude Vision frames): eye_contact, facial_expression, gestures, posture — NEVER infer from audio, NEVER assume from context
+
+There is no transcript source for feedback. An automatically generated transcript is not trustworthy enough to quote or score from — it can mis-hear words or silently clean up disfluencies — so confidence_language, structure, and conciseness must be scored ONLY from SOURCE A's content observations (which come from gpt-audio actually listening to the raw audio), never from a transcript.
 
 If video analysis is absent and the dimension is from Source D:
 - Set score to note visual analysis was unavailable. Do not guess or infer from audio.
@@ -916,14 +948,14 @@ PAUSING — MOMENT-LEVEL FEEDBACK REQUIRED:
 Do not just score the pattern. Always name specific moments and their impact.
 - For positive pausing: "You paused before your main recommendation — that single moment of silence told your listener that something important was coming. It creates anticipation and signals confidence."
 - For absent or weak pausing: "After your opening statement, there was an opportunity to let that land before moving on. A one to two second pause there would have given your listener a moment to absorb what you said before you continued."
-- Be specific about when a pause occurred or would have landed. Reference the transcript content at that moment if possible.
+- Be specific about when a pause occurred or would have landed. Reference SOURCE A's content observations for what was being said at that moment if possible.
 - Never give only a pattern-level summary. Always name the moment and the impact.
 
 COMMUNICATION FRAMEWORK DETECTION (structure dimension only):
 This prompt's expected structural yardstick has been pre-classified as: ${input.structureFamily ?? "unclassified"}. This classification is authoritative — it is based on the prompt's actual intent, not a guess you need to make. Apply the matching rule set below. If unclassified, use the generic rules that follow.
 
 GENERIC RULES (apply only when no more specific family rule below overrides them):
-Analyse the transcript for evidence of structured communication frameworks: STAR (Situation, Task, Action, Result), SCR (Situation, Complication, Resolution), Pyramid Principle or point-first delivery (recommendation before rationale), PREP (Point, Reason, Example, Point), Problem-Solution-Benefit.
+Use SOURCE A's structureObservation (what gpt-audio heard directly from the raw audio, including quoted transition moments) as evidence of structured communication frameworks: STAR (Situation, Task, Action, Result), SCR (Situation, Complication, Resolution), Pyramid Principle or point-first delivery (recommendation before rationale), PREP (Point, Reason, Example, Point), Problem-Solution-Benefit.
 - Only flag a framework when it is clearly and intentionally present. Do not force-fit a label onto loose structure.
 - If used well: name it and credit it specifically: "You led with your recommendation before giving context — that is point-first communication, and it immediately signals a senior, confident thinker."
 - If used loosely or partially: comment on structure without naming the framework label: "You set up the situation well, but the response ended before reaching a clear resolution or recommendation. Your listener is left doing the work of drawing the conclusion themselves."
@@ -989,14 +1021,14 @@ When it qualifies: name it in strengthText as a structural choice, not just a ni
 CRITICAL: Do NOT penalise or flag the absence of a closing question. This rule only fires when the behaviour is present. Never suggest the speaker should have asked a question if they did not.` : ""}
 
 INTONATION — EMOTIONAL CONGRUENCE RULE:
-For the intonation dimension only, cross-reference SOURCE C (transcript) against SOURCE A (audio delivery analysis) to check whether the pitch and vocal energy carry the emotional weight of the words.
+For the intonation dimension only, cross-reference SOURCE A's content observations against SOURCE A's acoustic observations to check whether the pitch and vocal energy carry the emotional weight of the words.
 
 Trigger condition: the speaker uses explicitly emotional or enthusiastic language — phrases such as "I am so excited", "I love", "I'm passionate about", "I can't wait", "this is amazing", "I really care about", "I'm thrilled", "I'm really excited", or any explicit statement of excitement, enthusiasm, or strong personal feeling.
 
-When triggered, check whether SOURCE A describes matching energy: elevated pitch, rising inflection, increased engagement, warmth in the delivery at that moment.
+When triggered, check whether SOURCE A's acoustic observations describe matching energy: elevated pitch, rising inflection, increased engagement, warmth in the delivery at that moment.
 
 When the words claim an emotion that the delivery does not carry — e.g. saying "I am so excited" in a flat, even, or measured tone — this IS an intonation gap and MUST be named explicitly in the intonation gapText:
-- Quote the specific phrase from the transcript that claimed the emotion
+- Quote the specific phrase (from SOURCE A's content observations) that claimed the emotion
 - Describe what the delivery actually sounded like (flat, even-toned, controlled, measured)
 - Name the listener impact: the listener hears the words but does not feel the energy — this creates a subtle disconnect, and the claim of excitement registers as a formality rather than a genuine signal
 - End with one specific next step framed as an in-recording experiment: "In your next recording, let your voice lift on that phrase — not louder, but warmer and slightly higher — so the energy in your voice matches the feeling in the words."
@@ -1006,7 +1038,7 @@ When the delivery DOES match the emotional content, there is nothing to flag her
 CRITICAL SCOPING RULE — NO DUPLICATION: This congruence check belongs EXCLUSIVELY to intonation. Do NOT reference it in vocal_tone. Vocal Tone covers the physical quality of the voice (warmth, resonance, richness, texture) — it does NOT assess whether vocal energy matches stated emotions. If the voice is physically warm but the energy does not match enthusiastic words, that is an intonation congruence gap, not a vocal tone gap. Each dimension must remain MECE.
 
 CONCISENESS — REDUNDANCY AND REPETITION RULE:
-When evaluating Conciseness, check for two distinct failure modes beyond simple wordiness:
+Use SOURCE A's concisenessObservation as your evidence. When evaluating Conciseness, check for two distinct failure modes beyond simple wordiness:
 
 1. RESTATEMENT: The speaker says the same idea more than once in different words without adding new meaning. This is different from emphasis — emphasis restates to land a point; restatement just fills time. If the same idea appears twice or more, flag which idea and what was lost (the listener registers it as padding, and authority erodes).
 
@@ -1017,20 +1049,20 @@ Both are distinct from a long response that covers new ground throughout (which 
 CALIBRATION RULES:
 - Score 9 or 10 must include specific named evidence for what earned it
 - A 7 is solid professional standard — do not inflate to 8 or 9 to encourage
-- Fewer than 50 words of transcript almost always scores 1–3 on content dimensions
+- Fewer than 50 words of speech (per SOURCE B word count) almost always scores 1–3 on content dimensions
 - Never award 6+ to shallow responses that don't address the prompt
 - Strengths must be genuine — do not reframe inadequate behaviour as positive
 - If there are no genuine strengths, write: "This session did not demonstrate significant strengths in the areas assessed."
 
 CONFIDENCE LANGUAGE — CRITICAL SCORING RULE:
-Confidence Language is not a binary of "hedging vs. assertive". There are THREE distinct categories and they must be distinguished:
+Use SOURCE A's confidenceLanguageObservation as your evidence — it is quoted directly from what gpt-audio heard in the raw audio. Confidence Language is not a binary of "hedging vs. assertive". There are THREE distinct categories and they must be distinguished:
 - HEDGING language (negative): "I think", "maybe", "kind of", "sort of", "I'm not sure but", "hopefully". These signal uncertainty and erode authority. Score them negatively.
 - CONFIDENT language (positive): "The key issue is", "I recommend", "We will", "The evidence shows", clear declarative ownership of a position. Score these positively.
 - AGGRESSIVE or DISMISSIVE language (negative — and distinct from confidence): emotionally charged, inflammatory, or demeaning language — "absolutely ridiculous", "complete disaster", "they have no idea", "this is insane", "dumb [slur]". CRITICAL: Do NOT treat this as a strength. Do NOT reframe it as "directness" or "committing to a position". This is aggression dressed as confidence, and it actively undermines executive credibility. It signals loss of emotional regulation, not conviction. Name the specific phrases, explain why they are a liability in professional settings, and penalise the score accordingly.
 The presence of assertive language that is also aggressive does NOT compensate for hedging and should NOT be cited as evidence of confident communication.
 
 FILLER WORD RULE (confidence_language dimension):
-Filler words are a fourth signal within Confidence Language. They are provided as a separate metric from SOURCE A (gpt-audio), which hears the raw audio more reliably than the transcript.
+Filler words are a fourth signal within Confidence Language, provided as a numeric metric from SOURCE A (gpt-audio), which hears the raw audio directly.
 
 If fillerWordCount > 0:
 - Name the specific filler words heard and how many times each appeared (use the fillerWordObservation directly)
@@ -1042,11 +1074,11 @@ If fillerWordCount is 0 or no data: do not mention filler words at all — do no
 
 CRITICAL SCOPING RULE: Filler words belong EXCLUSIVELY to confidence_language. Do NOT reference them in articulation, vocal_tone, or any other dimension.
 
-TRANSCRIPT RELIABILITY AND AUDIO FLAGS:
-The transcript is generated automatically and may contain errors — particularly it can mishear or sanitise profanity or unclear words. The gpt-audio analysis (SOURCE A) hears the raw audio and is more reliable for what was actually said.
-TRANSCRIPT LOOPING — CRITICAL: Automatic transcription occasionally loops, producing an exact or near-exact repeated phrase (e.g. "the development team for the development team for the development team") that the speaker never actually said — a transcription artifact, not a disfluency. Before citing ANY repeated word or phrase as evidence of a stumble, self-correction, or loss of thread, check SOURCE A (the audio delivery analysis): only report it as real if SOURCE A independently corroborates a stumble or restart at that point. If SOURCE A says nothing about it, do not mention the repetition at all — never quote or coach on a transcript pattern that the audio evidence does not support.
-- If SOURCE A flags any words or phrases as unclear or potentially misheared (in clarityFlags), reference this in the articulation dimension feedback.
-- If SOURCE A flags any professionally inappropriate language (in professionalLanguageFlags), you MUST address it in the confidence_language dimension feedback. Do not sanitise or soften the observation. Be direct and coaching-oriented: name what was said, note that it would undermine professional credibility in any real-world setting, and give a specific next step. The transcript may show a "clean" version of these words — disregard the transcript version and use what the audio model actually heard.`;
+CRITICAL — CONSISTENCY WITH FILLER WORD COUNT ACROSS ALL OUTPUTS: fillerWordCount is a hard numeric fact. It must never be contradicted anywhere in your output — not in confidence_language feedback, not in summaryStrengths, not in the overall feedback. If fillerWordCount > 0, do NOT write or imply "no filler words", "clean language", "no hedging or filler words" or similar in ANY field, including summaryStrengths — even when praising a different aspect of confidence_language (such as declarative phrasing). Praise the declarative language specifically instead of characterising the language overall as filler-free.
+
+AUDIO FLAGS:
+- If SOURCE A flags any words or phrases as unclear (in clarityFlags), reference this in the articulation dimension feedback.
+- If SOURCE A flags any professionally inappropriate language (in professionalLanguageFlags), you MUST address it in the confidence_language dimension feedback. Do not sanitise or soften the observation. Be direct and coaching-oriented: name what was said, note that it would undermine professional credibility in any real-world setting, and give a specific next step.`;
 
   // Detect recitation context
   const recitationKeywords = /\b(read|reading|recit|poem|poetry|poet|verse|stanza|lyric|speech by|passage|excerpt|monologue|prayer|scripture|psalm|soliloquy|ode|sonnet|perform|performed|performing|famous|literary|published|wrote|written by|marianne|williamson|shakespeare|rumi|frost|angelou|dickinson|neruda|whitman|keats|yeats|eliot|cummings)\b/i;
@@ -1062,18 +1094,27 @@ ${context.label}
 Ideal pace for this context: ${context.idealWpmMin}–${context.idealWpmMax} words per minute
 ${isRecitation ? `\n⚠️ RECITATION CONTEXT DETECTED: The speaker's prompt indicates they were reading or reciting a pre-written literary or published text. Do NOT penalise structure for lacking original architecture — evaluate only how delivery served the text's structure. Do NOT penalise confidence_language for the text's word choices — evaluate only vocal conviction and commitment. Do NOT penalise conciseness for the text's natural length.` : ""}
 
-SOURCE A — gpt-audio DELIVERY ANALYSIS (use for: articulation, projection, vocal_tone, vocal_steadiness, intonation, breath_control, and confidence_language filler word signal):
+SOURCE A — gpt-audio DELIVERY ANALYSIS (use for: articulation, projection, vocal_tone, vocal_steadiness, intonation, breath_control, confidence_language, structure, conciseness):
 ${input.audioDeliveryAnalysis || "[No audio delivery analysis available — scoring quality will be limited for audio dimensions]"}${input.fillerWordCount != null ? `
 
-🗣️ FILLER WORD DATA (from audio — more reliable than transcript for this signal):
+🗣️ FILLER WORD DATA (from audio):
 Total filler words heard: ${input.fillerWordCount}${input.fillerWordObservation ? `
 Breakdown: ${input.fillerWordObservation}` : ""}
-Use this in confidence_language feedback per the FILLER WORD RULE.` : ""}${input.clarityFlags ? `
+Use this in confidence_language feedback per the FILLER WORD RULE.` : ""}${input.confidenceLanguageObservation ? `
 
-⚠️ CLARITY FLAGS (words/phrases that sounded unclear or may have been misheared by transcription):
+🗣️ CONFIDENCE LANGUAGE CONTENT (quoted directly from the raw audio — use for the confidence_language dimension per the CONFIDENCE LANGUAGE rule):
+${input.confidenceLanguageObservation}` : ""}${input.structureObservation ? `
+
+🗣️ STRUCTURE CONTENT (quoted directly from the raw audio — use for the structure dimension per the COMMUNICATION FRAMEWORK DETECTION rule):
+${input.structureObservation}` : ""}${input.concisenessObservation ? `
+
+🗣️ CONCISENESS CONTENT (quoted directly from the raw audio — use for the conciseness dimension per the CONCISENESS rule):
+${input.concisenessObservation}` : ""}${input.clarityFlags ? `
+
+⚠️ CLARITY FLAGS (words/phrases that sounded unclear):
 ${input.clarityFlags}` : ""}${input.professionalLanguageFlags ? `
 
-🚨 PROFESSIONAL LANGUAGE FLAGS (inappropriate language heard in the audio — the transcript may show a sanitised version; use THESE exact words in your feedback):
+🚨 PROFESSIONAL LANGUAGE FLAGS (inappropriate language heard in the audio — use THESE exact words in your feedback):
 ${input.professionalLanguageFlags}` : ""}
 
 ${input.mode === "video" ? `SOURCE D — CLAUDE VISION VIDEO ANALYSIS (use for: eye_contact, facial_expression, gestures, posture):
@@ -1097,9 +1138,6 @@ Overall visual presence: ${input.videoPresenceAnalysis.overallVisualPresence}`
 GESTURE VOLUME SCORING RULE (gestures dimension only): The gesture observation above may describe two separate signals — gesture quality (well-formed vs fidgety/erratic) and gesture volume (how much of the recording was spent gesturing). These do NOT average together, and quality does NOT offset volume. If the observation describes gesture volume as constant, relentless, near-continuous, or consistently high with little to no stillness, that alone caps this dimension at 5 (Developing) regardless of how purposeful or well-formed the individual gestures were — relentless motion reads as anxious, ungrounded energy to a viewer even when each gesture is individually clean, and that experience is what this dimension measures. Do not let language praising gesture quality in the same observation pull the score back into Strong or Distinguished territory; a "yes, but constant" pattern is a low score with the quality noted as a secondary, smaller strength. Reserve Strong/Distinguished for sessions where gesturing is purposeful AND interspersed with genuine stillness — motion that has room to land because it is not continuous.
 
 FACIAL ANIMATION SCORING RULE (facial_expression dimension only): The facial expression observation above may describe two separate signals — expression quality (warm/congruent vs flat/tense/incongruent) and animation intensity (measured vs exaggerated/theatrical). These do NOT average together, and warmth does NOT offset excess intensity. If the observation describes the expression as exaggerated, theatrical, or overly animated across the majority of the recording, that alone caps this dimension at 5 (Developing) regardless of how warm or congruent the expression otherwise was — performative, disproportionate expression reads as unnatural to a viewer even when it is warm and matches the content in direction. Do not let language praising warmth or congruence in the same observation pull the score back into Strong or Distinguished territory. Reserve Strong/Distinguished for sessions where expression is warm, congruent, AND proportionate to the content — animated where the moment calls for it, settled elsewhere.` : ""}
-
-SOURCE C — TRANSCRIPT (use only for: confidence_language, structure, conciseness — do NOT use for audio or video dimensions):
-${input.transcript ? `"${input.transcript}"` : "[No transcript captured]"}
 
 SOURCE B — AUDIO WAVEFORM NUMERICS:
 - Total recording duration: ${input.durationSeconds}s
@@ -1138,6 +1176,9 @@ Do NOT choose summaryImprovements by lowest raw score alone. Choose the dimensio
 
 CROSS-CHECK RULE — apply before writing summaryStrengths and summaryImprovements:
 A specific moment, named phrase, or word cited as evidence in summaryStrengths must NOT appear in summaryImprovements — and vice versa. Evidence belongs to one side only. If the same moment (e.g. a pause after a word, a sentence ending) could be framed as either a strength or a weakness, choose the reading that is most honest given the scores and commit to it on one side only. Citing the same evidence on both sides is a contradiction that destroys user trust.
+
+METRIC-CONSISTENCY CHECK RULE — apply before finalising summaryStrengths and summaryImprovements:
+Before writing any bullet, re-read every numeric metric you were given (fillerWordCount, pitchVariationScore, breathingScore, silence/pause counts, pace). No bullet — in either summaryStrengths or summaryImprovements — may state or imply something a metric contradicts. In particular: if fillerWordCount > 0, no summaryStrengths bullet may say or imply "no filler words", "clean/fluent language", "no hedging", or otherwise characterise the speech as free of disfluencies, even while praising a genuinely different aspect of confidence_language (e.g. declarative phrasing) — praise that specific aspect by name instead of the language "overall". This check applies independently of, and in addition to, the FILLER WORD RULE governing the confidence_language dimension text.
 
 Return a JSON object (no markdown, no code fences):
 {

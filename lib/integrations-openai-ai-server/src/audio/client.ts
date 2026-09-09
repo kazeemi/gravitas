@@ -498,6 +498,12 @@ export async function speechToTextWithTiming(
       response_format: "verbose_json",
       timestamp_granularities: ["segment", "word"],
       language: "en",
+      // Whisper is trained on largely-clean captions and normalises disfluencies
+      // out by default. This transcript is shown to the user as what they
+      // actually said, so it must stay verbatim — the prompt param biases the
+      // model toward transcribing filler words and false starts rather than
+      // silently cleaning them up.
+      prompt: "Um, uh, so, like — this is a verbatim transcript. Include every filler word, false start, and repetition exactly as spoken. Do not clean up or paraphrase the speech.",
     } as Parameters<typeof openai.audio.transcriptions.create>[0]);
 
     const r = response as unknown as {

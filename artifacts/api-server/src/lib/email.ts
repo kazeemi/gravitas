@@ -507,3 +507,37 @@ export async function notifyAdminSessionScored(
     logger.error({ err: error, userEmail }, "Failed to send session-scored admin notification");
   }
 }
+
+// Fired once a recording has exhausted every retry attempt and is being
+// shown to the user as an error — this is the "someone's feedback did not
+// come through" alert, so it needs to reach a person, not just a log line.
+export async function notifyAdminSessionFailed(
+  sessionId: string,
+  errorMessage: string
+): Promise<void> {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject: `⚠️ Recording processing failed permanently (session ${sessionId})`,
+    html: `<p>A recording exhausted all retry attempts and is now shown to the user as an error.</p><p><strong>Session ID:</strong> ${sessionId}<br/><strong>Error:</strong> ${errorMessage}</p><p>Use the admin panel to inspect and, if the underlying issue is fixed, re-run this session's processing.</p>`,
+  });
+  if (error) {
+    logger.error({ err: error, sessionId }, "Failed to send session-failed admin notification");
+  }
+}
+
+// Fired when the processing queue's backlog crosses a threshold — the
+// earliest signal that the system is falling behind live demand (e.g. many
+// concurrent recordings during an event), before users start noticing slow
+// feedback.
+export async function notifyAdminQueueBacklog(waiting: number, active: number): Promise<void> {
+  const { error } = await resend.emails.send({
+    from: FROM,
+    to: ADMIN_NOTIFICATION_EMAIL,
+    subject: `⚠️ Gravitas processing queue backlog: ${waiting} waiting, ${active} active`,
+    html: `<p>The recording-processing queue backlog has crossed the alert threshold.</p><p><strong>Waiting:</strong> ${waiting}<br/><strong>Active:</strong> ${active}</p><p>Users may start seeing slower-than-usual feedback. Check server load and consider whether processing concurrency or server size needs to be increased.</p>`,
+  });
+  if (error) {
+    logger.error({ err: error, waiting, active }, "Failed to send queue-backlog admin notification");
+  }
+}

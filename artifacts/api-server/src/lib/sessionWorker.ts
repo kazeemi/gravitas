@@ -7,6 +7,7 @@ import { sessionsTable } from "@workspace/db";
 import { redisConnection } from "./redis.js";
 import { SESSION_PROCESSING_QUEUE, type SessionProcessingJobData } from "./sessionQueue.js";
 import { processSessionRecording } from "./sessionProcessing.js";
+import { notifyAdminSessionFailed } from "./email.js";
 
 // How many recordings this instance will process at once. Tune based on load
 // testing against actual server CPU/memory and the AI providers' rate limits
@@ -78,6 +79,10 @@ export function startSessionWorker(): Worker<SessionProcessingJobData> {
         .where(eq(sessionsTable.id, job.data.sessionId))
         .catch(dbErr => logger.error({ dbErr, sessionId: job.data.sessionId }, "failed to mark session as errored after exhausting retries"));
       await cleanupFiles(job.data);
+      notifyAdminSessionFailed(
+        job.data.sessionId,
+        err instanceof Error ? err.message : String(err)
+      ).catch(notifyErr => logger.error({ notifyErr, sessionId: job.data.sessionId }, "failed to send session-failed admin alert"));
     }
   });
 

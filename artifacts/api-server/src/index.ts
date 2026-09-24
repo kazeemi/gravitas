@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startDeletionPurgeScheduler } from "./lib/deletion-purge";
 import { startSessionWorker } from "./lib/sessionWorker";
+import { startQueueBacklogMonitor } from "./lib/queueMonitor";
 
 const rawPort = process.env["PORT"] ?? "8080";
 const port = Number(rawPort);
@@ -23,6 +24,10 @@ app.listen(port, (err) => {
   // concurrent uploads gets processed a bounded number at a time instead of
   // all at once.
   startSessionWorker();
+
+  // Watches queue depth and emails an admin alert if the backlog gets large
+  // enough to suggest processing is falling behind live demand.
+  startQueueBacklogMonitor();
 
   // GDPR Art. 17 erasure: warns accounts 23 days after deletion request,
   // then permanently purges them (and all cascaded data) at day 30.

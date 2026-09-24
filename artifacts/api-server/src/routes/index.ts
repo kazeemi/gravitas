@@ -6,6 +6,7 @@ import sessionsRouter from "./sessions.js";
 import promptsRouter from "./prompts.js";
 import adminRouter from "./admin.js";
 import setupRouter from "./setup.js";
+import monitoringRouter from "./monitoring.js";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(sessionsRouter);
 router.use(promptsRouter);
 router.use(adminRouter);
 router.use(setupRouter);
+router.use(monitoringRouter);
 
 export default router;

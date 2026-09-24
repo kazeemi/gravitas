@@ -388,13 +388,13 @@ export default function RecordPage() {
     }
   }, []);
 
-  // Target ~15 frames/minute so a 1-minute (our recording minimum) session
+  // Target ~30 frames/minute so a 1-minute (our recording minimum) session
   // still yields a solid sample, and longer sessions keep pace for their
   // full length instead of being capped early. A failed capture (e.g. a
   // momentary camera hiccup) is retried almost immediately rather than
   // silently skipped, so a single bad tick doesn't quietly shrink the
   // sample for the whole session.
-  const FRAME_INTERVAL_MS = 4000;
+  const FRAME_INTERVAL_MS = 2000;
 
   const startFrameCapture = useCallback(() => {
     framesRef.current = [];

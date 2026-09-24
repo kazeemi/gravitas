@@ -1,21 +1,31 @@
 import { Router } from "express";
 import multer from "multer";
-import { eq, desc, and, inArray, sql } from "drizzle-orm";
+import { writeFile, unlink } from "fs/promises";
+import { randomUUID } from "crypto";
+import { tmpdir } from "os";
+import { join } from "path";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { db } from "../lib/db.js";
 import { requireAuth } from "../lib/auth.js";
 import { logger } from "../lib/logger.js";
 import { sessionsTable, dimensionScoresTable, usersTable } from "@workspace/db";
-import { scoreSession, transcribeAudio, analyzeAudioDelivery, analyzeVideoPresence, type VideoPresenceResult } from "../lib/scoring.js";
+import { cancelScheduledEmail } from "../lib/email.js";
+import { enqueueSessionProcessing } from "../lib/sessionQueue.js";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
-import { ensureCompatibleFormat, computeRmsMetrics, computeF0Metrics, type RmsMetrics, type F0Metrics } from "@workspace/integrations-openai-ai-server/audio";
-import { getPromptContext, getPromptStructureFamily } from "./prompts.js";
-import { cancelScheduledEmail, notifyAdminSessionScored } from "../lib/email.js";
 
 // Fallback allowance if a user row predates the per-user allowance column.
 const DEFAULT_ALLOWANCE_SECONDS = 1800;
 
+// Uploads stream straight to a temp file instead of memory — with many
+// concurrent uploads, holding every file (up to 100MB each) in RAM at once
+// risks the process running out of memory. The queue worker reads the file
+// from disk and deletes it once feedback has been generated (see
+// sessionWorker.ts) — we never keep raw recordings after that point.
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: tmpdir(),
+    filename: (_req, _file, cb) => cb(null, `session-upload-${randomUUID()}`),
+  }),
   limits: { fileSize: 100 * 1024 * 1024 },
 });
 
@@ -161,10 +171,11 @@ router.post(
     const audioGapEvents = Number(req.body?.audioGapEvents ?? 0);
     const faceLostEvents = Number(req.body?.faceLostEvents ?? 0);
     const silenceEvents = Number(req.body?.silenceEvents ?? 0);
-    const audioBuffer: Buffer | null = req.file?.buffer ?? null;
+    const audioFilePath: string | null = req.file?.path ?? null;
 
     if (durationSeconds < 60) {
       await db.delete(sessionsTable).where(eq(sessionsTable.id, session.id));
+      if (audioFilePath) await unlink(audioFilePath).catch(() => {});
       return res.status(400).json({
         error: `Recording too short — minimum 60 seconds required (got ${durationSeconds}s). Please record at least 1 minute.`,
       });
@@ -175,267 +186,36 @@ router.post(
       .set({ processingStatus: "processing" })
       .where(eq(sessionsTable.id, session.id));
 
-    res.status(202).json({ message: "Processing started" });
-
-    // Parse video frames if present (video mode only)
-    let videoFrames: string[] = [];
+    // Video frames (base64 strings) can be sizeable — write them to disk
+    // rather than passing them through the job payload stored in Redis.
+    let videoFramesFilePath: string | null = null;
     if (session.mode === "video" && req.body?.videoFrames) {
-      try {
-        const parsed = JSON.parse(req.body.videoFrames as string);
-        if (Array.isArray(parsed)) videoFrames = parsed.filter((f): f is string => typeof f === "string");
-      } catch {
-        console.error("Failed to parse videoFrames JSON");
-      }
+      videoFramesFilePath = join(tmpdir(), `session-frames-${randomUUID()}.json`);
+      await writeFile(videoFramesFilePath, req.body.videoFrames as string);
     }
 
-    setImmediate(async () => {
-      try {
-        let transcript: string | undefined;
-        let speechDurationSeconds: number | null = null;
-        let audioDeliveryAnalysis: string | undefined;
-        let pitchVariationScore: number | null = null;
-        let breathingScore: number | null = null;
-        let breathingObservation: string | null = null;
-        let clarityFlags: string | null = null;
-        let professionalLanguageFlags: string | null = null;
-        let fillerWordCount: number | null = null;
-        let fillerWordObservation: string | null = null;
-        let confidenceLanguageObservation: string | null = null;
-        let structureObservation: string | null = null;
-        let concisenessObservation: string | null = null;
-        let videoPresenceAnalysis: VideoPresenceResult | null = null;
-        let rmsMetrics: RmsMetrics | null = null;
-        let f0Metrics: F0Metrics | null = null;
-        let pauseMetrics = null;
-        let wpmWindows = null;
+    try {
+      await enqueueSessionProcessing({
+        sessionId: session.id,
+        audioFilePath,
+        videoFramesFilePath,
+        durationSeconds,
+        audioGapEvents,
+        faceLostEvents,
+        silenceEvents,
+      });
+    } catch (err) {
+      logger.error({ err, sessionId: session.id }, "failed to enqueue session for processing");
+      await db
+        .update(sessionsTable)
+        .set({ processingStatus: "error", processingError: "Could not start processing. Please try again." })
+        .where(eq(sessionsTable.id, session.id));
+      if (audioFilePath) await unlink(audioFilePath).catch(() => {});
+      if (videoFramesFilePath) await unlink(videoFramesFilePath).catch(() => {});
+      return res.status(503).json({ error: "Could not start processing. Please try again." });
+    }
 
-        // Kick off video presence analysis immediately — it needs only the
-        // captured frames, not the audio buffer, so it can run in true parallel
-        // with transcription and delivery analysis instead of sequentially after.
-        const videoPresencePromise: Promise<VideoPresenceResult | null> =
-          session.mode === "video" && videoFrames.length > 0
-            ? analyzeVideoPresence(
-                videoFrames,
-                session.promptText || undefined,
-                session.recordingContext || "seated",
-                session.id
-              ).then(result => {
-                logger.info({ sessionId: session.id }, "video presence analysis complete");
-                return result;
-              }).catch(err => {
-                logger.error({ sessionId: session.id, err }, "video presence analysis failed");
-                return null;
-              })
-            : Promise.resolve(null);
-        if (session.mode === "video" && videoFrames.length === 0) {
-          logger.warn({ sessionId: session.id }, "video session but no frames received — visual dimensions will not be assessable");
-        }
-
-        if (audioBuffer && audioBuffer.length > 0) {
-          logger.info({ sessionId: session.id, rawBytes: audioBuffer.length }, "audio upload received — converting format");
-
-          const { buffer: wavBuffer, format } = await ensureCompatibleFormat(audioBuffer);
-          logger.info({ sessionId: session.id, detectedFormat: format, convertedBytes: wavBuffer.length }, "audio format ready");
-
-          // Compute signal-processing metrics synchronously from the PCM buffer
-          if (format === "wav") {
-            try {
-              rmsMetrics = computeRmsMetrics(wavBuffer);
-              f0Metrics = computeF0Metrics(wavBuffer);
-              logger.info({ sessionId: session.id, rmsMetrics, f0Metrics }, "acoustic metrics computed");
-            } catch (err) {
-              logger.warn({ sessionId: session.id, err }, "acoustic metric computation failed — continuing without them");
-            }
-          }
-
-          const [transcriptResult, deliveryResult] = await Promise.allSettled([
-            transcribeAudio(wavBuffer, session.id),
-            analyzeAudioDelivery(wavBuffer, format, session.promptText || undefined, session.id),
-          ]);
-
-          if (transcriptResult.status === "fulfilled") {
-            transcript = transcriptResult.value.transcript;
-            speechDurationSeconds = transcriptResult.value.speechDurationSeconds;
-            pauseMetrics = transcriptResult.value.pauseMetrics;
-            wpmWindows = transcriptResult.value.wpmWindows;
-            logger.info({
-              sessionId: session.id,
-              transcriptWords: transcript ? transcript.trim().split(/\s+/).filter(Boolean).length : 0,
-              speechDurationSeconds,
-              pauseCount: pauseMetrics?.pauseCount ?? null,
-            }, "transcription complete");
-          } else {
-            logger.error({ sessionId: session.id, err: transcriptResult.reason }, "transcription failed");
-          }
-
-          if (deliveryResult.status === "fulfilled" && deliveryResult.value) {
-            const dr = deliveryResult.value;
-            audioDeliveryAnalysis = dr.analysisText;
-            pitchVariationScore = dr.pitchVariationScore;
-            breathingScore = dr.breathingScore;
-            breathingObservation = dr.breathingObservation;
-            clarityFlags = dr.clarityFlags;
-            professionalLanguageFlags = dr.professionalLanguageFlags;
-            fillerWordCount = dr.fillerWordCount;
-            fillerWordObservation = dr.fillerWordObservation;
-            confidenceLanguageObservation = dr.confidenceLanguageObservation;
-            structureObservation = dr.structureObservation;
-            concisenessObservation = dr.concisenessObservation;
-            logger.info({ sessionId: session.id, pitchVariationScore, breathingScore, fillerWordCount, hasClarityFlags: !!clarityFlags, hasProfessionalLanguageFlags: !!professionalLanguageFlags }, "delivery analysis complete");
-          } else {
-            logger.error({
-              sessionId: session.id,
-              err: deliveryResult.status === "rejected" ? deliveryResult.reason : "empty result",
-            }, "delivery analysis failed");
-          }
-        } else {
-          logger.warn({ sessionId: session.id }, "no audio buffer received — skipping transcription");
-        }
-
-        // Save transcript early so the status endpoint can surface it to the
-        // frontend during the scoring/coaching steps that follow.
-        if (transcript && transcript.trim().length > 0) {
-          await db
-            .update(sessionsTable)
-            .set({ transcript })
-            .where(eq(sessionsTable.id, session.id));
-        }
-
-        // Await the video presence promise that was started before audio analysis
-        videoPresenceAnalysis = await videoPresencePromise;
-
-        // If no audio was captured, there is nothing meaningful to score.
-        // Video frames alone are insufficient — 11 of 15 dimensions require audio.
-        // Mark as error so the user gets a clear recovery screen and can re-record.
-        const hasAudioContent =
-          (transcript && transcript.trim().length > 0) ||
-          (audioDeliveryAnalysis && audioDeliveryAnalysis.trim().length > 0);
-
-        if (!hasAudioContent) {
-          await db
-            .update(sessionsTable)
-            .set({
-              processingStatus: "error",
-              processingError: "No audio was captured in this recording. Please check your microphone is unmuted and record again.",
-              durationSeconds,
-            })
-            .where(eq(sessionsTable.id, session.id));
-          return;
-        }
-
-        // Query session history and user preferences in parallel
-        const [prevCompletedSessions, [sessionUser]] = await Promise.all([
-          db
-            .select({ compositeScore: sessionsTable.compositeScore })
-            .from(sessionsTable)
-            .where(and(
-              eq(sessionsTable.userId, session.userId),
-              eq(sessionsTable.processingStatus, "complete"),
-            ))
-            .orderBy(desc(sessionsTable.createdAt)),
-          db
-            .select({ interviewMode: usersTable.interviewMode, email: usersTable.email, name: usersTable.name })
-            .from(usersTable)
-            .where(eq(usersTable.id, session.userId))
-            .limit(1),
-        ]);
-
-        const sessionNumber = prevCompletedSessions.length + 1;
-        const previousCompositeScore =
-          prevCompletedSessions.length > 0 && prevCompletedSessions[0].compositeScore
-            ? parseFloat(prevCompletedSessions[0].compositeScore)
-            : null;
-
-        const result = await scoreSession({
-          sessionId: session.id,
-          mode: session.mode as "audio" | "video",
-          durationSeconds,
-          speechDurationSeconds,
-          audioGapEvents,
-          faceLostEvents,
-          videoPresenceAnalysis,
-          silenceEvents,
-          transcript,
-          audioDeliveryAnalysis,
-          pitchVariationScore,
-          breathingScore,
-          breathingObservation,
-          clarityFlags,
-          professionalLanguageFlags,
-          fillerWordCount,
-          fillerWordObservation,
-          confidenceLanguageObservation,
-          structureObservation,
-          concisenessObservation,
-          rmsMetrics,
-          f0Metrics,
-          pauseMetrics,
-          wpmWindows,
-          recordingContext: session.recordingContext || "seated",
-          promptText: session.promptText || undefined,
-          promptContext: getPromptContext(session.promptText || "") || undefined,
-          structureFamily: getPromptStructureFamily(session.promptText || ""),
-          sessionNumber,
-          previousCompositeScore,
-          interviewMode: sessionUser?.interviewMode ?? false,
-        });
-
-        await db.insert(dimensionScoresTable).values(
-          result.dimensions.map(d => ({
-            sessionId: session.id,
-            dimensionKey: d.dimensionKey,
-            score: d.score,
-            tier: d.tier,
-            rawMetrics: d.rawMetrics,
-            strengthText: d.strengthText,
-            gapText: d.gapText,
-            nextStepText: d.nextStepText,
-          }))
-        );
-
-        await db
-          .update(sessionsTable)
-          .set({
-            processingStatus: "complete",
-            compositeScore: String(result.compositeScore),
-            compositeTier: result.compositeTier,
-            audioQualityFlag: result.audioQualityFlag,
-            faceCoverageFlag: result.faceCoverageFlag,
-            overallFeedback: result.overallFeedback,
-            durationSeconds,
-            audioGapEvents,
-            faceLostEvents,
-            silenceEvents,
-            transcript,
-            scoredAt: new Date(),
-          })
-          .where(eq(sessionsTable.id, session.id));
-        await db
-          .update(usersTable)
-          .set({ totalRecordingSeconds: sql`total_recording_seconds + ${durationSeconds}` })
-          .where(eq(usersTable.id, session.userId));
-
-        // Admin notification — best-effort, must never block or fail scoring.
-        if (sessionUser?.email) {
-          notifyAdminSessionScored(
-            sessionUser.email,
-            sessionUser.name ?? "there",
-            result.compositeScore,
-            result.compositeTier
-          ).catch(err => {
-            logger.error({ err, sessionId: session.id }, "Failed to send session-scored admin notification");
-          });
-        }
-      } catch (err) {
-        await db
-          .update(sessionsTable)
-          .set({
-            processingStatus: "error",
-            processingError: err instanceof Error ? err.message : String(err),
-          })
-          .where(eq(sessionsTable.id, session.id));
-      }
-    });
+    return res.status(202).json({ message: "Processing started" });
   }
 );
 

@@ -41,3 +41,4 @@ overrides:
 allowBuilds:
   core-js: true
   esbuild: true
+  msgpackr-extract: false

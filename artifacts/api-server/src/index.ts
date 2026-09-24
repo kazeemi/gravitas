@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { startDeletionPurgeScheduler } from "./lib/deletion-purge";
+import { startSessionWorker } from "./lib/sessionWorker";
 
 const rawPort = process.env["PORT"] ?? "8080";
 const port = Number(rawPort);
@@ -17,27 +18,21 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 
+  // Recording processing (upload -> transcribe -> score) runs through this
+  // queue worker rather than inline in the upload request, so a burst of
+  // concurrent uploads gets processed a bounded number at a time instead of
+  // all at once.
+  startSessionWorker();
+
   // GDPR Art. 17 erasure: warns accounts 23 days after deletion request,
   // then permanently purges them (and all cascaded data) at day 30.
   startDeletionPurgeScheduler();
 
-  // On startup, mark any sessions stuck in "processing" as "error".
-  // These are orphaned by a previous server crash or SIGTERM mid-scoring.
-  import("./lib/db.js").then(async ({ db }) => {
-    const { sessionsTable } = await import("@workspace/db");
-    const { eq } = await import("drizzle-orm");
-    const stuck = await db
-      .update(sessionsTable)
-      .set({
-        processingStatus: "error",
-        processingError: "Something went wrong during analysis. Please record again.",
-      })
-      .where(eq(sessionsTable.processingStatus, "processing"))
-      .returning({ id: sessionsTable.id });
-    if (stuck.length > 0) {
-      logger.warn({ count: stuck.length, ids: stuck.map(s => s.id) }, "Recovered stuck processing sessions on startup");
-    }
-  }).catch(e => logger.error({ err: e }, "Startup session recovery failed"));
+  // Sessions in "processing" now correspond to a durable job sitting in the
+  // Redis queue (see sessionQueue.ts / sessionWorker.ts), which survives a
+  // server restart and gets picked back up automatically — unlike the old
+  // in-process setImmediate pipeline, they are no longer orphaned on crash,
+  // so there is nothing to sweep here.
 
   // One-time admin account bootstrap: if ADMIN_SETUP_EMAIL is set,
   // grant is_admin=true and set the password for that account.

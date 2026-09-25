@@ -1221,9 +1221,15 @@ Return a JSON object (no markdown, no code fences):
 
   try {
     const t0 = Date.now();
+    // Arabic (and other non-Latin scripts) take meaningfully more tokens per
+    // word than English in this tokenizer — the English-tuned budget below
+    // was silently truncating Arabic responses mid-JSON, which then failed
+    // to parse and fell through to the generic fallback with no error
+    // logged. Give non-English output more headroom.
+    const maxTokens = input.language === "ar" ? 8000 : 4500;
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 4500,
+      max_tokens: maxTokens,
       messages: [{ role: "user", content: userPrompt }],
       system: systemPrompt,
     });
@@ -1235,7 +1241,12 @@ Return a JSON object (no markdown, no code fences):
       elapsed_ms: Date.now() - t0,
       input_tokens: message.usage.input_tokens,
       output_tokens: message.usage.output_tokens,
+      stop_reason: message.stop_reason,
     }, "claude-scoring usage");
+
+    if (message.stop_reason === "max_tokens") {
+      logger.warn({ session_id: input.sessionId, maxTokens }, "claude-scoring response was truncated by max_tokens — JSON parse will likely fail");
+    }
 
     const block = message.content[0];
     const text = block.type === "text" ? block.text.trim() : "{}";
@@ -1243,6 +1254,7 @@ Return a JSON object (no markdown, no code fences):
     const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : text) as AIEvalResult;
     return parsed;
   } catch (err) {
+    logger.error({ session_id: input.sessionId, err, language: input.language }, "claude-scoring failed — falling back to generic evaluation");
     return buildFallbackEvaluation(dimensions, wordCount, input.sessionNumber);
   }
 }

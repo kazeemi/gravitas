@@ -514,6 +514,25 @@ export async function speechToTextWithTiming(
     en: "Um, uh, so, like — this is a verbatim transcript. Include every filler word, false start, and repetition exactly as spoken. Do not clean up or paraphrase the speech.",
     ar: "امم، يعني، اه، طيب، يعني يعني، بس يعني",
   };
+
+  // whisper-1 is the only model of the three tested that returns word-level
+  // timestamps (needed for pause detection and windowed WPM) — but a direct
+  // comparison against real Gulf-dialect Arabic audio showed it repeatedly
+  // mis-transcribing words in ways that changed meaning (e.g. "finishes" ->
+  // "goes bankrupt"), while gpt-4o-mini-transcribe was accurate on the same
+  // audio. For non-English audio, transcript correctness matters more than
+  // the timing detail, so skip whisper-1 entirely rather than use it as a
+  // primary attempt with a fallback only on outright failure.
+  if (language !== "en") {
+    const response = await openai.audio.transcriptions.create({
+      file,
+      model: "gpt-4o-mini-transcribe-2025-12-15",
+      language,
+      ...(VERBATIM_PROMPTS[language] ? { prompt: VERBATIM_PROMPTS[language] } : {}),
+    } as Parameters<typeof openai.audio.transcriptions.create>[0]);
+    return { text: response.text, speechDurationSeconds: null, pauseMetrics: null, wpmWindows: null, model: "gpt-4o-mini-transcribe-2025-12-15" };
+  }
+
   try {
     const response = await openai.audio.transcriptions.create({
       file,

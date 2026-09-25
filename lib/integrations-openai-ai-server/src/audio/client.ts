@@ -500,18 +500,20 @@ export async function speechToTextWithTiming(
   const file = await toFile(audioBuffer, `audio.${format}`);
   // Whisper is trained on largely-clean captions and normalises disfluencies
   // out by default. This transcript is shown to the user as what they
-  // actually said, so it must stay verbatim — the prompt param biases the
-  // model toward transcribing filler words and false starts rather than
-  // silently cleaning them up.
+  // actually said, so it must stay verbatim.
   //
-  // This priming text is itself in English. Whisper's `prompt` param can
-  // bias language/style detection toward whatever language the prompt is
-  // written in — for non-English audio this measurably degraded
-  // transcription (dropped content, repeated words) rather than helping, so
-  // it's only sent for English audio. Non-English languages get no prompt
-  // rather than a mistranslated one, since an untested translated prompt
-  // risks the same kind of bias in a different direction.
-  const verbatimPrompt = "Um, uh, so, like — this is a verbatim transcript. Include every filler word, false start, and repetition exactly as spoken. Do not clean up or paraphrase the speech.";
+  // Whisper's `prompt` param doesn't work like an instruction to a chat
+  // model — it primes the decoder by example, biasing it toward text that
+  // looks like the prompt (same language, same vocabulary, same style). An
+  // English instruction sentence primed the decoder toward English-shaped
+  // output even for Arabic audio, which measurably degraded transcription
+  // (dropped content, repeated words) rather than preserving disfluencies.
+  // Each language therefore gets its own priming text made of real
+  // disfluency words in that language, not a translated instruction.
+  const VERBATIM_PROMPTS: Record<string, string> = {
+    en: "Um, uh, so, like — this is a verbatim transcript. Include every filler word, false start, and repetition exactly as spoken. Do not clean up or paraphrase the speech.",
+    ar: "امم، يعني، اه، طيب، يعني يعني، بس يعني",
+  };
   try {
     const response = await openai.audio.transcriptions.create({
       file,
@@ -519,7 +521,7 @@ export async function speechToTextWithTiming(
       response_format: "verbose_json",
       timestamp_granularities: ["segment", "word"],
       language,
-      ...(language === "en" ? { prompt: verbatimPrompt } : {}),
+      ...(VERBATIM_PROMPTS[language] ? { prompt: VERBATIM_PROMPTS[language] } : {}),
     } as Parameters<typeof openai.audio.transcriptions.create>[0]);
 
     const r = response as unknown as {

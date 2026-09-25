@@ -31,6 +31,15 @@ export async function processSessionRecording(input: SessionRecordingInput): Pro
     .limit(1);
   if (!session) throw new Error(`Session ${input.sessionId} not found`);
 
+  // Drives both transcription language and feedback-writing language for
+  // this candidate's account — set together deliberately, see users.ts.
+  const [languageRow] = await db
+    .select({ language: usersTable.language })
+    .from(usersTable)
+    .where(eq(usersTable.id, session.userId))
+    .limit(1);
+  const language = languageRow?.language ?? "en";
+
   let transcript: string | undefined;
   let speechDurationSeconds: number | null = null;
   let audioDeliveryAnalysis: string | undefined;
@@ -86,7 +95,7 @@ export async function processSessionRecording(input: SessionRecordingInput): Pro
     }
 
     const [transcriptResult, deliveryResult] = await Promise.allSettled([
-      transcribeAudio(wavBuffer, session.id),
+      transcribeAudio(wavBuffer, session.id, language),
       analyzeAudioDelivery(wavBuffer, format, session.promptText || undefined, session.id),
     ]);
 
@@ -201,6 +210,7 @@ export async function processSessionRecording(input: SessionRecordingInput): Pro
     f0Metrics,
     pauseMetrics,
     wpmWindows,
+    language: language === "ar" ? "ar" : "en",
     recordingContext: session.recordingContext || "seated",
     promptText: session.promptText || undefined,
     promptContext: getPromptContext(session.promptText || "") || undefined,

@@ -350,6 +350,10 @@ export interface ScoringInput {
   sessionNumber?: number;
   previousCompositeScore?: number | null;
   interviewMode?: boolean;
+  // Drives the language the written feedback (strengthText/gapText/nextStepText,
+  // overallFeedback) is generated in. Independent of the transcript's own
+  // language — transcribeAudio() is given the speech language separately.
+  language?: "en" | "ar";
 }
 
 export type { RmsMetrics, F0Metrics, PauseMetrics, WpmWindow };
@@ -807,11 +811,12 @@ Return your analysis as a JSON object with these exact keys:
 
 export async function transcribeAudio(
   audioBuffer: Buffer,
-  sessionId?: string
+  sessionId?: string,
+  language: string = "en"
 ): Promise<{ transcript: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null; wpmWindows: WpmWindow[] | null }> {
   const { buffer, format } = await ensureCompatibleFormat(audioBuffer);
   const t0 = Date.now();
-  const result = await speechToTextWithTiming(buffer, format);
+  const result = await speechToTextWithTiming(buffer, format, language);
   const elapsedMs = Date.now() - t0;
   logger.info({
     session_id: sessionId,
@@ -857,7 +862,15 @@ async function runAIEvaluation(
     .map(d => `- ${d}: ${DIMENSION_LABELS[d]}`)
     .join("\n");
 
-  const systemPrompt = `You are a senior executive presence coach and evaluator implementing the Gravitas Scoring Methodology v4.0. Your assessments are rigorous, evidence-based, and honest. Write as if you listened to the recording yourself — every piece of feedback should feel as though it was written by a human coach who heard this specific person in this specific session, not generic advice that could apply to anyone.
+  // All written feedback fields (strengthText, gapText, nextStepText, and the
+  // overall feedback blob) must be produced in this language — dimension keys,
+  // tiers, and internal field names stay in English regardless, since those
+  // are read by code, not the candidate.
+  const feedbackLanguageDirective = input.language === "ar"
+    ? "\n\nLANGUAGE — STRICTLY ENFORCED: Write every candidate-facing feedback field (strengthText, gapText, nextStepText, and all overallFeedback fields) in Modern Standard Arabic. Keep dimension keys, tier labels, and any JSON field names in English exactly as specified below — only the feedback prose itself is in Arabic. Maintain the same warm, direct, second-person coaching voice in Arabic (use \"أنتَ/أنتِ\" address) as described in the FEEDBACK STANDARDS below.\n"
+    : "";
+
+  const systemPrompt = `You are a senior executive presence coach and evaluator implementing the Gravitas Scoring Methodology v4.0. Your assessments are rigorous, evidence-based, and honest. Write as if you listened to the recording yourself — every piece of feedback should feel as though it was written by a human coach who heard this specific person in this specific session, not generic advice that could apply to anyone.${feedbackLanguageDirective}
 
 METHODOLOGY v4.0 — SCORING TIERS:
 - 1–3 (Needs Focus): Absent, severely deficient, or actively undermining presence.

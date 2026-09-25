@@ -101,11 +101,13 @@ router.post("/v1/auth/verify-email", async (req, res) => {
 });
 
 router.post("/v1/auth/login", authLimiter, async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "email and password are required" });
+  const { email, username, password } = req.body;
+  if ((!email && !username) || !password) {
+    return res.status(400).json({ error: "email (or username) and password are required" });
   }
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
+  const [user] = username
+    ? await db.select().from(usersTable).where(eq(usersTable.username, username)).limit(1)
+    : await db.select().from(usersTable).where(eq(usersTable.email, email.toLowerCase())).limit(1);
   if (!user || !user.passwordHash) {
     return res.status(401).json({ error: "Invalid credentials" });
   }

@@ -13,8 +13,18 @@ import { z } from "zod/v4";
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email", { length: 255 }).notNull().unique(),
+  // Login handle for accounts that don't use a real email address (e.g.
+  // client-provided candidate accounts for an in-person event). `email` is
+  // still populated with a synthetic placeholder for these so the existing
+  // NOT NULL/unique constraint holds; login can key off either field.
+  username: varchar("username", { length: 255 }).unique(),
   name: varchar("name", { length: 255 }),
   passwordHash: varchar("password_hash", { length: 255 }),
+  // Drives both transcription language (speech-to-text) and the language the
+  // written feedback is generated in. The two are set together deliberately
+  // — see scoring.ts — because mismatching them (e.g. transcribing Arabic
+  // speech as English) degrades the transcript both depend on.
+  language: varchar("language", { length: 5 }).notNull().default("en"),
   roleTitle: varchar("role_title", { length: 255 }),
   communicationContext: varchar("communication_context", { length: 100 }),
   goal: text("goal"),

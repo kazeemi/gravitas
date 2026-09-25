@@ -494,7 +494,8 @@ export async function speechToText(
 // scripts/verify-pinned-models.mjs before pinning here.
 export async function speechToTextWithTiming(
   audioBuffer: Buffer,
-  format: CompatibleFormat = "wav"
+  format: CompatibleFormat = "wav",
+  language: string = "en"
 ): Promise<{ text: string; speechDurationSeconds: number | null; pauseMetrics: PauseMetrics | null; wpmWindows: WpmWindow[] | null; model: string }> {
   const file = await toFile(audioBuffer, `audio.${format}`);
   try {
@@ -503,7 +504,7 @@ export async function speechToTextWithTiming(
       model: "whisper-1",
       response_format: "verbose_json",
       timestamp_granularities: ["segment", "word"],
-      language: "en",
+      language,
       // Whisper is trained on largely-clean captions and normalises disfluencies
       // out by default. This transcript is shown to the user as what they
       // actually said, so it must stay verbatim — the prompt param biases the
@@ -541,7 +542,8 @@ export async function speechToTextWithTiming(
     const response = await openai.audio.transcriptions.create({
       file: file2,
       model: "gpt-4o-mini-transcribe-2025-12-15",
-    });
+      language,
+    } as Parameters<typeof openai.audio.transcriptions.create>[0]);
     return { text: response.text, speechDurationSeconds: null, pauseMetrics: null, wpmWindows: null, model: "gpt-4o-mini-transcribe-2025-12-15 (fallback)" };
   }
 }

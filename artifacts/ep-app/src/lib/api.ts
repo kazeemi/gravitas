@@ -45,10 +45,15 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ email, password, name, consentAccepted }),
       }),
-    login: (email: string, password: string) =>
+    // `identifier` is either an email or a username (e.g. a client-provided
+    // candidate account with no real email) — routed to the matching field
+    // so the backend can look the account up by whichever one applies.
+    login: (identifier: string, password: string) =>
       request<{ token: string; user: { id: string; email: string; name: string | null } } | { error: string; message?: string }>("/v1/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(
+          identifier.includes("@") ? { email: identifier, password } : { username: identifier, password }
+        ),
       }, { allowStatuses: [403] }),
     logout: () => request("/v1/auth/logout", { method: "POST" }),
     google: (credential: string) =>

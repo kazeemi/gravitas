@@ -27,9 +27,9 @@ export function ConsentGate({ onAccepted }: ConsentGateProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
-        <div className="bg-[#0F1B2D] px-8 py-6 text-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
+      <div className="w-full max-w-md max-h-full rounded-2xl bg-white shadow-xl overflow-y-auto">
+        <div className="bg-[#0F1B2D] px-8 py-6 text-center sticky top-0 z-10">
           <span
             className="text-2xl font-semibold text-[#FBF7F2]"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}

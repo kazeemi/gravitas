@@ -23,6 +23,10 @@ interface User {
   interviewSector?: string | null;
   interviewSectorCustom?: string | null;
   interviewCompanies?: string | null;
+  // Which of the user's selected companies was active in their most recent
+  // session — drives the record page's company dropdown default. Only
+  // meaningful when interviewCompanies has 2+ entries and industry !== "other".
+  lastActiveInterviewCompany?: string | null;
   educationLevel?: string | null;
   workExperienceYears?: string | null;
   primaryGoal?: string | null;

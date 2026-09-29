@@ -229,4 +229,9 @@ export interface Prompt {
   text: string;
   recommendedDurationSeconds: number;
   sector?: string;
+  // Present only on prompts tied to a specific named company's question bank
+  // (e.g. McKinsey's PEI dimensions). Absent means the prompt is a generic
+  // sector-level prompt usable regardless of which company is active.
+  company?: string;
+  peiDimension?: string;
 }

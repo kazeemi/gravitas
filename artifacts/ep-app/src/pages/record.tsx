@@ -153,6 +153,18 @@ export default function RecordPage() {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [promptIndex, setPromptIndex] = useState(0);
   const [customPrompt, setCustomPrompt] = useState("");
+
+  // Company dropdown: only relevant when the user picked a fixed industry
+  // (not "other" — there's no company-specific data for that category at
+  // all) and selected 2+ companies. Every selected company gets a slot,
+  // recognized or custom-typed, since the user explicitly told us they're
+  // preparing for it — only the content behind the selection differs.
+  const selectedCompanies = (user?.interviewCompanies || "")
+    .split(";")
+    .map(c => c.trim())
+    .filter(Boolean);
+  const showCompanyDropdown = user?.interviewSector !== "other" && selectedCompanies.length >= 2;
+  const [activeCompany, setActiveCompany] = useState<string | null>(null);
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
   const [recordingContext, setRecordingContext] = useState("seated");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -231,6 +243,32 @@ export default function RecordPage() {
   const baselineInstruction = params.get("instruction");
   const baselineDuration = params.get("duration");
 
+  // Default the active company once per user load: last-used company if one
+  // was recorded, otherwise the first company they selected at onboarding.
+  // Only meaningful when the dropdown would actually show (see
+  // showCompanyDropdown above) — for single-company or "other" users this
+  // just quietly holds their one company (or null) without any UI for it.
+  useEffect(() => {
+    if (activeCompany !== null) return;
+    if (user?.lastActiveInterviewCompany) {
+      setActiveCompany(user.lastActiveInterviewCompany);
+    } else if (selectedCompanies.length > 0) {
+      // First-ever session with 2+ companies: default to the first one
+      // chosen at onboarding, and persist it immediately — otherwise the
+      // backend's per-session lookup would still see lastActiveInterviewCompany
+      // as null and fall back to blending all selected companies' styles
+      // together for this session, defeating the point of the default.
+      const defaultCompany = selectedCompanies[0];
+      setActiveCompany(defaultCompany);
+      api.users.update({ lastActiveInterviewCompany: defaultCompany }).catch(() => {});
+    }
+  }, [user?.lastActiveInterviewCompany, user?.interviewCompanies]);
+
+  const handleCompanyChange = useCallback((company: string) => {
+    setActiveCompany(company);
+    api.users.update({ lastActiveInterviewCompany: company }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     api.prompts.list().then(data => {
       if (data.prompts.length === 0) return;
@@ -243,6 +281,15 @@ export default function RecordPage() {
           p => p.sector !== undefined && (p.sector === sector || p.sector === "all")
         );
         if (interviewPool.length > 0) pool = interviewPool;
+        // Prefer the active company's own question bank over the generic
+        // sector pool when one exists (currently only McKinsey has one) —
+        // this is the tier that makes the dropdown actually change what's
+        // asked, not just the feedback tone. Falls back to the sector pool
+        // untouched when the active company has no dedicated bank yet.
+        if (activeCompany) {
+          const companyPool = interviewPool.filter(p => p.company === activeCompany);
+          if (companyPool.length > 0) pool = companyPool;
+        }
       } else {
         const workplacePool = data.prompts.filter(p => p.sector === undefined);
         if (workplacePool.length > 0) pool = workplacePool;
@@ -260,7 +307,7 @@ export default function RecordPage() {
         setPromptIndex(Math.floor(Math.random() * pool.length));
       }
     }).catch(() => {});
-  }, [user?.interviewMode, user?.interviewSector]);
+  }, [user?.interviewMode, user?.interviewSector, activeCompany]);
 
   const prompt = prompts[promptIndex] ?? null;
 
@@ -1387,6 +1434,24 @@ export default function RecordPage() {
               </p>
             </div>
           </div>
+
+          {showCompanyDropdown && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="active-company-select" className="text-xs font-medium text-gray-400">
+                Practicing for
+              </label>
+              <select
+                id="active-company-select"
+                value={activeCompany ?? ""}
+                onChange={(e) => handleCompanyChange(e.target.value)}
+                className="text-sm text-gray-700 border border-gray-200 rounded px-2 py-1 bg-white"
+              >
+                {selectedCompanies.map(company => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {(customPrompt.trim() || prompt?.text) && (
             <div className="rounded border border-gray-100 bg-gray-50 p-4">

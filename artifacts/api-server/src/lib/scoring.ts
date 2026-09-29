@@ -253,6 +253,8 @@ const FIRM_INTERVIEW_STYLES: Record<string, string> = {
     "BlackRock interviewers tend to focus follow-ups on analytical rigor behind a decision and long-term thinking, asking candidates to walk through the specific reasoning or data behind a claimed result rather than accepting the summary at face value.",
   "Citi":
     "Citi interviewers typically balance behavioral drilling with questions on why the candidate wants this specific role and division, and will ask for concrete metrics wherever a result is claimed but not quantified.",
+  "Amazon":
+    "Amazon interviewers (including a Bar Raiser from outside the hiring team) score answers against specific Leadership Principles, ask several distinct behavioral questions per session rather than one deep story, drill 3-4 levels into any decision or number with 'why' and 'what exactly did you do', and expect first-person 'I' framing with quantified impact — not 'we' language or effort described without a measurable result.",
 };
 
 // ============================================================
@@ -325,6 +327,110 @@ const COMPANY_DIMENSION_QUESTIONS: Record<string, CompanyDimensionEntry[]> = {
       dimension: "Growth",
       whatTheyLookFor: "genuine adaptability and resilience — a real setback with real consequences, and a concrete change in behavior afterward",
       commonWeakSpots: "a 'failure' that was actually low-stakes or not really the candidate's fault; a lesson learned that is vague or generic rather than a specific behavior change",
+    },
+  ],
+  // Amazon dimensions map to its 16 Leadership Principles rather than a
+  // McKinsey-style 4-dimension rotation. Several stems below carry no
+  // corroborating candidate evidence (see company_knowledge_base.json) and
+  // are included as practice-only coverage of principles with no reported
+  // account yet — guidance text still reflects Amazon's own published
+  // definition of each principle, which is independently well-sourced.
+  "Amazon": [
+    {
+      questionText: "tell me about a time you dealt with a difficult customer",
+      dimension: "Customer Obsession",
+      whatTheyLookFor: "starting from the customer's need and working backward, and earning/keeping customer trust — even when the answer to the customer was no",
+      commonWeakSpots: "framing the customer as an obstacle rather than the starting point; no clear resolution of what the customer actually needed",
+    },
+    {
+      questionText: "tell me about a time you had to make a decision without your manager",
+      dimension: "Ownership",
+      whatTheyLookFor: "acting on behalf of the whole company and long-term outcomes, not just the candidate's own narrow remit",
+      commonWeakSpots: "waiting for permission or escalating everything rather than owning the decision; no mention of long-term consequences considered",
+    },
+    {
+      questionText: "tell me about a time you simplified a complex business question",
+      dimension: "Invent and Simplify",
+      whatTheyLookFor: "finding a genuinely simpler approach, not just working harder at a complex one",
+      commonWeakSpots: "a 'simplification' that is really just extra effort or a workaround rather than a structural simplification",
+    },
+    {
+      questionText: "tell me about a time you made an important decision with incomplete information",
+      dimension: "Are Right, A Lot",
+      whatTheyLookFor: "strong judgment under uncertainty, and seeking out perspectives that could disconfirm the candidate's own view",
+      commonWeakSpots: "a decision presented as obviously correct in hindsight with no acknowledgment of the uncertainty at the time",
+    },
+    {
+      questionText: "tell me about a time you learned something on your own out of curiosity",
+      dimension: "Learn and Be Curious",
+      whatTheyLookFor: "genuine self-driven learning, not just completing required training",
+      commonWeakSpots: "a learning story that was actually mandated by a manager or role requirement rather than self-initiated curiosity",
+    },
+    {
+      questionText: "tell me about a time you hired the wrong person",
+      dimension: "Hire and Develop the Best",
+      whatTheyLookFor: "raising the hiring/performance bar and honest reflection on a hiring or development miss",
+      commonWeakSpots: "deflecting responsibility for the hiring decision onto others; no concrete change made to hiring or development approach afterward",
+    },
+    {
+      questionText: "tell me about a time you identified a problem or process that needed improvement",
+      dimension: "Insist on the Highest Standards",
+      whatTheyLookFor: "fixing a defect so it stays fixed, with a measurable result — not just flagging a problem",
+      commonWeakSpots: "identifying a problem without following through on a fix; no measurable outcome stated",
+    },
+    {
+      questionText: "tell me about a time you proposed a significantly bigger or bolder direction",
+      dimension: "Think Big",
+      whatTheyLookFor: "a genuinely bold direction that inspired others, not an incremental improvement dressed up as bold",
+      commonWeakSpots: "a 'big' idea that was actually a small, safe increment; no mention of how others were brought on board",
+    },
+    {
+      questionText: "tell me about a time you had to act quickly without all the data you wanted",
+      dimension: "Bias for Action",
+      whatTheyLookFor: "calculated risk-taking on a reversible decision, with speed valued over exhaustive analysis",
+      commonWeakSpots: "excessive analysis before acting despite the story being framed as fast; no acknowledgment of the risk that was accepted",
+    },
+    {
+      questionText: "tell me about a time you delivered a result with far fewer resources",
+      dimension: "Frugality",
+      whatTheyLookFor: "resourcefulness under real constraint, not just working with less by working longer hours",
+      commonWeakSpots: "the 'constraint' wasn't real, or the solution was just extra effort rather than genuine resourcefulness",
+    },
+    {
+      questionText: "tell me about a time you had to work with a challenging coworker",
+      dimension: "Earn Trust",
+      whatTheyLookFor: "candid, respectful communication and being vocally self-critical, not just tolerating the other person",
+      commonWeakSpots: "blaming the coworker entirely with no self-reflection on the candidate's own contribution to the friction",
+    },
+    {
+      questionText: "tell me about a time a metric or report didn't match what you were seeing",
+      dimension: "Dive Deep",
+      whatTheyLookFor: "staying connected to the details and getting to a genuine root cause, not accepting a surface-level explanation",
+      commonWeakSpots: "stopping at the first plausible explanation rather than digging to a verified root cause",
+    },
+    {
+      questionText: "describe a time where you had a difficult situation convincing your stakeholders",
+      dimension: "Have Backbone; Disagree and Commit",
+      whatTheyLookFor: "respectfully challenging a decision the candidate disagreed with, then fully committing once a decision was made",
+      commonWeakSpots: "either caving immediately with no real disagreement shown, or never actually committing once overruled",
+    },
+    {
+      questionText: "tell me about a time when you had to meet a tight deadline",
+      dimension: "Deliver Results",
+      whatTheyLookFor: "delivering the right quality on time despite setbacks, with a clear measurable result",
+      commonWeakSpots: "no mention of a setback or obstacle overcome; no measurable outcome stated",
+    },
+    {
+      questionText: "tell me about a time you made your team's work environment safer",
+      dimension: "Strive to be Earth's Best Employer",
+      whatTheyLookFor: "concrete action taken to improve safety, inclusion, or sustainability for others, not just good intentions",
+      commonWeakSpots: "a vague claim of caring about the environment/culture with no specific action taken",
+    },
+    {
+      questionText: "tell me about a time you identified an unintended consequence of your work",
+      dimension: "Success and Scale Bring Broad Responsibility",
+      whatTheyLookFor: "considering secondary effects of the candidate's work on customers, community, or environment",
+      commonWeakSpots: "no genuine unintended consequence identified, or no action taken once it was noticed",
     },
   ],
 };

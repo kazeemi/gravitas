@@ -179,6 +179,7 @@ export async function processSessionRecording(input: SessionRecordingInput): Pro
         name: usersTable.name,
         interviewCompanies: usersTable.interviewCompanies,
         interviewSector: usersTable.interviewSector,
+        lastActiveInterviewCompany: usersTable.lastActiveInterviewCompany,
       })
       .from(usersTable)
       .where(eq(usersTable.id, session.userId))
@@ -224,7 +225,14 @@ export async function processSessionRecording(input: SessionRecordingInput): Pro
     sessionNumber,
     previousCompositeScore,
     interviewMode: sessionUser?.interviewMode ?? false,
-    interviewCompanies: sessionUser?.interviewCompanies ?? null,
+    // Prefer the single active company (set via the record page's dropdown,
+    // or defaulted+persisted on first multi-company session — see
+    // record.tsx) over the full multi-company string, so a McKinsey+Bain
+    // user practicing for McKinsey today gets McKinsey-specific feedback
+    // rather than a blend of both firms' styles. Falls back to the raw
+    // multi-company string for users who predate this field or never
+    // triggered the default-persist path.
+    interviewCompanies: sessionUser?.lastActiveInterviewCompany ?? sessionUser?.interviewCompanies ?? null,
     interviewSector: sessionUser?.interviewSector ?? null,
   });
 

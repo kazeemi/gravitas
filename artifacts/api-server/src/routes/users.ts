@@ -5,7 +5,7 @@ import { db } from "../lib/db.js";
 import { requireAuth } from "../lib/auth.js";
 import { logger } from "../lib/logger.js";
 import { usersTable, sessionsTable, dimensionScoresTable } from "@workspace/db";
-import { sendDeletionConfirmationEmail, sendWelcomeEmail, scheduleNudgeEmail } from "../lib/email.js";
+import { sendDeletionConfirmationEmail, sendWelcomeEmail, scheduleNudgeEmail, sendVerificationEmail } from "../lib/email.js";
 import { CURRENT_PRIVACY_POLICY_VERSION, CURRENT_TERMS_VERSION, computeNeedsConsent } from "../lib/consent.js";
 
 const router = Router();
@@ -19,15 +19,31 @@ router.get("/v1/users/me", requireAuth, async (req, res) => {
 
 router.patch("/v1/users/me", requireAuth, async (req, res) => {
   const {
-    name, roleTitle, communicationContext, goal, defaultRecordingContext,
+    name, email, roleTitle, communicationContext, goal, defaultRecordingContext,
     emailSummaries, hasSeenWelcome, notifyOnUpgrade,
     interviewMode, interviewSector, interviewSectorCustom, interviewCompanies,
+    lastActiveInterviewCompany,
     educationLevel, workExperienceYears, primaryGoal,
     interviewRole, interviewTimeline, interviewDate, hasConfirmedInterview,
     workEnvironment, workOrganisation, workCurrentRole, workCurrentRoleCustom, highStakesContexts,
   } = req.body;
   const updates: Partial<typeof usersTable.$inferInsert> = {};
   if (name !== undefined) updates.name = name;
+  let newVerificationToken: string | null = null;
+  if (email !== undefined) {
+    const normalizedEmail = String(email).toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ error: "Invalid email address" });
+    }
+    updates.email = normalizedEmail;
+    // Changing your email requires re-verifying it — this also stops someone
+    // from using an email-change to silently bypass the original signup
+    // verification step.
+    updates.emailVerified = false;
+    newVerificationToken = crypto.randomBytes(32).toString("hex");
+    updates.emailVerificationToken = newVerificationToken;
+    updates.emailVerificationExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  }
   if (roleTitle !== undefined) updates.roleTitle = roleTitle;
   if (communicationContext !== undefined) updates.communicationContext = communicationContext;
   if (goal !== undefined) updates.goal = goal;
@@ -39,6 +55,7 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
   if (interviewSector !== undefined) updates.interviewSector = interviewSector;
   if (interviewSectorCustom !== undefined) updates.interviewSectorCustom = interviewSectorCustom;
   if (interviewCompanies !== undefined) updates.interviewCompanies = interviewCompanies;
+  if (lastActiveInterviewCompany !== undefined) updates.lastActiveInterviewCompany = lastActiveInterviewCompany;
   if (educationLevel !== undefined) updates.educationLevel = educationLevel;
   if (workExperienceYears !== undefined) updates.workExperienceYears = workExperienceYears;
   if (primaryGoal !== undefined) updates.primaryGoal = primaryGoal;
@@ -51,8 +68,26 @@ router.patch("/v1/users/me", requireAuth, async (req, res) => {
   if (workCurrentRole !== undefined) updates.workCurrentRole = workCurrentRole;
   if (workCurrentRoleCustom !== undefined) updates.workCurrentRoleCustom = workCurrentRoleCustom;
   if (highStakesContexts !== undefined) updates.highStakesContexts = highStakesContexts;
-  const [user] = await db.update(usersTable).set(updates).where(and(eq(usersTable.id, req.user!.userId), isNull(usersTable.deletedAt))).returning();
+
+  let user: typeof usersTable.$inferSelect | undefined;
+  try {
+    [user] = await db.update(usersTable).set(updates).where(and(eq(usersTable.id, req.user!.userId), isNull(usersTable.deletedAt))).returning();
+  } catch (err) {
+    if (err instanceof Error && "code" in err && (err as { code: string }).code === "23505") {
+      return res.status(409).json({ error: "That email address is already in use" });
+    }
+    throw err;
+  }
   if (!user) return res.status(404).json({ error: "User not found" });
+
+  if (newVerificationToken) {
+    try {
+      await sendVerificationEmail(user.email, user.name ?? "there", newVerificationToken);
+    } catch (err) {
+      logger.error({ err, userId: user.id }, "Failed to send verification email after email change");
+    }
+  }
+
   const { passwordHash: _ph, ...safe } = user;
   return res.json(safe);
 });

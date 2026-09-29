@@ -37,11 +37,18 @@ export const usersTable = pgTable("users", {
   // Per-user recording allowance in seconds. Defaults to the standard 30-minute
   // allowance; raise it per user (e.g. for pilot clients and evaluators) from admin.
   recordingSecondsAllowance: integer("recording_seconds_allowance").notNull().default(1800),
-  notifyOnUpgrade: boolean("notify_on_upgrade").notNull().default(true),
+  // Opt-in, not opt-out: only set true by the user's own "Notify me" action
+  // when they hit their recording quota (see record.tsx handleNotifyMe).
+  notifyOnUpgrade: boolean("notify_on_upgrade").notNull().default(false),
   interviewMode: boolean("interview_mode").notNull().default(false),
   interviewSector: varchar("interview_sector", { length: 50 }),
   interviewSectorCustom: varchar("interview_sector_custom", { length: 255 }),
   interviewCompanies: text("interview_companies"),
+  // Which of the user's selected companies was active in their most recent
+  // interview-mode session. Drives the record page's company dropdown
+  // default (first-chosen on session 1, last-used thereafter). Only
+  // meaningful when interviewCompanies has 2+ entries.
+  lastActiveInterviewCompany: varchar("last_active_interview_company", { length: 255 }),
   isAdmin: boolean("is_admin").notNull().default(false),
 
   // Email verification

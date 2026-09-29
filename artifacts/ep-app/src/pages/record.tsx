@@ -1117,6 +1117,24 @@ export default function RecordPage() {
       {step === "setup" && (
         <div className="space-y-4">
 
+          {showCompanyDropdown && (
+            <div className="flex items-center gap-2">
+              <label htmlFor="active-company-select" className="text-xs font-medium text-gray-400">
+                Practicing for
+              </label>
+              <select
+                id="active-company-select"
+                value={activeCompany ?? ""}
+                onChange={(e) => handleCompanyChange(e.target.value)}
+                className="text-sm text-gray-700 border border-gray-200 rounded px-2 py-1 bg-white"
+              >
+                {selectedCompanies.map(company => (
+                  <option key={company} value={company}>{company}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* ── Prompt / custom entry (unified block) ── */}
           <div>
             {showCustomPrompt || customPrompt.trim() ? (
@@ -1434,24 +1452,6 @@ export default function RecordPage() {
               </p>
             </div>
           </div>
-
-          {showCompanyDropdown && (
-            <div className="flex items-center gap-2">
-              <label htmlFor="active-company-select" className="text-xs font-medium text-gray-400">
-                Practicing for
-              </label>
-              <select
-                id="active-company-select"
-                value={activeCompany ?? ""}
-                onChange={(e) => handleCompanyChange(e.target.value)}
-                className="text-sm text-gray-700 border border-gray-200 rounded px-2 py-1 bg-white"
-              >
-                {selectedCompanies.map(company => (
-                  <option key={company} value={company}>{company}</option>
-                ))}
-              </select>
-            </div>
-          )}
 
           {(customPrompt.trim() || prompt?.text) && (
             <div className="rounded border border-gray-100 bg-gray-50 p-4">

@@ -32,7 +32,7 @@ const upload = multer({
 const router = Router();
 
 router.post("/v1/sessions", requireAuth, async (req, res) => {
-  const { mode, promptText, promptType, recordingContext } = req.body;
+  const { mode, promptText, promptType, promptCompany, promptDimension, recordingContext } = req.body;
   if (!mode || !["audio", "video"].includes(mode)) {
     return res.status(400).json({ error: "mode must be 'audio' or 'video'" });
   }
@@ -66,6 +66,8 @@ router.post("/v1/sessions", requireAuth, async (req, res) => {
     mode,
     promptText,
     promptType,
+    promptCompany,
+    promptDimension,
     recordingContext: recordingContext || "seated",
     processingStatus: "pending",
   }).returning();

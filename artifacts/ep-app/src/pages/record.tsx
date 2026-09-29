@@ -551,6 +551,11 @@ export default function RecordPage() {
           mode,
           promptText: customPrompt.trim() || prompt?.text || undefined,
           promptType: prompt?.category,
+          // Only tag company/dimension when the actual tagged prompt was
+          // used, not when the user typed a custom question — a custom
+          // prompt was never matched against a company's question bank.
+          promptCompany: customPrompt.trim() ? undefined : prompt?.company,
+          promptDimension: customPrompt.trim() ? undefined : prompt?.peiDimension,
           recordingContext: mode === "video" ? recordingContext : "seated",
         });
       } catch (apiErr) {

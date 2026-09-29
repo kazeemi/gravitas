@@ -19,6 +19,15 @@ export const sessionsTable = pgTable("sessions", {
   methodologyVersion: varchar("methodology_version", { length: 10 }).notNull().default("4.0"),
   promptText: text("prompt_text"),
   promptType: varchar("prompt_type", { length: 50 }),
+  // Only set when the prompt came from a specific company's tagged question
+  // bank (see prompts.ts / company_knowledge_base.json) — used to reveal
+  // "this question targeted X" after scoring, never before or during
+  // recording (candidates in a real interview don't know this upfront
+  // either). Not derived from promptType/category at reveal time because
+  // category names like "Leadership" are reused by generic, non-tagged
+  // prompts too — deriving from category would misattribute those.
+  promptCompany: varchar("prompt_company", { length: 100 }),
+  promptDimension: varchar("prompt_dimension", { length: 100 }),
   recordingContext: varchar("recording_context", { length: 20 }).default("seated"),
   durationSeconds: integer("duration_seconds"),
   transcript: text("transcript"),

@@ -590,6 +590,16 @@ export default function SessionRevealPage() {
                 <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
                   {session.promptText}
                 </p>
+                {session.promptCompany && session.promptDimension && (
+                  <p
+                    className="mt-2 text-xs leading-relaxed"
+                    style={{ color: "rgba(240,149,62,0.85)" }}
+                  >
+                    In a real {session.promptCompany} interview, this question may target: <span className="font-semibold">{session.promptDimension}</span>
+                    {session.promptCompany === "McKinsey & Company" ? " (a PEI dimension)" : session.promptCompany === "Amazon" ? " (a Leadership Principle)" : ""}
+                    .
+                  </p>
+                )}
               </div>
             )}
           </div>

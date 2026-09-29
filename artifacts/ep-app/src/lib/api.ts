@@ -102,7 +102,7 @@ export const api = {
   },
 
   sessions: {
-    create: (data: { mode: string; promptText?: string; promptType?: string; recordingContext?: string }) =>
+    create: (data: { mode: string; promptText?: string; promptType?: string; promptCompany?: string; promptDimension?: string; recordingContext?: string }) =>
       request<{ id: string; mode: string; processingStatus: string }>("/v1/sessions", {
         method: "POST",
         body: JSON.stringify(data),
@@ -171,6 +171,10 @@ export interface SessionSummary {
   methodologyVersion: string;
   promptText: string | null;
   promptType: string | null;
+  // Only set when the prompt came from a specific company's tagged question
+  // bank — used to reveal "this question targeted X" after scoring.
+  promptCompany: string | null;
+  promptDimension: string | null;
   recordingContext: string | null;
   durationSeconds: number | null;
   compositeScore: string | null;

@@ -30,6 +30,16 @@ interface OverallFeedback {
   nextStep?: string;
   innerWorkEscalation?: string;
   unscoredDimensions?: UnscoredDimension[];
+  likelyFollowUps?: LikelyFollowUp[];
+}
+
+// A follow-up question the candidate should prepare for, grounded in this
+// session's transcript and phrased in the style of one of their
+// onboarding-selected target firms (or a sector-level style as a fallback).
+interface LikelyFollowUp {
+  question: string;
+  whyTheyMightAskThis: string;
+  styleLabel: string;
 }
 
 // A dimension whose underlying signal was not present in the recording (e.g. eye
@@ -86,8 +96,18 @@ const TIER_ORDER: Record<string, number> = { "Needs Focus": 1, "Developing": 2, 
 
 // ── Slide types ────────────────────────────────────────────────────────────
 
-type Slide = "score" | "strengths" | "improvements" | "focus" | "pillars";
-const SLIDES: Slide[] = ["score", "strengths", "improvements", "focus", "pillars"];
+type Slide = "score" | "strengths" | "improvements" | "focus" | "followups" | "pillars";
+
+// "followups" only appears when the session actually produced likelyFollowUps
+// (e.g. transcript too short/off-topic to support genuine ones) — a slide
+// that says nothing would break the "one idea per slide" reveal format.
+function getSlides(session: SessionDetail | null): Slide[] {
+  const fb = session ? parseOverallFeedback(session.overallFeedback) : null;
+  const hasFollowUps = !!fb?.likelyFollowUps?.length;
+  return hasFollowUps
+    ? ["score", "strengths", "improvements", "focus", "followups", "pillars"]
+    : ["score", "strengths", "improvements", "focus", "pillars"];
+}
 
 // ── Main component ─────────────────────────────────────────────────────────
 
@@ -99,6 +119,8 @@ export default function SessionRevealPage() {
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const slides = getSlides(session);
 
   // Slide navigation
   const [slideIndex, setSlideIndex] = useState(0);
@@ -144,7 +166,7 @@ export default function SessionRevealPage() {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
 
-    const slide = SLIDES[slideIndex];
+    const slide = slides[slideIndex];
     const fb = parseOverallFeedback(session.overallFeedback);
 
     if (slide === "score") {
@@ -206,6 +228,14 @@ export default function SessionRevealPage() {
       timersRef.current.push(window.setTimeout(() => setFocusVisible(true), 250));
     }
 
+    if (slide === "followups") {
+      const items = fb?.likelyFollowUps?.slice(0, 3) ?? [];
+      const count = Math.max(items.length, 1);
+      for (let i = 0; i < count; i++) {
+        timersRef.current.push(window.setTimeout(() => setVisibleBullets(i + 1), 250 + i * 480));
+      }
+    }
+
     if (slide === "pillars") {
       const sortedDims = [...session.dimensionScores].sort((a, b) => {
         const ai = DIMENSION_DISPLAY_ORDER.indexOf(a.dimensionKey);
@@ -234,7 +264,7 @@ export default function SessionRevealPage() {
   // ── Navigation ───────────────────────────────────────────────────────────
 
   const goNext = () => {
-    if (slideIndex >= SLIDES.length - 1) return;
+    if (slideIndex >= slides.length - 1) return;
     setSlideIn(false);
     window.setTimeout(() => {
       setSlideIndex(i => i + 1);
@@ -313,6 +343,7 @@ export default function SessionRevealPage() {
   const improvementBullets = fb ? getImprovementBullets(fb) : [];
   const priorityAction = fb?.priorityAction || (!isNeedsFocus ? fb?.nextStep : null) || null;
   const priorityActions = fb?.priorityActions || [];
+  const likelyFollowUps = fb?.likelyFollowUps?.slice(0, 3) || [];
 
   const sortedDimensions = [...session.dimensionScores].sort((a, b) => {
     const ai = DIMENSION_DISPLAY_ORDER.indexOf(a.dimensionKey);
@@ -344,8 +375,8 @@ export default function SessionRevealPage() {
   const prevTierRank = TIER_ORDER[prevCompletedSession?.compositeTier ?? ""] ?? 0;
   const isTierUp = (TIER_ORDER[tier] ?? 0) > prevTierRank && prevTierRank > 0;
 
-  const isLastSlide = slideIndex === SLIDES.length - 1;
-  const currentSlide = SLIDES[slideIndex];
+  const isLastSlide = slideIndex === slides.length - 1;
+  const currentSlide = slides[slideIndex];
   const noScore = score === null || session.dimensionScores.length === 0;
 
   const activePillar = dimensionsByPillar[selectedPillarIndex];
@@ -359,7 +390,7 @@ export default function SessionRevealPage() {
     >
       {/* Instagram-style progress bars */}
       <div className="flex gap-1.5 px-6 pt-5">
-        {SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <div
             key={i}
             className="flex-1 rounded-full overflow-hidden"
@@ -738,6 +769,57 @@ export default function SessionRevealPage() {
                 </p>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── FOLLOW-UPS slide ── */}
+        {currentSlide === "followups" && (
+          <div className="flex flex-col gap-8 flex-1">
+            <div>
+              <p
+                className="text-base font-bold uppercase tracking-widest"
+                style={{ color: "#F0953E" }}
+              >
+                Questions to prepare for
+              </p>
+              <div style={{ height: "1px", background: "rgba(240,149,62,0.2)", marginTop: "14px" }} />
+              <p className="text-xs mt-3" style={{ color: "rgba(255,255,255,0.4)" }}>
+                Based on what you said, here's what an interviewer would most likely push on next.
+              </p>
+            </div>
+
+            <ul className="space-y-6">
+              {likelyFollowUps.map((fu, i) => (
+                <li
+                  key={i}
+                  className="flex gap-3.5"
+                  style={{
+                    opacity: visibleBullets > i ? 1 : 0,
+                    transform: visibleBullets > i ? "none" : "translateY(10px)",
+                    transition: "opacity 0.4s ease, transform 0.4s ease",
+                  }}
+                >
+                  <span
+                    className="flex-shrink-0 mt-2 rounded-full"
+                    style={{ width: "5px", height: "5px", background: "#F0953E" }}
+                  />
+                  <div>
+                    <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.82)" }}>
+                      "{fu.question}"
+                      <span
+                        className="ml-1.5 inline-block align-middle text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded"
+                        style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}
+                      >
+                        {fu.styleLabel}
+                      </span>
+                    </p>
+                    <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
+                      {fu.whyTheyMightAskThis}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

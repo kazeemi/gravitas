@@ -173,7 +173,13 @@ export async function processSessionRecording(input: SessionRecordingInput): Pro
       ))
       .orderBy(desc(sessionsTable.createdAt)),
     db
-      .select({ interviewMode: usersTable.interviewMode, email: usersTable.email, name: usersTable.name })
+      .select({
+        interviewMode: usersTable.interviewMode,
+        email: usersTable.email,
+        name: usersTable.name,
+        interviewCompanies: usersTable.interviewCompanies,
+        interviewSector: usersTable.interviewSector,
+      })
       .from(usersTable)
       .where(eq(usersTable.id, session.userId))
       .limit(1),
@@ -218,6 +224,8 @@ export async function processSessionRecording(input: SessionRecordingInput): Pro
     sessionNumber,
     previousCompositeScore,
     interviewMode: sessionUser?.interviewMode ?? false,
+    interviewCompanies: sessionUser?.interviewCompanies ?? null,
+    interviewSector: sessionUser?.interviewSector ?? null,
   });
 
   await db.insert(dimensionScoresTable).values(

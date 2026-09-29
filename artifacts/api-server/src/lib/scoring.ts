@@ -224,6 +224,196 @@ export function computeCompositeTier(
 }
 
 // ============================================================
+// FIRM INTERVIEW STYLES — for company-specific follow-up questions
+// ============================================================
+
+// Keyed exactly to the onboarding company picker (COMPANIES_BY_INDUSTRY in
+// onboarding.tsx). Only firms on that fixed list get a named style note —
+// anything else came from the onboarding free-text field and falls back to
+// a sector-level style below, rather than the model guessing a specific
+// firm's interview style it can't reliably know.
+const FIRM_INTERVIEW_STYLES: Record<string, string> = {
+  "McKinsey & Company":
+    "McKinsey interviewers drill rapidly on specifics: they will ask 'why' two or three times in a row on the same point, push hard for quantified impact ('by how much, measured how?'), and expect a clean, structured answer (PEI-style: situation, task, action, result) with minimal warmth or small talk.",
+  "Bain & Company":
+    "Bain interviewers are more conversational than McKinsey but push just as hard on substance — expect 'so what does that mean for the business?' follow-ups that test whether the candidate sees the bigger picture, plus genuine curiosity about fit and energy, not just content.",
+  "Boston Consulting Group":
+    "BCG interviewers combine MBB-style structured drilling with a strong emphasis on counterfactuals — 'what would you have done differently?' and 'what if that approach had failed?' — testing adaptability as much as the original decision.",
+  "Oliver Wyman":
+    "Oliver Wyman interviewers use a structured, case-adjacent style similar to MBB but with somewhat less adversarial drilling — expect follow-ups that probe the reasoning behind a decision and how it would generalize to a different situation, delivered in a more collegial tone.",
+  "Strategy&":
+    "Strategy& interviewers follow a structured consulting format close to MBB — expect specifics-focused follow-ups on quantified outcomes and the reasoning behind key decisions, with particular interest in how the candidate's approach connects to a client-facing, operational context.",
+  "Goldman Sachs":
+    "Goldman Sachs interviewers push hard on 'why Goldman, why this desk/division specifically' beyond a generic answer, drill for concrete numbers behind any claimed result, and test composure by repeating or rephrasing the same challenging question to see if the answer holds up.",
+  "J.P. Morgan":
+    "J.P. Morgan interviewers probe motivation ('why banking, why us') and technical/market awareness alongside the behavioral story, and will follow up on any vague claim with a direct request for the specific number or outcome.",
+  "Morgan Stanley":
+    "Morgan Stanley interviewers commonly pair behavioral follow-ups with questions testing market awareness and genuine interest in the firm, and press on inconsistencies between the story told and the stated motivation.",
+  "BlackRock":
+    "BlackRock interviewers tend to focus follow-ups on analytical rigor behind a decision and long-term thinking, asking candidates to walk through the specific reasoning or data behind a claimed result rather than accepting the summary at face value.",
+  "Citi":
+    "Citi interviewers typically balance behavioral drilling with questions on why the candidate wants this specific role and division, and will ask for concrete metrics wherever a result is claimed but not quantified.",
+};
+
+// ============================================================
+// COMPANY-SPECIFIC DIMENSION GUIDANCE — question-level, not firm-level
+// ============================================================
+// FIRM_INTERVIEW_STYLES above gives one blanket style per firm. Some firms
+// (McKinsey's PEI) actually evaluate distinct dimensions per question, and
+// candidates benefit from feedback aimed at the dimension the specific
+// question is testing, not a generic firm-wide note. This is intentionally
+// NOT phrased as "verified" or "confirmed" wording — public interview
+// formats change over time and we cannot guarantee current accuracy, so
+// guidance here is framed as general coaching, not a claim of certainty.
+//
+// Matched by exact (case-insensitive, trimmed) prompt text against known
+// question bank entries — see company_knowledge_base.json. Only McKinsey is
+// populated; other firms fall back to their firm-level style note as before.
+interface CompanyDimensionEntry {
+  questionText: string;
+  dimension: string;
+  whatTheyLookFor: string;
+  commonWeakSpots: string;
+}
+
+const COMPANY_DIMENSION_QUESTIONS: Record<string, CompanyDimensionEntry[]> = {
+  "McKinsey & Company": [
+    {
+      questionText: "explain a challenging situation you encountered when working with someone with an opposing opinion",
+      dimension: "Connection",
+      whatTheyLookFor: "influence, persuasion, and genuinely resolving disagreement — not just describing that a disagreement existed",
+      commonWeakSpots: "describing the conflict in detail but never showing what the candidate specifically said or did that changed the other person's position; heavy 'we' language that obscures the candidate's individual persuasion tactic",
+    },
+    {
+      questionText: "tell me about a time you had to convince someone to change their mind",
+      dimension: "Connection",
+      whatTheyLookFor: "influence, persuasion, and genuinely resolving disagreement — not just describing that a disagreement existed",
+      commonWeakSpots: "describing the conflict in detail but never showing what the candidate specifically said or did that changed the other person's position; heavy 'we' language that obscures the candidate's individual persuasion tactic",
+    },
+    {
+      questionText: "talk about a time when you worked hard to achieve excellence in particularly tough circumstances",
+      dimension: "Drive",
+      whatTheyLookFor: "initiative, resourcefulness, and persistence through real obstacles — not just working long hours",
+      commonWeakSpots: "effort described without a specific obstacle that required resourcefulness; no clear moment of choosing to push through versus giving up",
+    },
+    {
+      questionText: "tell me about a time you pushed through a significant obstacle to get something done",
+      dimension: "Drive",
+      whatTheyLookFor: "initiative, resourcefulness, and persistence through real obstacles — not just working long hours",
+      commonWeakSpots: "effort described without a specific obstacle that required resourcefulness; no clear moment of choosing to push through versus giving up",
+    },
+    {
+      questionText: "tell me about a time you led a team through a challenging or ambiguous situation",
+      dimension: "Leadership",
+      whatTheyLookFor: "uniting a diverse group and empowering others, not just directing tasks",
+      commonWeakSpots: "leadership framed as top-down instruction rather than building buy-in; no mention of how other team members' perspectives were incorporated",
+    },
+    {
+      questionText: "tell me about a time you had to align people with different opinions toward a common goal",
+      dimension: "Leadership",
+      whatTheyLookFor: "uniting a diverse group and empowering others, not just directing tasks",
+      commonWeakSpots: "leadership framed as top-down instruction rather than building buy-in; no mention of how other team members' perspectives were incorporated",
+    },
+    {
+      questionText: "tell me about a time you failed and what you learned from it",
+      dimension: "Growth",
+      whatTheyLookFor: "genuine adaptability and resilience — a real setback with real consequences, and a concrete change in behavior afterward",
+      commonWeakSpots: "a 'failure' that was actually low-stakes or not really the candidate's fault; a lesson learned that is vague or generic rather than a specific behavior change",
+    },
+    {
+      questionText: "tell me about a time you received difficult feedback and how you responded",
+      dimension: "Growth",
+      whatTheyLookFor: "genuine adaptability and resilience — a real setback with real consequences, and a concrete change in behavior afterward",
+      commonWeakSpots: "a 'failure' that was actually low-stakes or not really the candidate's fault; a lesson learned that is vague or generic rather than a specific behavior change",
+    },
+  ],
+};
+
+// Matches the current prompt against a company's known question bank and
+// returns a coaching-oriented guidance note to layer alongside (never
+// replacing) that firm's general style note. Returns null on no match —
+// callers should fall back to the firm-level style note alone.
+function resolveDimensionGuidance(
+  promptText: string | undefined,
+  company: string
+): string | null {
+  if (!promptText) return null;
+  const entries = COMPANY_DIMENSION_QUESTIONS[company];
+  if (!entries) return null;
+  const normalized = promptText.trim().toLowerCase();
+  const match = entries.find(e => normalized.includes(e.questionText) || e.questionText.includes(normalized));
+  if (!match) return null;
+  return `This question is generally understood to probe the "${match.dimension}" dimension of this firm's evaluation criteria: ${match.whatTheyLookFor}. Common weak spots on this type of question: ${match.commonWeakSpots}.`;
+}
+
+const SECTOR_FALLBACK_STYLES: Record<string, string> = {
+  consulting:
+    "Consulting-style interviewers drill rapidly for specifics and quantified impact, ask 'why' repeatedly on the same point, and expect a clean, structured answer with a clear result.",
+  banking:
+    "Finance-style interviewers push on 'why this firm/role specifically' beyond a generic answer, drill for concrete numbers behind any claimed result, and test composure by repeating or rephrasing a challenging question.",
+  finance:
+    "Finance-style interviewers push on 'why this firm/role specifically' beyond a generic answer, drill for concrete numbers behind any claimed result, and test composure by repeating or rephrasing a challenging question.",
+  tech:
+    "Tech-style interviewers push for concrete ownership and impact ('what exactly did YOU do, what was the measurable outcome'), and probe how the candidate handled ambiguity or disagreement on the team.",
+};
+
+const DEFAULT_FALLBACK_STYLE =
+  "A rigorous interviewer drills for specifics and quantified impact, asks 'why' repeatedly on the same point, and tests whether the story holds up under repeated pushback.";
+
+export interface FollowUpStyleContext {
+  // Each entry is either a matched firm name (from the fixed onboarding list)
+  // or a sector-level fallback label — never a guessed style for an unknown firm.
+  label: string;
+  styleNote: string;
+}
+
+// Resolves the user's selected companies (onboarding stores them as a
+// "; "-joined string, mixing fixed-list picks and free-text custom entries)
+// into style notes to drive company-flavoured follow-up questions. Unmatched
+// entries (i.e. typed into the custom field) fall back to the sector style
+// rather than letting the model invent a specific firm's interview style.
+export function resolveFollowUpStyles(
+  interviewCompanies: string | null | undefined,
+  interviewSector: string | null | undefined,
+  promptText?: string
+): FollowUpStyleContext[] {
+  const sectorKey = (interviewSector || "").toLowerCase();
+  const sectorStyle = SECTOR_FALLBACK_STYLES[sectorKey] || DEFAULT_FALLBACK_STYLE;
+  const sectorLabel = SECTOR_FALLBACK_STYLES[sectorKey]
+    ? `${interviewSector} style`
+    : "general interview style";
+
+  const companies = (interviewCompanies || "")
+    .split(";")
+    .map(c => c.trim())
+    .filter(Boolean);
+
+  if (companies.length === 0) {
+    return [{ label: sectorLabel, styleNote: sectorStyle }];
+  }
+
+  // Cap at 3 to keep the feedback page from becoming a wall of questions —
+  // onboarding rarely results in more than a couple of selections anyway.
+  const seen = new Set<string>();
+  const results: FollowUpStyleContext[] = [];
+  for (const company of companies) {
+    if (results.length >= 3) break;
+    const matched = FIRM_INTERVIEW_STYLES[company];
+    const dimensionGuidance = matched ? resolveDimensionGuidance(promptText, company) : null;
+    const entry: FollowUpStyleContext = matched
+      ? { label: company, styleNote: dimensionGuidance ? `${matched} ${dimensionGuidance}` : matched }
+      : { label: sectorLabel, styleNote: sectorStyle };
+    // Collapse repeated fallback entries (e.g. two custom-typed firms in the
+    // same sector) into one, since they'd produce the same style note anyway.
+    const dedupeKey = matched ? company : `fallback:${sectorLabel}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    results.push(entry);
+  }
+  return results;
+}
+
+// ============================================================
 // CONTEXT CLASSIFICATION — v4.1 (explicit label-based)
 // ============================================================
 
@@ -350,6 +540,11 @@ export interface ScoringInput {
   sessionNumber?: number;
   previousCompositeScore?: number | null;
   interviewMode?: boolean;
+  // Onboarding-selected target companies ("; "-joined, fixed-list picks
+  // plus free-text) and sector — used to generate likelyFollowUps in the
+  // style of the candidate's actual target firms. See resolveFollowUpStyles.
+  interviewCompanies?: string | null;
+  interviewSector?: string | null;
   // Drives the language the written feedback (strengthText/gapText/nextStepText,
   // overallFeedback) is generated in. Independent of the transcript's own
   // language — transcribeAudio() is given the speech language separately.
@@ -388,6 +583,16 @@ export interface ScoringResult {
   overallFeedback: string;
 }
 
+// A single question the candidate should prepare for, grounded in something
+// specific from this session and in the interview style of one of their
+// onboarding-selected target firms (or a sector-level style if the firm was
+// free-typed and not on the fixed onboarding list).
+export interface LikelyFollowUp {
+  question: string;
+  whyTheyMightAskThis: string;
+  styleLabel: string;
+}
+
 interface AIDimensionEval {
   score: number;
   strengthText: string | null;
@@ -402,6 +607,7 @@ interface AIEvalResult {
   priorityActions: string[];
   recordAgainPrompt: string;
   motivationalMessage: string;
+  likelyFollowUps?: LikelyFollowUp[];
   // Legacy fields (kept for backward-compat in case AI returns old format)
   overallStrengths?: string;
   overallImprovements?: string;
@@ -867,6 +1073,13 @@ async function runAIEvaluation(
   // overall feedback blob) must be produced in this language — dimension keys,
   // tiers, and internal field names stay in English regardless, since those
   // are read by code, not the candidate.
+  // Follow-up prep questions are an interview-mode-only feature — a general
+  // speaking-practice user has no target firm context, so this must not
+  // silently fire for them via the sector/default fallback style.
+  const followUpStyles = input.interviewMode
+    ? resolveFollowUpStyles(input.interviewCompanies, input.interviewSector, input.promptText)
+    : [];
+
   const feedbackLanguageDirective = input.language === "ar"
     ? "\n\nLANGUAGE — STRICTLY ENFORCED: Write every candidate-facing feedback field (strengthText, gapText, nextStepText, and all overallFeedback fields) in Modern Standard Arabic. Keep dimension keys, tier labels, and any JSON field names in English exactly as specified below — only the feedback prose itself is in Arabic. Maintain the same warm, direct, second-person coaching voice in Arabic (use \"أنتَ/أنتِ\" address) as described in the FEEDBACK STANDARDS below.\n"
     : "";
@@ -1180,6 +1393,12 @@ Ideal pace: ${context.idealWpmMin}–${context.idealWpmMax} words per minute.
 Speaker's pace: ${wordsPerMinute} wpm (${wordsPerMinute < context.idealWpmMin ? `${context.idealWpmMin - wordsPerMinute} wpm BELOW ideal` : wordsPerMinute > context.idealWpmMax ? `${wordsPerMinute - context.idealWpmMax} wpm ABOVE ideal` : "within ideal range"}).
 State this classification and ideal range explicitly in the pace dimension feedback.
 
+${followUpStyles.length > 0 ? `LIKELY FOLLOW-UP QUESTIONS — internal candidate pool, styles to draw from:
+${followUpStyles.map(s => `- Style: "${s.label}". ${s.styleNote}`).join("\n")}
+STEP 1 (internal — do not output this step): For EACH style listed above, think through the follow-up questions a real interviewer of that style would ask AFTER hearing this specific response — not generic interview questions. Each candidate must be triggered by something actually said (or left vague/unquantified) in this transcript: an unquantified claim, a glossed-over decision, a hedge, a gap in the story, or a strong claim worth pressure-testing. Do NOT invent follow-ups unconnected to what was actually said. Draw from: drilling for specifics ("you said X — what exactly/how much?"), demanding proof/numbers, probing motive/reasoning behind a choice, counterfactual ("what if / what would you do differently"), or compression pressure ("give me that in one sentence"). Match the tone and rigor of the named style — e.g. McKinsey-style candidates should read as terser and more repetitive-drill than Bain-style.
+STEP 2: From the full candidate pool across all styles, select ONLY the 3 highest-impact questions overall — the ones targeting the most damaging gaps in this specific response (the vaguest claim, the weakest structural moment, the biggest unproven assertion), regardless of which style they came from. Do not force one question per style — if two of the three best questions come from the same style, that's fine. Rank them most-damaging-gap-first. Set "styleLabel" on each to the exact style label it was drawn from, so it can be shown as a small inline tag.
+If the transcript is too short or off-topic to support genuine, evidence-based follow-ups (see word count below), return an empty likelyFollowUps array rather than inventing generic questions. Return at most 3 items, never more.` : `LIKELY FOLLOW-UP QUESTIONS: This is not an interview-mode session — return an empty likelyFollowUps array. Do not generate any follow-up questions.`}
+
 SESSION HISTORY CONTEXT (used only for motivationalMessage — do not reference score numbers in the message):
 Session number: ${input.sessionNumber ?? 1}
 ${input.previousCompositeScore != null
@@ -1207,6 +1426,13 @@ Return a JSON object (no markdown, no code fences):
   "priorityAction": "<for Developing/Strong/Distinguished sessions: identify the 1–2 highest-impact things to focus on in the next recording. Use TWO focus areas ONLY when ALL three conditions are met: (a) two separate dimensions are both clearly failing (score ≤5), (b) fixing one will NOT meaningfully fix the other — they are genuinely independent skills, AND (c) both dimensions carry significant composite weight (dimension weights from highest to lowest: structure 0.15, confidence_language 0.13, intonation 0.08, vocal_tone 0.08, eye_contact 0.08, pace 0.07, conciseness 0.07, posture 0.05, projection 0.05 audio/0.06 video, pausing 0.06 audio/0.07 video, breath_control 0.04, articulation 0.04, facial_expression 0.04, vocal_steadiness 0.02 audio/0.04 video, gestures 0.03). If conditions are not all met, give ONE focus area only — the highest-weight failing dimension. When giving two areas, address each in one sentence, together forming a single cohesive paragraph. NEVER suggest writing, scripting, or preparing material. Use language like 'in your next recording, try' or 'record again and notice whether'. For Needs Focus sessions: null.>",
   "priorityActions": ["<Start here: [specific mental focus or in-recording experiment — no writing, no scripting]>", "<Then here: [specific focus]>", "<Then here: [specific focus]>"],
   "recordAgainPrompt": "<one sentence. Frame the next recording as the natural continuation of this session — not optional, not homework. The insight from this session is most valuable when tested immediately. Make the user feel that recording again right now is the single most useful thing they can do. Be energetic and specific to what was observed in this session.>",
+  "likelyFollowUps": [
+    {
+      "question": "<the exact follow-up question an interviewer of this style would ask, phrased as they would say it>",
+      "whyTheyMightAskThis": "<max 25 words. Names the specific thing in the transcript that would trigger this — the unquantified claim, gap, or hedge>",
+      "styleLabel": "<exactly one of the style labels given above>"
+    }
+  ],
   "motivationalMessage": "<1–2 sentences max. About the act of showing up and the work ahead — NEVER about the score number. CRITICAL TONE CALIBRATION — read the dimension scores you just assigned and calibrate accordingly: If scores are mostly 7–10 (Distinguished/Strong range): you may acknowledge that the gap is now in refinement. If scores are mostly 4–6 (Developing range): the work is substantial and real — do NOT say things like 'the work is in the final five percent', 'you are almost there', 'just fine-tuning now', or anything that implies near-completion. A 5 or 6 means meaningful development is still ahead, not polish. If scores are mostly 1–3 (Needs Focus): be quietly affirming — acknowledge effort not outcome, never make the user feel they failed. Rules by session number: If sessionNumber=1: acknowledge starting is the hardest part; feel like a warm welcome and genuine recognition of a real first step. If sessionNumber=2: acknowledge that returning matters more than most people realise. If sessionNumber>=3: stop counting sessions; focus on the pattern — consistency, the habit of self-development. Score comparison (session 2+): if this session improved noticeably vs previous score: acknowledge progress implicitly, may name the dimension or pillar that moved — never state numbers. If improvement was small or score dropped: do not reference score movement; focus entirely on showing up and continuing. NEVER use: 'great job', 'well done', 'amazing effort', 'you're crushing it', 'the final five percent', 'almost there', or anything automated or hollow. Write as a real coach who heard this specific person and is being honest with them.>",
   "dimensions": {
     ${dimensions
@@ -1523,6 +1749,13 @@ export async function scoreSession(input: ScoringInput): Promise<ScoringResult> 
     priorityActions,
     recordAgainPrompt: aiResult.recordAgainPrompt || null,
     motivationalMessage: aiResult.motivationalMessage || null,
+    // Ranked top-3 across all styles, not grouped per firm — enforced here
+    // rather than trusting the model to always respect the cap.
+    // Enforced here, not just via the prompt: this is an interview-mode-only
+    // feature, so a model slip-up must never leak it to a general-practice user.
+    likelyFollowUps: input.interviewMode && aiResult.likelyFollowUps?.length
+      ? aiResult.likelyFollowUps.slice(0, 3)
+      : [],
     needsFocusPreamble:
       needsFocusComposite && priorityActions.length > 0
         ? "You have clear areas to move on — and the fastest way to move is to record again. Work through these one at a time, starting at the top."

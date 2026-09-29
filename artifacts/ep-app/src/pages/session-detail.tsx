@@ -40,6 +40,16 @@ interface OverallFeedback {
   gatingNote?: string;
   innerWorkEscalation?: string;
   unscoredDimensions?: UnscoredDimension[];
+  likelyFollowUps?: LikelyFollowUp[];
+}
+
+// A follow-up question the candidate should prepare for, grounded in this
+// session's transcript and phrased in the style of one of their
+// onboarding-selected target firms (or a sector-level style as a fallback).
+interface LikelyFollowUp {
+  question: string;
+  whyTheyMightAskThis: string;
+  styleLabel: string;
 }
 
 // A dimension whose underlying signal was not present in the recording (e.g. eye
@@ -506,6 +516,32 @@ export default function SessionDetailPage() {
           {overallFeedback.innerWorkEscalation && (
             <div className="border-t border-gray-100 px-6 py-4 bg-gray-50">
               <p className="text-xs text-gray-500 leading-relaxed">{overallFeedback.innerWorkEscalation}</p>
+            </div>
+          )}
+
+          {/* Questions to prepare for next time — top 3 highest-impact, ranked, not grouped by firm */}
+          {overallFeedback.likelyFollowUps && overallFeedback.likelyFollowUps.length > 0 && (
+            <div className="border-t border-gray-100 px-6 py-5">
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#C84A18] mb-1">
+                Questions to prepare for
+              </p>
+              <p className="text-xs text-gray-500 mb-4">
+                Based on what you said, here's what an interviewer would most likely push on next.
+              </p>
+              <ul className="space-y-4">
+                {overallFeedback.likelyFollowUps.slice(0, 3).map((fu, i) => (
+                  <li key={i} className="flex gap-2.5 text-sm text-gray-700 leading-snug">
+                    <span className="flex-shrink-0 mt-[5px] h-1.5 w-1.5 rounded-full bg-gray-300" />
+                    <span>
+                      <span className="font-medium text-gray-900">"{fu.question}"</span>
+                      <span className="ml-1.5 inline-block align-middle text-[10px] font-medium uppercase tracking-wide text-gray-400 bg-gray-100 rounded px-1.5 py-0.5">
+                        {fu.styleLabel}
+                      </span>
+                      <span className="block text-xs text-gray-500 mt-0.5">{fu.whyTheyMightAskThis}</span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

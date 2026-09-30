@@ -9,7 +9,7 @@ export default function PrivacyPolicyPage() {
           >
             Privacy Policy
           </h1>
-          <p className="text-sm text-gray-500">Last updated: 28 August 2026 — Version 1.1</p>
+          <p className="text-sm text-gray-500">Last updated: 28 August 2026 — Version 1.2</p>
         </div>
 
         <div className="prose prose-sm max-w-none text-[#0F1B2D] space-y-8">
@@ -63,19 +63,27 @@ export default function PrivacyPolicyPage() {
             <div className="space-y-4 text-gray-700 leading-relaxed">
               <div>
                 <h3 className="font-medium text-[#0F1B2D] mb-1">OpenAI (United States)</h3>
-                <p>Your audio recording is sent to OpenAI's API for speech-to-text transcription. Your voice is biometric data under GDPR. OpenAI may retain audio for up to 30 days for abuse prevention purposes in accordance with their data retention policy. We rely on Standard Contractual Clauses (SCCs) for this international data transfer.</p>
+                <p>Your audio recording is sent to OpenAI's API for two purposes: speech-to-text transcription, and analysis of your vocal delivery (tone, pacing, and prosody). Your voice is biometric data under GDPR. OpenAI may retain audio for up to 30 days for abuse prevention purposes in accordance with their data retention policy. We rely on Standard Contractual Clauses (SCCs) for this international data transfer.</p>
               </div>
               <div>
                 <h3 className="font-medium text-[#0F1B2D] mb-1">Anthropic (United States)</h3>
                 <p>Your session transcript, coaching context (role, goals, industry), and video frames (for video sessions) are sent to Anthropic's Claude API for AI-powered coaching analysis and scoring. Anthropic does not train on API data by default. We rely on Standard Contractual Clauses (SCCs) for this international data transfer.</p>
               </div>
               <div>
+                <h3 className="font-medium text-[#0F1B2D] mb-1">Google (Sign-In)</h3>
+                <p>If you choose to sign in or sign up using Google, Google verifies your identity and shares your name and email address with us to create or access your account. This is governed by Google's own privacy policy in addition to ours. We rely on Google's standard contractual protections for this international data transfer.</p>
+              </div>
+              <div>
                 <h3 className="font-medium text-[#0F1B2D] mb-1">Resend (email delivery)</h3>
-                <p>Your email address and name are shared with Resend to deliver transactional emails (account verification, password reset). Resend is GDPR-compliant and does not use your data for marketing.</p>
+                <p>Your email address and name are shared with Resend to deliver transactional and account-related emails (verification, password reset, deletion notices, and onboarding/product emails). Resend is GDPR-compliant and does not use your data for marketing.</p>
               </div>
               <div>
                 <h3 className="font-medium text-[#0F1B2D] mb-1">Supabase (database hosting, EU)</h3>
                 <p>Your data is stored on PostgreSQL databases hosted by Supabase in the EU (Frankfurt, Germany). Supabase is GDPR-compliant and your data remains within the EU.</p>
+              </div>
+              <div>
+                <h3 className="font-medium text-[#0F1B2D] mb-1">Railway (application hosting)</h3>
+                <p>Our application server, which processes your requests and briefly holds audio/video in memory during analysis, is hosted by Railway. Railway does not have independent access to your stored data, which resides with Supabase as described above.</p>
               </div>
             </div>
             <p className="text-gray-700 leading-relaxed mt-3">
@@ -102,7 +110,7 @@ export default function PrivacyPolicyPage() {
               <p><strong>Right to erasure:</strong> You can delete your account and all associated data from Account Settings. We will erase everything from our live systems within 30 days, and from backups within a further 7 days (see Section 4).</p>
               <p><strong>Right to portability:</strong> Your data export (available in Settings) is provided in JSON format, which can be read by any standard tool.</p>
               <p><strong>Right to object:</strong> You may object to processing based on legitimate interests. Contact us at info@selfcraftpartners.com.</p>
-              <p><strong>Right to withdraw consent:</strong> Where we process data based on your consent (audio, video, biometric metrics), you may withdraw consent at any time by deleting your account. Withdrawal does not affect the lawfulness of processing before withdrawal.</p>
+              <p><strong>Right to withdraw consent:</strong> We only process your voice and video at the moment you choose to submit a recording, and we never store the raw audio or video afterward. Because of this, you can withdraw consent for future audio/video processing at any time simply by not submitting further recordings — no action is required, and this is at least as easy as giving consent in the first place. If you also want to delete data already derived from past sessions (transcripts, scores, and feedback), you can exercise your separate right to erasure by deleting your account (see above). Withdrawal does not affect the lawfulness of processing before withdrawal.</p>
               <p><strong>Right to lodge a complaint:</strong> You have the right to lodge a complaint with your national data protection supervisory authority.</p>
             </div>
             <p className="text-gray-700 leading-relaxed mt-3">
@@ -120,9 +128,9 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold mb-2">7. Cookies</h2>
+            <h2 className="text-lg font-semibold mb-2">7. Cookies and local storage</h2>
             <p className="text-gray-700 leading-relaxed">
-              Gravitas uses only essential functional cookies required to keep you logged in. We do not use advertising, analytics, or tracking cookies. No cookie consent banner is required for strictly necessary cookies under GDPR.
+              Gravitas does not use cookies. To keep you logged in, we store a strictly necessary authentication token in your browser's local storage. We do not use advertising, analytics, or tracking cookies or similar technologies. No consent banner is required for this strictly necessary storage under GDPR and the ePrivacy rules.
             </p>
           </section>
 
@@ -152,7 +160,7 @@ export default function PrivacyPolicyPage() {
 
         <div className="mt-12 pt-6 border-t border-gray-200">
           <p className="text-xs text-gray-400 text-center">
-            Gravitas AI · Privacy Policy v1.1 · Last updated 28 August 2026
+            Gravitas AI · Privacy Policy v1.2 · Last updated 28 August 2026
           </p>
         </div>
       </div>

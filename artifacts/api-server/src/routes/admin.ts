@@ -118,6 +118,8 @@ router.get("/v1/admin/users/:id", requireAdmin, async (req, res) => {
     .where(eq(sessionsTable.userId, req.params.id))
     .orderBy(desc(sessionsTable.createdAt));
 
+  req.log.info({ adminId: req.user!.userId, adminEmail: req.user!.email, viewedUserId: user.id, sessionCount: sessions.length }, "admin viewed user detail (includes session transcripts)");
+
   return res.json({ user, sessions });
 });
 
@@ -142,6 +144,8 @@ router.get("/v1/admin/sessions/:id", requireAdmin, async (req, res) => {
     .select()
     .from(dimensionScoresTable)
     .where(eq(dimensionScoresTable.sessionId, session.id));
+
+  req.log.info({ adminId: req.user!.userId, adminEmail: req.user!.email, viewedUserId: user.id, viewedSessionId: session.id }, "admin viewed session detail (includes transcript)");
 
   return res.json({ session, user, dimensionScores: scores });
 });

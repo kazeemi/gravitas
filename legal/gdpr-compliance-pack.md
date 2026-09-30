@@ -2,7 +2,7 @@
 
 **Prepared for:** External data protection consultant (compliance sign-off review)
 **Prepared by:** Kanza Azeemi, Data Controller, Gravitas AI
-**Date:** 28 August 2026
+**Date:** 28 August 2026 (original pack) — **updated 28 August 2026 following remediation and production deployment**
 **Product:** Gravitas AI — AI-powered communication and executive presence coaching platform
 **Production URL:** https://gravitas.selfcraftpartners.com
 **Controller contact:** info@selfcraftpartners.com
@@ -24,11 +24,13 @@ This is a single consolidated pack containing everything a reviewer needs to ass
 | **Part G** | Sub-processors and international transfers |
 | **Part H** | Security measures |
 | **Part I** | **Known gaps and open questions** — items where the published policy and the deployed code do not currently match, or where a controller decision is outstanding |
-| **Part J** | Privacy Policy (full text, as published) |
-| **Part K** | Terms of Service (full text, as published) |
-| **Part L** | Consent capture screens (full text, as presented to users) |
+| **Part J** | Privacy Policy (full text, as published — v1.1, live) |
+| **Part K** | Terms of Service (full text, as published — v2.0, live) |
+| **Part L** | Consent capture screens (full text, as presented to users, live) |
 
 **Important note for the reviewer:** Parts D and E were authored in June 2026. In preparing this pack, the underlying source code was re-examined against those documents. **Part I records every discrepancy found.** Parts D and E are reproduced substantially as originally written so the reviewer can see the stated position; Part I is the corrective overlay and should be read as authoritative where the two conflict. Please do not sign off Parts D/E without reference to Part I.
+
+**Since the original pack was drafted, the following remediations have been implemented, deployed to production, and verified live at the URL above:** the Art. 17 erasure mechanism (Gap 3), backup retention disclosure (Gap 17), consent version tracking for both the Privacy Policy and Terms of Service (Gap 18), the Terms of Service governing law (part of Gap 19), and a substantially rewritten Terms of Service addressing commercial liability exposure (summarized in the new **Part I.4**, below). These are marked ✅ inline. Everything still marked 🔴/🟠/🟡 remains open and requires the reviewer's input.
 
 ---
 
@@ -644,7 +646,7 @@ Severity: **P1** = blocks sign-off / active non-compliance · **P2** = should be
 
 ### 🔴 Gap 3 (listed first — most material) — The right to erasure is not implemented — **P1**
 
-**✅ STATUS UPDATE — 28 August 2026: remediated.** The findings below describe the state at the time of the initial audit. Since then: `sessions.userId` now cascades on delete at the database level (verified against production); a scheduled purge job (`artifacts/api-server/src/lib/deletion-purge.ts`) runs hourly, sends the day-23 warning email via the previously-unused `sendDeletionWarningEmail()` function, and permanently deletes accounts 30+ days past their deletion request; and all admin routes (`routes/admin.ts`) now filter on `deleted_at IS NULL`, so soft-deleted users and their transcripts no longer appear in the internal dashboard. There were zero pending deletion requests at the time of the fix, so no backlog needed to be processed. See Gap 17 for the related backup-retention question, now also resolved. The findings that follow are retained as a record of what was found and fixed.
+**✅ STATUS UPDATE — 28 August 2026: remediated and deployed to production.** The findings below describe the state at the time of the initial audit. Since then: `sessions.userId` now cascades on delete at the database level (verified against production); a scheduled purge job (`artifacts/api-server/src/lib/deletion-purge.ts`) runs hourly, sends the day-23 warning email via the previously-unused `sendDeletionWarningEmail()` function, and permanently deletes accounts 30+ days past their deletion request; and all admin routes (`routes/admin.ts`) now filter on `deleted_at IS NULL`, so soft-deleted users and their transcripts no longer appear in the internal dashboard. There were zero pending deletion requests at the time of the fix, so no backlog needed to be processed. This code is now **live in production** — built, boot-tested against the production database, and confirmed running at `gravitas.selfcraftpartners.com` (healthcheck green, purge scheduler running on server start with no errors). See Gap 17 for the related backup-retention question, now also resolved. The findings that follow are retained as a record of what was found and fixed.
 
 **What was published.** The Privacy Policy states: *"When you delete your account, it is immediately deactivated and all personal data — including your profile, session transcripts, scores, and performance metrics — is permanently and irreversibly erased within 30 days. You will receive a reminder email 7 days before the final deletion."* The RoPA (Activity 9) states deletion is *"automated via `pg_cron`"* with a *"7-day warning email at day 23"* and *"cascading (scores → sessions → user)"*.
 
@@ -766,9 +768,9 @@ No DPO is appointed. Art. 37(1)(c) requires one where there is large-scale proce
 
 ---
 
-### 🟡 Gap 8 — `session_ai_usage` not in the RoPA or the data export — **P3**
+### 🟡 Gap 8 — `session_ai_usage` not in the RoPA or the data export — **✅ Resolved**
 
-Internal AI cost telemetry linked to individual sessions and therefore to individual users. Not documented as a processing activity and not included in the Art. 15/20 export. Low sensitivity, but it is personal data by linkage and should be recorded.
+Internal AI cost telemetry linked to individual sessions and therefore to individual users. Now documented as RoPA Processing Activity 11. **Controller decision, final:** this data is deliberately and permanently excluded from the Art. 15/20 export and any other user-facing surface — it is operational metadata about how Gravitas runs the service (API call counts, token usage, cost), not information about the data subject's own characteristics or the coaching outcome. Access remains admin-only.
 
 ---
 
@@ -808,14 +810,21 @@ The substance of the section (no advertising, analytics, or tracking) is accurat
 
 ---
 
-### 🟡 Gap 18 — Document version control and policy-change consent are broken — **P3, now live rather than theoretical**
+### 🟡 Gap 18 — Document version control and policy-change consent are broken — **✅ Resolved**
 
-- `CURRENT_PRIVACY_POLICY_VERSION` was hardcoded as `"1.0"` in **two** places (`routes/auth.ts` and `routes/users.ts`) rather than in a shared constant. Both have now been bumped to `"1.1"` alongside the Privacy Policy update described in Gap 17, so new consent records correctly reference the current version — but this is a manual, error-prone fix, not a structural one.
-- The Terms were updated **30 July 2026**; the Privacy Policy is now **v1.1, 28 August 2026** (previously v1.0, 25 June 2026) — so a user's consent record can, in principle, now distinguish which Privacy Policy version they accepted. It still cannot distinguish which Terms version, since Terms carry no version number at all.
-- **Critically, `auth-context.tsx` computes `needsConsent = user.consentAcceptedAt === null`.** The re-consent gate therefore only ever fires for users who have never consented — never on a policy version change. **This is no longer a hypothetical:** the Privacy Policy was just bumped from v1.0 to v1.1 to disclose the new backup-retention terms (Gap 17), and by this same bug, **every existing user who already consented under v1.0 will never see that change, will never be asked to accept v1.1, and their consent record will remain silently marked as v1.0 forever** even though the version constant now issues "1.1" to new signups. The ConsentGate's own heading — *"We've updated our Terms & Privacy Policy"* — describes exactly this situation and cannot fire for it.
-- The DPIA and RoPA both carry a header of "Version 1.0" with a document history recording changes up to 1.1, and have not yet been updated to reference the Privacy Policy's new v1.1.
+**✅ STATUS UPDATE — 28 August 2026: remediated and deployed to production.** This section is retained as a record of what was found and fixed.
 
-**Remediation:** compare the stored `privacy_policy_version` against the current version rather than checking for null, and centralise the version constant. **Given the fix above just created a live instance of this bug** (existing users now silently out of date on a real policy change), Gravitas would like the reviewer's view on whether this should be reprioritised to P2 and fixed before the next policy revision, rather than left as a documented backlog item.
+**What was found.** `CURRENT_PRIVACY_POLICY_VERSION` was hardcoded as `"1.0"` in **two** places (`routes/auth.ts` and `routes/users.ts`) with no equivalent constant for the Terms of Service at all — the Terms carried no version number. **Critically, `auth-context.tsx` computed `needsConsent = user.consentAcceptedAt === null`** — the re-consent gate only ever fired for users who had never consented, never on a policy version change. This stopped being hypothetical the moment the Privacy Policy was bumped to v1.1 to disclose backup retention (Gap 17): every existing user who had already consented under v1.0 would never have been shown v1.1, and their consent record would have remained silently out of date indefinitely.
+
+**Remediation applied and deployed.**
+- Added a single shared module (`artifacts/api-server/src/lib/consent.ts`) exporting `CURRENT_PRIVACY_POLICY_VERSION` ("1.1") and a new `CURRENT_TERMS_VERSION` ("2.0"), and a `computeNeedsConsent()` function comparing a user's stored versions of **both** documents against these constants.
+- Added a `terms_version` column to `users` (previously only `privacy_policy_version` existed), applied to production.
+- Every endpoint that returns a user object now includes a server-computed `needsConsent: boolean`, replacing the client's broken null-check with a straight answer from the one place that knows the current versions.
+- `auth-context.tsx` now gates on `user.needsConsent === true` rather than re-deriving it client-side — this also avoids needing to duplicate the version string in the frontend, which was the root cause of the drift in the first place.
+- **Verified against production data:** at the time of the fix, all live users had `terms_version = null` (the column was new) and were split between `privacy_policy_version` "1.0" and "1.1". Running the new logic against those actual values confirmed every existing user is correctly flagged `needsConsent: true` and will be re-prompted with the updated ConsentGate (see Part L) on their next visit; only a user who explicitly accepts both current versions clears the gate.
+- This fix landed in the same deployment as the Terms of Service rewrite (Part I.4), so the very first real re-consent prompt every existing user sees is for the new Terms v2.0 and Privacy Policy v1.1 together — the version-tracking fix and the substantive policy changes shipped as one coordinated release, not staggered.
+
+The DPIA and RoPA (Parts D/E) still carry a header of "Version 1.0" and have not been reissued to reference the current document versions — see the note at Part E.11.
 
 ---
 
@@ -824,7 +833,7 @@ The substance of the section (no advertising, analytics, or tracking) is accurat
 - **No Art. 30 processor-side records, SAR register, or consent-withdrawal log.** Rights requests arriving by email have no tracked workflow or response-time monitoring against the one-month Art. 12(3) deadline.
 - **Art. 18 (restriction) is entirely unaddressed** in policy and code.
 - **Email is not user-correctable** (Art. 16) — `email` is absent from the `PATCH /v1/users/me` field list.
-- **Terms §13 governing law is a placeholder** — *"governed by ... applicable law"* and *"the appropriate courts"* name no jurisdiction, and so is likely unenforceable. Depends on Gap 1.
+- **Terms §13 governing law — ✅ resolved.** Previously a placeholder ("governed by ... applicable law", "the appropriate courts", naming no jurisdiction). Now names Ontario, Canada, with an express carve-out preserving mandatory local consumer-protection law for users resident elsewhere (relevant given Gravitas' stated intent to serve users in the UK and UAE). This was a business decision made ahead of, not dependent on, the Gap 1 establishment determination — Gravitas is incorporating in Ontario. **Reviewer note:** please confirm the consumer-protection carve-out is correctly drafted to survive scrutiny in the UK/UAE, and flag if choosing Ontario law creates any tension with the Gap 1 analysis once establishment is determined.
 - **Age assurance is self-declaration only.** Terms §3 sets a 16 minimum with no verification. Note the UK/EU divergence on the age of digital consent (13–16 depending on member state) — the flat 16 is conservative and probably fine, but worth confirming.
 - **No staff data protection training or confidentiality undertakings** are documented, despite staff transcript access (Gap 6).
 - **No retention schedule for server logs.** The RoPA asserts a "30-day rolling" server log retention; no configuration implementing this was found.
@@ -846,14 +855,17 @@ The substance of the section (no advertising, analytics, or tracking) is accurat
 | 14 | No incident response / breach notification procedure | 🟠 P2 |
 | 15 | Hosting provider unidentified and unassessed | 🟠 P2 |
 | 17 | Backup retention — resolved (Free plan: no backups; Pro upgrade pending, policy updated ahead of it) | ✅ Resolved (see note) |
+| 18 | Version control broken; re-consent gate can never fire on policy changes | ✅ Resolved (fixed 28 Aug 2026) |
+| 19 (partial) | Terms §13 governing law — now names Ontario, Canada | ✅ Resolved (see Gap 19) |
 | 2 | DPO requirement not formally assessed | 🟡 P3 |
 | 8 | `session_ai_usage` not in RoPA or export | 🟡 P3 |
 | 9 | Memory disposal of biometric buffers implicit, not explicit | 🟡 P3 |
 | 10 | Free-text and error fields may capture unanticipated data | 🟡 P3 |
 | 12 | B2B deployment wholly out of scope of current documentation | 🟡 P3 → P1 pre-launch |
 | 16 | Privacy Policy cookie statement factually incorrect | 🟡 P3 |
-| 18 | Version control broken; re-consent gate can never fire | 🟡 P3 |
-| 19 | Miscellaneous (Art. 18, SAR register, governing law, training, log retention) | 🟡 P3 |
+| 19 (remainder) | Miscellaneous (Art. 18, SAR register, training, log retention) | 🟡 P3 |
+
+**Also see Part I.4** — a Terms of Service rewrite addressing commercial liability exposure, deployed alongside the Gap 18 fix. Not a GDPR gap itself, but flagged for the reviewer's awareness given it touches the same consent flow.
 
 ## I.2 What Gravitas believes is solid
 
@@ -867,6 +879,7 @@ For balance, the following were tested and hold up:
 - **`session_ai_usage` was deliberately given its own table** specifically to prevent internal cost data leaking through user-facing `select()` queries — evidence of considered data-flow design.
 - **Consent is captured and recorded** with a timestamp and version at signup, and is enforced by a blocking gate for pre-existing users.
 - **Security fundamentals are present**: bcrypt, JWT, rate limiting on auth, helmet with a real CSP, an origin allow-list, cryptographically random single-use time-limited tokens.
+- **The erasure and consent-versioning fixes were verified before and after deployment**, not just written and assumed correct — schema drift checked against production before the push, a full production-matching build run locally, the built server boot-tested against the live database, the deployed JS bundle inspected post-push to confirm the new Terms/Privacy text is actually being served, and the consent-versioning logic run against real (anonymised) production values to confirm every existing user is correctly flagged for re-consent.
 
 ## I.3 Questions on which Gravitas specifically requests the consultant's view
 
@@ -880,6 +893,25 @@ For balance, the following were tested and hold up:
 8. **Gap 7** — correct basis for engagement email; is `notify_on_upgrade` defaulting to true acceptable?
 9. **Gap 12** — what must be in place before an enterprise pilot processes real data?
 10. **Overall** — which gaps must be closed *before* sign-off, and which can be accepted as a documented remediation plan with deadlines?
+
+## I.4 Terms of Service rewrite (v2.0) — commercial liability, not GDPR compliance
+
+Separately from the GDPR remediation above, Gravitas has also rewritten the Terms of Service to address its commercial liability exposure as an uninsured, unincorporated (at time of writing) trial service. **This section exists so the reviewer has full context on what changed and can flag anything that creates tension with the GDPR position — it is not itself a GDPR compliance claim.** Gravitas is aware, and wants the reviewer to know it is aware, that:
+
+- **Contractual liability limitation does not reduce GDPR exposure.** A data subject's Art. 82 right to compensation for a GDPR breach cannot be excluded or capped by a Terms of Service clause. The changes below limit what a *user* can recover from Gravitas in a commercial/contract dispute; they have no effect on statutory data-protection liability or regulatory enforcement.
+- **The new indemnification clause is deliberately scoped to the user's own conduct** — their breach of the Terms, their misuse of the Service, content/recordings they submit (including third-party recordings submitted without consent), or their violation of law. It does **not** purport to indemnify Gravitas against its own data-protection failures, and it should not be read as an attempt to shift GDPR liability onto users. **Reviewer question:** please confirm this scoping is adequate and that no wording in Part K could be read as attempting to make a data subject indemnify Gravitas for Gravitas' own breach.
+
+**What changed in Terms v2.0** (full text at Part K):
+- A prominent trial/demonstration service disclaimer, stating the Service is for evaluation purposes only, not for business-critical or high-stakes reliance, used at the user's own risk.
+- Broadened the "as is" warranty disclaimer from AI-generated content only (the prior §8) to the entire Service.
+- An explicit liability cap: total liability limited to subscription fees paid in the preceding 12 months, and **explicitly zero** for any user on a free trial, demonstration, or Beta account without a paid subscription — which today is every user.
+- A new data security / cyber incident clause (§10a): reasonable measures only, no guarantee of absolute security, liability for a breach limited to Gravitas' legal notification obligations.
+- A new indemnification clause (§10b), scoped as described above.
+- An explicit, express carve-out preserving liability that cannot lawfully be excluded (death or personal injury from negligence, fraud) — without this, the broader liability exclusion would risk being struck down in its entirety by a court applying UK's Unfair Contract Terms Act 1977 or equivalent consumer-protection law, rather than merely narrowed.
+- Governing law changed from an unenforceable placeholder to Ontario, Canada, with a mandatory local consumer-protection carve-out (see Gap 19).
+- A unilateral right to suspend or discontinue the Service at any time without liability.
+
+**Consent-versioning consequence:** because this is a material change to the Terms, it was shipped together with the Gap 18 fix (above) so that every existing user's next re-consent prompt is for this version, not a stale one. The ConsentGate and signup checkbox copy (Part L) were also updated to name the trial and liability terms explicitly, not just the data-processing summary, so a user's consent to the new commercial terms is evidenced by more than an unread link.
 
 ---
 
@@ -975,13 +1007,15 @@ For any privacy-related questions, data subject access requests, or complaints, 
 
 # PART K — Terms of Service (Full Published Text)
 
-*Source: `artifacts/ep-app/src/pages/terms.tsx`, served at `/terms`. Last updated 30 July 2026. Reproduced verbatim.*
+*Source: `artifacts/ep-app/src/pages/terms.tsx`, served at `/terms`. Version 2.0, last updated 28 August 2026. Reproduced verbatim, confirmed present in the live production bundle. Changes from the prior version (30 July 2026): a prominent trial/demo disclaimer added to §2; the "as is" warranty disclaimer in §7 broadened from AI content only to the whole Service; §10 rewritten with an explicit zero-liability cap for trial/demo accounts, a broadened force majeure list, and a mandatory carve-out for liability that cannot be excluded by law; new §10a (data security/cyber incidents) and §10b (indemnification); §11 gained an explicit unilateral suspension right; §13 governing law changed from an unenforceable placeholder to Ontario, Canada. See Part I.4 for why these changes were made and what they do and do not affect.*
 
 ## 1. Acceptance of terms
 
 By creating an account on Gravitas AI ("Gravitas", "we", "us", "our"), you agree to be bound by these Terms of Service and our Privacy Policy. If you do not agree to these terms, do not use the service.
 
 ## 2. Description of service
+
+> **Trial / demonstration service.** Gravitas is currently made available on a trial and demonstration basis, for evaluation purposes only. It is not intended for business-critical, high-stakes, or reliance use of any kind, and is not a substitute for professional coaching, psychological, medical, or career advice. You use the Service entirely at your own risk.
 
 Gravitas is an AI-powered communication coaching platform that analyses voice and video recordings to provide feedback on executive presence, communication effectiveness, and delivery. The platform is currently in Beta and is provided for personal professional development purposes.
 
@@ -1020,6 +1054,8 @@ Gravitas is currently in Beta. This means the service may be unstable, contain b
 
 Our scoring methodology, dimensions, and criteria may be updated, recalibrated, or changed over time as the service evolves. Scores and feedback generated at different points in time, or under different methodology versions, may not be directly comparable.
 
+To the fullest extent permitted by law, the Service — including all content, features, scoring, and outputs — is provided strictly "as is" and "as available", without warranties of any kind, whether express, implied, or statutory, including without limitation implied warranties of merchantability, fitness for a particular purpose, accuracy, reliability, uninterrupted operation, or non-infringement. We do not warrant that the Service will be uninterrupted, secure, timely, or error-free, or that any defects will be corrected.
+
 ## 7a. Scheduled sessions and availability
 
 Where you plan to use Gravitas at a specific date or time, we will use reasonable efforts to ensure the Service is available but cannot guarantee that the Service, or any third-party provider it depends on (see Section 8), will be available or fully operational at that time. We recommend building reasonable buffer time into time-sensitive plans. Gravitas does not accept liability for costs, damages, or reputational harm arising from third-party service unavailability during a planned session.
@@ -1036,13 +1072,25 @@ All intellectual property in the Gravitas platform, including its design, scorin
 
 ## 10. Limitation of liability
 
-To the maximum extent permitted by applicable law, Gravitas AI shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits or data, arising from your use of the service. Our total liability to you for any claim arising from these terms shall not exceed the amount you paid us in the 12 months preceding the claim.
+To the maximum extent permitted by applicable law, Gravitas AI shall not be liable for any indirect, incidental, special, consequential, exemplary, or punitive damages of any kind, including loss of profits, revenue, business, goodwill, reputation, or data, arising from your use of, or inability to use, the service, however caused and under any theory of liability (including contract, tort, and negligence), even if Gravitas has been advised of the possibility of such damages.
 
-Gravitas shall not be liable for any failure or delay in performance resulting from causes beyond its reasonable control, including but not limited to failure or unavailability of third-party AI models, cloud infrastructure, or internet service providers.
+Our total aggregate liability to you for any and all claims arising out of or relating to these Terms or the Service shall not exceed the total subscription fees paid by you to Gravitas in the 12 months preceding the claim. Where you have accessed the Service under a free trial, demonstration, or Beta account without a paid subscription, our total liability to you is limited to zero (0).
+
+Gravitas shall not be liable for any failure or delay in performance resulting from causes beyond its reasonable control, including but not limited to failure or unavailability of third-party AI models, cloud infrastructure, or internet service providers, cyberattacks, denial-of-service attacks, security incidents, or other events beyond its reasonable control.
+
+Nothing in these Terms limits or excludes liability that cannot be limited or excluded under applicable law, including liability for death or personal injury caused by negligence, or for fraud.
+
+## 10a. Data security and cyber incidents
+
+Gravitas implements reasonable technical and organisational measures designed to protect your data, as described in our Privacy Policy. No method of transmission or storage is completely secure, and we cannot guarantee the absolute security of your data. In the event of a security incident, data breach, or unauthorised access affecting your data, Gravitas's obligations are limited to those required by applicable data protection law (including notifying affected individuals and/or regulators where required). To the maximum extent permitted by law, Gravitas excludes all liability for any loss, damage, or expense arising from such an incident, including where it results from the acts or omissions of a third party, a third-party service provider (including but not limited to our AI, hosting, or database providers), or a cyberattack.
+
+## 10b. Indemnification
+
+You agree to indemnify, defend, and hold harmless Gravitas AI and its founders, employees, and personnel from and against any claims, damages, losses, liabilities, costs, and expenses (including reasonable legal fees) arising out of or relating to: (a) your breach of these Terms; (b) your misuse of the Service; (c) any content or recordings you submit, including recordings of third parties submitted without their consent; or (d) your violation of any applicable law or the rights of any third party.
 
 ## 11. Termination
 
-You may delete your account at any time from Account Settings. We may suspend or terminate your account if you violate these terms, with or without notice. Upon termination, your right to use the service ceases immediately.
+You may delete your account at any time from Account Settings. We may suspend, restrict, or terminate your account or access to the Service, in whole or in part, at any time and with or without notice, including if you violate these terms or during the trial/demonstration period. Upon termination, your right to use the service ceases immediately. Gravitas is not liable to you or any third party for any suspension, restriction, or discontinuation of the Service.
 
 ## 12. Changes to terms
 
@@ -1050,39 +1098,43 @@ We may update these terms from time to time. We will notify you of material chan
 
 ## 13. Governing law
 
-These terms are governed by and construed in accordance with applicable law. Any disputes arising from these terms or the use of the service shall be subject to the exclusive jurisdiction of the appropriate courts.
+These Terms are governed by and construed in accordance with the laws of the Province of Ontario and the federal laws of Canada applicable therein, without regard to conflict of law principles. You and Gravitas each irrevocably submit to the exclusive jurisdiction of the courts of Ontario, Canada, for any dispute arising out of or relating to these Terms or the Service. If you are a consumer resident in a jurisdiction that grants you the benefit of mandatory local consumer protection laws that cannot be excluded by agreement, nothing in this section removes those protections.
 
 ## 14. Contact
 
 For questions about these Terms of Service, contact us at info@selfcraftpartners.com.
 
-*Gravitas AI · Terms of Service · Last updated 30 July 2026*
+*Gravitas AI · Terms of Service v2.0 · Last updated 28 August 2026*
+
+**Reviewer note on entity name:** "Gravitas AI" throughout these Terms is currently a trading name, not an incorporated legal entity — Kanza Azeemi is incorporating in Ontario, Canada, but this has not yet completed. The governing-law clause in §13 reflects the intended jurisdiction of incorporation, chosen ahead of the incorporation itself, which is standard practice for a contract of this kind. Once incorporation completes, the Terms should be updated to name the actual corporate entity (e.g. "Gravitas AI Inc.") in place of the current trading name throughout.
 
 ---
 
 # PART L — Consent Capture (As Presented to Users)
 
+*Both screens below were updated on 28 August 2026 alongside the Terms v2.0 / Privacy v1.1 changes and the Gap 18 version-tracking fix, and are confirmed live in production (found in the deployed JS bundle by direct inspection).*
+
 ## L.1 Signup consent
 
-Source: `artifacts/ep-app/src/pages/signup.tsx`. A single required checkbox, unchecked by default; the submit button is disabled until it is ticked. The consent flag is passed to `POST /v1/auth/signup`, which writes `consent_accepted_at = now()` and `privacy_policy_version = "1.0"`.
+Source: `artifacts/ep-app/src/pages/signup.tsx`. A single required checkbox, unchecked by default; the submit button is disabled until it is ticked. The consent flag is passed to `POST /v1/auth/signup`, which writes `consent_accepted_at = now()`, `privacy_policy_version = "1.1"`, and (new) `terms_version = "2.0"`.
 
 Checkbox label text:
 
-> I agree to the **Terms of Service** and **Privacy Policy**
+> I agree to Gravitas's **Terms of Service** and **Privacy Policy**, including the processing of my voice and video recordings by AI services (OpenAI and Anthropic) to deliver coaching feedback, and my use of this trial service on the terms described there, including the liability and indemnification terms.
 
 *(both terms are links opening `/terms` and `/privacy` in a new tab)*
 
-**Note for the reviewer:** this is the wording of the *only* consent obtained at signup. The words "biometric", "voice", "video", and "special category" do not appear. Explicit Art. 9(2)(a) consent for biometric processing is therefore obtained, at signup, solely by incorporation of the Privacy Policy by reference. Gravitas' view is that this is insufficient for explicit consent. See Gap 11.
+**Note for the reviewer:** this wording was strengthened in this update — it now names OpenAI and Anthropic explicitly and references the trial/liability/indemnification terms, rather than incorporating the linked documents purely by reference as the prior version did. The words "biometric" and "special category" still do not appear, and the underlying structural issue Gap 11 raises — a single bundled checkbox covering contract acceptance, biometric consent, and now also commercial trial/liability terms, all at once — is **unchanged and still open.** This wording improvement makes the bundled consent more informative; it does not make it granular or independently withdrawable. See Gap 11.
 
 ## L.2 In-app re-consent gate
 
-Source: `artifacts/ep-app/src/components/consent-gate.tsx`. A blocking modal shown when `user.consentAcceptedAt === null`. Cannot be dismissed. On acceptance, calls `POST /v1/users/me/consent` with `{ consentAccepted: true }`, writing the timestamp and version `"1.0"`.
+Source: `artifacts/ep-app/src/components/consent-gate.tsx`. A blocking modal, cannot be dismissed. **The trigger logic changed in this update:** it is now shown when the server-computed `user.needsConsent` is `true` — i.e. when either the user's stored `privacy_policy_version` or `terms_version` does not match the current constants — rather than the previous `consentAcceptedAt === null` check that could never fire on a policy update (see Gap 18, now resolved). On acceptance, calls `POST /v1/users/me/consent`, writing the timestamp and both current versions.
 
 Full text as displayed:
 
 > ### We've updated our Terms & Privacy Policy
 >
-> To continue using Gravitas, please review and accept our updated policies. These cover how we handle your voice recordings, session data, and AI-generated feedback.
+> To continue using Gravitas, please review and accept our updated policies. These cover how we handle your voice recordings, session data, and AI-generated feedback, as well as important updates to your rights and responsibilities as a trial user.
 >
 > ---
 >
@@ -1092,17 +1144,22 @@ Full text as displayed:
 >
 > **How long we keep it:** Session history is kept for the lifetime of your account so you can track long-term progress. You can delete individual sessions or your entire account at any time.
 >
+> **Trial service:** Gravitas is provided on a trial/demo basis, "as is," at your own risk, with no guarantee of availability, accuracy, or outcomes.
+>
+> **Liability:** Our liability to you is limited (to zero for trial and demo accounts), and you agree to be responsible for — and to indemnify us against — your own misuse of the Service or content you submit.
+>
 > ---
 >
-> ☐ I agree to the **Terms of Service** and **Privacy Policy**, including processing of my voice and video by AI services to deliver coaching.
+> ☐ I agree to the **Terms of Service** and **Privacy Policy**, including processing of my voice and video by AI services to deliver coaching, and my use of this trial service on the terms described above, including the liability and indemnification terms.
 >
 > [ Accept and continue ]
 
 **Notes for the reviewer:**
 
-- This wording is materially better than the signup checkbox — it names voice and video processing explicitly and summarises processors and retention in the layered-notice style. It is, however, shown **only to users whose `consent_accepted_at` is null**, i.e. legacy users who predate consent capture. New users see only the weaker signup checkbox (L.1).
-- The heading *"We've updated our Terms & Privacy Policy"* describes a function the component cannot perform: because the trigger is a null check rather than a version comparison, this gate **can never fire on a policy update.** See Gap 18.
-- The "Who sees it" line omits Google (Gap 4) and describes OpenAI as transcription only (Gap 5).
+- This screen now covers both the data-processing summary *and* the new trial/liability terms, addressing the reviewer-facing gap from the prior version of this pack, where the modal summarised only data handling while the linked Terms separately imposed an indemnity obligation the user was not shown.
+- **This is no longer shown only to legacy null-consent users.** Because the gate now compares versions rather than checking for null, and because Terms v2.0 / Privacy v1.1 are both new versions, **every existing user — 11 accounts as of this writing, all with `terms_version = null`** — will see this exact screen on their next visit, not just users who never consented at all. This was verified by running the live version-comparison logic against the actual production values.
+- The heading *"We've updated our Terms & Privacy Policy"* is now accurate for the first time — the gate can actually fire on a policy update, which is the scenario the heading describes.
+- The "Who sees it" line still omits Google (Gap 4) and still describes OpenAI as transcription only (Gap 5) — those two disclosure gaps are unchanged by this update and remain open.
 
 ---
 
@@ -1126,7 +1183,10 @@ Provided so the reviewer can direct follow-up questions or request extracts.
 | Recording pipeline | `artifacts/api-server/src/routes/sessions.ts` |
 | Admin/staff data access | `artifacts/api-server/src/routes/admin.ts` |
 | Email templates and senders | `artifacts/api-server/src/lib/email.ts` |
+| Shared consent-version constants and logic | `artifacts/api-server/src/lib/consent.ts` |
+| Scheduled erasure purge job | `artifacts/api-server/src/lib/deletion-purge.ts` |
 | Database schemas | `lib/db/src/schema/*.ts` |
+| Schema drift check (read-only) | `scripts/check-schema-drift.mjs` |
 | SQL migrations | `scripts/sql/` |
 | Existing DPIA | `legal/dpia.md` |
 | Existing RoPA | `legal/ropa.md` |

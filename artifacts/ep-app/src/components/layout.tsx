@@ -44,6 +44,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             return (
               <button
                 key={item.path}
+                data-tour={item.path === "/dashboard" ? "nav-dashboard" : item.path === "/settings" ? "nav-settings" : undefined}
                 onClick={() => setLocation(hrefFor(item.path))}
                 className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                   active

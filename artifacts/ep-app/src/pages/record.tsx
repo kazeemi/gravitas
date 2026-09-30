@@ -197,7 +197,7 @@ export default function RecordPage() {
     },
     {
       target: '[data-tour="company-dropdown"]',
-      body: "This is the company you're prepping for right now — your prompts and feedback are tailored to it.",
+      body: "Practicing for one company at a time gives you a more tailored experience. Click this dropdown anytime to switch which company you're prepping for.",
     },
     {
       target: '[data-tour="prompt-card"]',

@@ -493,15 +493,26 @@ const COMPANY_DIMENSION_QUESTIONS: Record<string, CompanyDimensionEntry[]> = {
 // returns a coaching-oriented guidance note to layer alongside (never
 // replacing) that firm's general style note. Returns null on no match —
 // callers should fall back to the firm-level style note alone.
-function resolveDimensionGuidance(
+// Raw match, shared by both the follow-up-style note (below) and the
+// structure-dimension content guidance (see STORY / BEHAVIOURAL ANSWER
+// STRUCTURE block) — a single lookup feeding two different parts of the
+// prompt, so they never drift out of sync with each other.
+function matchCompanyDimension(
   promptText: string | undefined,
   company: string
-): string | null {
+): CompanyDimensionEntry | null {
   if (!promptText) return null;
   const entries = COMPANY_DIMENSION_QUESTIONS[company];
   if (!entries) return null;
   const normalized = promptText.trim().toLowerCase();
-  const match = entries.find(e => normalized.includes(e.questionText) || e.questionText.includes(normalized));
+  return entries.find(e => normalized.includes(e.questionText) || e.questionText.includes(normalized)) ?? null;
+}
+
+function resolveDimensionGuidance(
+  promptText: string | undefined,
+  company: string
+): string | null {
+  const match = matchCompanyDimension(promptText, company);
   if (!match) return null;
   return `This question is generally understood to probe the "${match.dimension}" dimension of this firm's evaluation criteria: ${match.whatTheyLookFor}. Common weak spots on this type of question: ${match.commonWeakSpots}.`;
 }
@@ -1240,6 +1251,17 @@ async function runAIEvaluation(
     ? resolveFollowUpStyles(input.interviewCompanies, input.interviewSector, input.promptText)
     : [];
 
+  // Same lookup that flavors the follow-up questions above, reused so the
+  // Structure dimension itself (Thought Clarity's flagship, highest-weight
+  // dimension) can also evaluate whether the answer actually demonstrated
+  // what the targeted company dimension looks for — not just whether a
+  // generic STAR/SCR/PREP framework was present. Scoped to content/structure
+  // only; never passed anywhere near the audio/video delivery dimensions.
+  const activeCompanyForDimension = (input.interviewCompanies || "").split(";").map(c => c.trim()).find(Boolean);
+  const matchedDimension = input.interviewMode && activeCompanyForDimension
+    ? matchCompanyDimension(input.promptText, activeCompanyForDimension)
+    : null;
+
   const feedbackLanguageDirective = input.language === "ar"
     ? "\n\nLANGUAGE — STRICTLY ENFORCED: Write every candidate-facing feedback field (strengthText, gapText, nextStepText, and all overallFeedback fields) in Modern Standard Arabic. Keep dimension keys, tier labels, and any JSON field names in English exactly as specified below — only the feedback prose itself is in Arabic. Maintain the same warm, direct, second-person coaching voice in Arabic (use \"أنتَ/أنتِ\" address) as described in the FEEDBACK STANDARDS below.\n"
     : "";
@@ -1353,7 +1375,9 @@ Use SOURCE A's structureObservation (what gpt-audio heard directly from the raw 
 ${(input.structureFamily === "story" || input.structureFamily === "resilience") ? `STORY / BEHAVIOURAL ANSWER STRUCTURE (structureFamily: ${input.structureFamily}):
 This prompt asks for a retrospective account of something that happened. Structure is not a nice-to-have here — it is what separates a forgettable answer from one that lands. Treat the structure dimension feedback as the most important coaching block in this session. Go deeper and be more specific than you would for a looser prompt.
 
-STEP 1 — IDENTIFY: Determine explicitly whether the answer used STAR (Situation → Task → Action → Result), SCR (Situation → Complication → Resolution), PREP (Point → Reason → Example → Point), or another recognisable structure. If the answer is genuinely unstructured, name that directly.
+${matchedDimension ? `TARGETED DIMENSION CONTENT CHECK (this question is generally understood to probe "${matchedDimension.dimension}"):
+Beyond checking whether a framework like STAR was used, evaluate whether the SUBSTANCE of the answer actually demonstrates what this dimension requires: ${matchedDimension.whatTheyLookFor}. A well-structured STAR answer can still miss this — e.g. a technically complete story that never shows the specific thing this dimension is looking for. Common weak spots on this type of question: ${matchedDimension.commonWeakSpots}. If the answer falls into one of these patterns, name it explicitly and specifically in the structure feedback (quote the moment), even if the STAR/SCR mechanics were otherwise sound. Do not mention the company name or claim this is verified interviewer criteria — frame it as "this type of question is generally understood to look for X."
+` : ""}STEP 1 — IDENTIFY: Determine explicitly whether the answer used STAR (Situation → Task → Action → Result), SCR (Situation → Complication → Resolution), PREP (Point → Reason → Example → Point), or another recognisable structure. If the answer is genuinely unstructured, name that directly.
 
 STEP 2 — WHEN A FRAMEWORK WAS USED:
 - Name it clearly and quote the moment that confirmed it: "Your answer followed the STAR framework. You opened by describing the team dynamics [S], explained the expectation to resolve the conflict before the product launch [T]..."

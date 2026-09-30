@@ -96,17 +96,14 @@ const TIER_ORDER: Record<string, number> = { "Needs Focus": 1, "Developing": 2, 
 
 // ── Slide types ────────────────────────────────────────────────────────────
 
-type Slide = "score" | "strengths" | "improvements" | "focus" | "followups" | "pillars";
+type Slide = "score" | "strengths" | "improvements" | "focus" | "pillars";
 
-// "followups" only appears when the session actually produced likelyFollowUps
-// (e.g. transcript too short/off-topic to support genuine ones) — a slide
-// that says nothing would break the "one idea per slide" reveal format.
-function getSlides(session: SessionDetail | null): Slide[] {
-  const fb = session ? parseOverallFeedback(session.overallFeedback) : null;
-  const hasFollowUps = !!fb?.likelyFollowUps?.length;
-  return hasFollowUps
-    ? ["score", "strengths", "improvements", "focus", "followups", "pillars"]
-    : ["score", "strengths", "improvements", "focus", "pillars"];
+// Likely follow-up questions no longer get their own slide — a dedicated
+// card made them read as more significant than they are. They're now
+// folded into the Structure dimension's "Next recording" text instead
+// (see the pillars slide below), phrased as what an interviewer may probe.
+function getSlides(_session: SessionDetail | null): Slide[] {
+  return ["score", "strengths", "improvements", "focus", "pillars"];
 }
 
 // ── Main component ─────────────────────────────────────────────────────────
@@ -226,14 +223,6 @@ export default function SessionRevealPage() {
 
     if (slide === "focus") {
       timersRef.current.push(window.setTimeout(() => setFocusVisible(true), 250));
-    }
-
-    if (slide === "followups") {
-      const items = fb?.likelyFollowUps?.slice(0, 3) ?? [];
-      const count = Math.max(items.length, 1);
-      for (let i = 0; i < count; i++) {
-        timersRef.current.push(window.setTimeout(() => setVisibleBullets(i + 1), 250 + i * 480));
-      }
     }
 
     if (slide === "pillars") {
@@ -782,57 +771,6 @@ export default function SessionRevealPage() {
           </div>
         )}
 
-        {/* ── FOLLOW-UPS slide ── */}
-        {currentSlide === "followups" && (
-          <div className="flex flex-col gap-8 flex-1">
-            <div>
-              <p
-                className="text-base font-bold uppercase tracking-widest"
-                style={{ color: "#F0953E" }}
-              >
-                Questions to prepare for
-              </p>
-              <div style={{ height: "1px", background: "rgba(240,149,62,0.2)", marginTop: "14px" }} />
-              <p className="text-xs mt-3" style={{ color: "rgba(255,255,255,0.4)" }}>
-                Based on what you said, here's what an interviewer would most likely push on next.
-              </p>
-            </div>
-
-            <ul className="space-y-6">
-              {likelyFollowUps.map((fu, i) => (
-                <li
-                  key={i}
-                  className="flex gap-3.5"
-                  style={{
-                    opacity: visibleBullets > i ? 1 : 0,
-                    transform: visibleBullets > i ? "none" : "translateY(10px)",
-                    transition: "opacity 0.4s ease, transform 0.4s ease",
-                  }}
-                >
-                  <span
-                    className="flex-shrink-0 mt-2 rounded-full"
-                    style={{ width: "5px", height: "5px", background: "#F0953E" }}
-                  />
-                  <div>
-                    <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.82)" }}>
-                      "{fu.question}"
-                      <span
-                        className="ml-1.5 inline-block align-middle text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded"
-                        style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.45)" }}
-                      >
-                        {fu.styleLabel}
-                      </span>
-                    </p>
-                    <p className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.4)" }}>
-                      {fu.whyTheyMightAskThis}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         {/* ── PILLARS slide ── */}
         {currentSlide === "pillars" && (
           <div className="flex flex-col flex-1 overflow-hidden gap-5">
@@ -962,6 +900,20 @@ export default function SessionRevealPage() {
                                     <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.52)" }}>
                                       {d.nextStepText}
                                     </p>
+                                    {d.dimensionKey === "structure" && likelyFollowUps.length > 0 && (
+                                      <div className="mt-3 pt-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+                                        <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.52)" }}>
+                                          Your interviewer may also probe into:
+                                        </p>
+                                        <ul className="mt-1.5 space-y-1">
+                                          {likelyFollowUps.map((fu, i) => (
+                                            <li key={i} className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.52)" }}>
+                                              "{fu.question}"
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>

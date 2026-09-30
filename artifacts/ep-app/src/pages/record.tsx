@@ -3,6 +3,7 @@ import { useLocation, useSearch } from "wouter";
 import { api, type Prompt } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
+import { SpotlightTour, TourIntroModal, type TourStep } from "@/components/spotlight-tour";
 import {
   MicIcon,
   VideoIcon,
@@ -165,6 +166,61 @@ export default function RecordPage() {
     .filter(Boolean);
   const showCompanyDropdown = user?.interviewSector !== "other" && selectedCompanies.length >= 2;
   const [activeCompany, setActiveCompany] = useState<string | null>(null);
+
+  // First-time Record page walkthrough. Stored client-side (not on the user
+  // record) since it's purely cosmetic and replayable via the "?" button —
+  // not worth a migration/API round trip.
+  const TOUR_STORAGE_KEY = "gravitas:hasSeenRecordTour";
+  const [tourIntroOpen, setTourIntroOpen] = useState(false);
+  const [tourActive, setTourActive] = useState(false);
+
+  useEffect(() => {
+    if (step !== "setup") return;
+    if (localStorage.getItem(TOUR_STORAGE_KEY)) return;
+    setTourIntroOpen(true);
+  }, [step]);
+
+  const closeTour = useCallback(() => {
+    localStorage.setItem(TOUR_STORAGE_KEY, "1");
+    setTourIntroOpen(false);
+    setTourActive(false);
+  }, []);
+
+  const tourSteps: TourStep[] = [
+    {
+      target: '[data-tour="nav-dashboard"]',
+      body: "Visit your Dashboard anytime to track your composite score, pillar scores, and individual dimensions over time.",
+    },
+    {
+      target: '[data-tour="nav-settings"]',
+      body: "Head to Settings to update your details or edit the companies/industries you're preparing for.",
+    },
+    {
+      target: '[data-tour="company-dropdown"]',
+      body: "This is the company you're prepping for right now — your prompts and feedback are tailored to it.",
+    },
+    {
+      target: '[data-tour="prompt-card"]',
+      body: "Here's your question. Use the ‹ › arrows to browse other prompts, or tap '+ Type your own question' to write your own.",
+    },
+    {
+      target: '[data-tour="mode-picker"]',
+      body: "Choose audio or video — video also scores things like gestures.",
+    },
+    {
+      target: '[data-tour="start-recording"]',
+      body: "When you're ready, hit record — you'll get scored feedback right after.",
+      placement: "top",
+    },
+  ];
+
+  // Companies whose own real interview has no fixed question framework
+  // (per company_knowledge_base.json) — for these, tagged prompts are
+  // supplemented with the generic sector pool rather than replacing it,
+  // since restricting to a short fixed list would be less representative
+  // of the real interview than it is for a company like McKinsey or Amazon
+  // that actually does draw from a fixed set every time.
+  const COMPANIES_WITHOUT_FIXED_FRAMEWORK = ["Bain & Company"];
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
   const [recordingContext, setRecordingContext] = useState("seated");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -288,7 +344,11 @@ export default function RecordPage() {
         // untouched when the active company has no dedicated bank yet.
         if (activeCompany) {
           const companyPool = interviewPool.filter(p => p.company === activeCompany);
-          if (companyPool.length > 0) pool = companyPool;
+          if (companyPool.length > 0) {
+            pool = COMPANIES_WITHOUT_FIXED_FRAMEWORK.includes(activeCompany)
+              ? [...interviewPool.filter(p => p.company === undefined), ...companyPool]
+              : companyPool;
+          }
         }
       } else {
         const workplacePool = data.prompts.filter(p => p.sector === undefined);
@@ -1044,9 +1104,20 @@ export default function RecordPage() {
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {step === "processing" || step === "done" ? "Your results" : "Record a session"}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-gray-900">
+              {step === "processing" || step === "done" ? "Your results" : "Record a session"}
+            </h1>
+            {step === "setup" && (
+              <button
+                onClick={() => { setTourIntroOpen(false); setTourActive(true); }}
+                aria-label="Replay tour"
+                className="flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[11px] font-semibold text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ?
+              </button>
+            )}
+          </div>
           <p className="mt-1 text-sm text-gray-500">
             {step === "processing"
               ? "Your coaching feedback is being prepared"
@@ -1123,7 +1194,7 @@ export default function RecordPage() {
         <div className="space-y-4">
 
           {showCompanyDropdown && (
-            <div className="flex items-center gap-2">
+            <div data-tour="company-dropdown" className="flex items-center gap-2">
               <label htmlFor="active-company-select" className="text-xs font-medium text-gray-400">
                 Practicing for
               </label>
@@ -1141,7 +1212,7 @@ export default function RecordPage() {
           )}
 
           {/* ── Prompt / custom entry (unified block) ── */}
-          <div>
+          <div data-tour="prompt-card">
             {showCustomPrompt || customPrompt.trim() ? (
               <div className="relative overflow-hidden rounded-2xl bg-[#0F1B2D]">
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-[#F0953E] to-[#C84A18]" />
@@ -1236,7 +1307,7 @@ export default function RecordPage() {
           </div>
 
           {/* ── Mode picker ── */}
-          <div className="grid grid-cols-2 gap-3">
+          <div data-tour="mode-picker" className="grid grid-cols-2 gap-3">
             {(["audio", "video"] as const).map(m => {
               const isSelected = mode === m;
               return (
@@ -1302,6 +1373,7 @@ export default function RecordPage() {
 
           {/* ── Start button ── */}
           <button
+            data-tour="start-recording"
             onClick={startRecording}
             className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80"
             style={{ background: "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" }}
@@ -1704,6 +1776,12 @@ export default function RecordPage() {
           <Button onClick={() => setLocation(baselineMode ? `/sessions/${sessionId}?from=baseline` : `/sessions/${sessionId}`)}>View results</Button>
         </div>
       )}
+      <TourIntroModal
+        open={tourIntroOpen}
+        onStart={() => { setTourIntroOpen(false); setTourActive(true); }}
+        onSkip={closeTour}
+      />
+      <SpotlightTour steps={tourSteps} open={tourActive} onClose={closeTour} />
     </div>
   );
 }

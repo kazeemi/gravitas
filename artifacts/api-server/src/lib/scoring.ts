@@ -433,6 +433,60 @@ const COMPANY_DIMENSION_QUESTIONS: Record<string, CompanyDimensionEntry[]> = {
       commonWeakSpots: "no genuine unintended consequence identified, or no action taken once it was noticed",
     },
   ],
+  // BCG's 5 qualities are officially published (unlike Bain's inferred
+  // categories), so these get full dimension guidance like McKinsey/Amazon.
+  // BCG itself doesn't label which quality a given question targets, so
+  // question-to-quality mapping is inferred — see company_knowledge_base.json.
+  "Boston Consulting Group": [
+    {
+      questionText: "tell me about a time when you were wrong and had to admit it",
+      dimension: "Integrity",
+      whatTheyLookFor: "having the courage to advocate for the right answer rather than the easy one, and doing so respectfully",
+      commonWeakSpots: "deflecting blame rather than genuinely owning the mistake; no reflection on what was learned",
+    },
+    {
+      questionText: "tell me about a time you had to learn something quickly",
+      dimension: "Intellectual Curiosity",
+      whatTheyLookFor: "going beyond the obvious and genuinely engaging with a new domain, not just completing a requirement",
+      commonWeakSpots: "learning that was purely mandated rather than self-driven; no real depth in what was learned",
+    },
+    {
+      questionText: "what's a technology that's changing the world around you",
+      dimension: "Intellectual Curiosity",
+      whatTheyLookFor: "genuine, specific engagement with an idea, not a generic or rehearsed talking point",
+      commonWeakSpots: "a vague or overly broad answer with no personal specificity or genuine opinion",
+    },
+    {
+      questionText: "if you were to start a business, what would it be",
+      dimension: "Creative Thinking",
+      whatTheyLookFor: "interrogating a problem beyond its surface framing, not just naming a generic business idea",
+      commonWeakSpots: "a safe, unoriginal idea with no real reasoning behind why it would work",
+    },
+    {
+      questionText: "tell me about a time you motivated team members",
+      dimension: "Collaborative Mindset",
+      whatTheyLookFor: "collaboration as a genuine force multiplier, not just directing others",
+      commonWeakSpots: "a story about individual effort rather than genuinely motivating or empowering others",
+    },
+    {
+      questionText: "tell me about a time you disagreed with a senior person",
+      dimension: "Collaborative Mindset",
+      whatTheyLookFor: "respectful, constructive disagreement that still serves the team's outcome",
+      commonWeakSpots: "either avoiding the disagreement entirely or describing it in a way that damaged the working relationship with no repair",
+    },
+    {
+      questionText: "what was your most significant accomplishment",
+      dimension: "Drive",
+      whatTheyLookFor: "genuine tenacity and a desire to grow, channeled toward a clear, impactful outcome",
+      commonWeakSpots: "an accomplishment with no real obstacle or effort behind it; no clear personal contribution",
+    },
+    {
+      questionText: "tell me about a time you failed as a leader",
+      dimension: "Drive",
+      whatTheyLookFor: "honest reflection on a real leadership setback and what changed afterward",
+      commonWeakSpots: "a 'failure' that wasn't really a failure, or no concrete change in behavior described",
+    },
+  ],
 };
 
 // Matches the current prompt against a company's known question bank and

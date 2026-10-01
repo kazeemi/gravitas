@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { api, setToken, clearToken, isAuthenticated } from "./api";
 import { ConsentGate } from "@/components/consent-gate";
 
-interface User {
+export interface User {
   id: string;
   email: string;
   name: string | null;

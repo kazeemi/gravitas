@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/lib/auth-context";
+import { useAuth, type User } from "@/lib/auth-context";
+import { getIndustryLabel } from "@/lib/industries";
 import { getRecordHref } from "@/lib/baseline";
 import { api, type SessionSummary, type ChartSession } from "@/lib/api";
 import { computeHighestBadge } from "@/lib/badges";
@@ -485,7 +486,7 @@ export default function DashboardPage() {
         ) : (
           <ul className="divide-y divide-gray-100">
             {recent.map(s => (
-              <SessionRow key={s.id} session={s} onClick={() => setLocation(`/sessions/${s.id}`)} />
+              <SessionRow key={s.id} session={s} user={user} onClick={() => setLocation(`/sessions/${s.id}`)} />
             ))}
           </ul>
         )}
@@ -548,9 +549,13 @@ function StatCard({
   );
 }
 
-function SessionRow({ session, onClick }: { session: SessionSummary; onClick: () => void }) {
+function SessionRow({ session, user, onClick }: { session: SessionSummary; user: User | null; onClick: () => void }) {
   const colors = session.compositeTier ? getTierColors(session.compositeTier) : null;
   const isProcessing = session.processingStatus === "processing" || session.processingStatus === "pending";
+  const prepTag = session.promptCompany
+    || (getIndustryLabel(user?.interviewSector, user?.interviewSectorCustom)
+      ? `General ${getIndustryLabel(user?.interviewSector, user?.interviewSectorCustom)}`
+      : null);
   return (
     <li>
       <button
@@ -564,9 +569,16 @@ function SessionRow({ session, onClick }: { session: SessionSummary; onClick: ()
             <VideoIcon className="h-4 w-4 flex-shrink-0 text-gray-400" />
           )}
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
-              {session.promptText || `${session.mode} session`}
-            </p>
+            <div className="flex items-center gap-2 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {session.promptText || `${session.mode} session`}
+              </p>
+              {prepTag && (
+                <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 whitespace-nowrap">
+                  {prepTag}
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-400">
               {format(new Date(session.createdAt), "MMM d, yyyy")}
             </p>

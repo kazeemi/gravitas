@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { BASELINE_PROMPTS } from "@/lib/baseline";
+import { INDUSTRIES } from "@/lib/industries";
 
 const ONBOARDING_DRAFT_KEY = "gravitas_onboarding_draft";
 
@@ -25,13 +26,6 @@ const EXPERIENCE_YEARS = [
   { id: "8_12", label: "8–12 years" },
   { id: "13_20", label: "13–20 years" },
   { id: "20+", label: "20+ years" },
-];
-
-const INDUSTRIES = [
-  { id: "consulting", label: "Consulting" },
-  { id: "banking", label: "Banking & Finance" },
-  { id: "technology", label: "Technology" },
-  { id: "other", label: "Other" },
 ];
 
 const COMPANIES_BY_INDUSTRY: Record<string, string[]> = {

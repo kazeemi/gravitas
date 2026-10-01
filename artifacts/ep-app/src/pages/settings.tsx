@@ -156,6 +156,15 @@ export default function SettingsPage() {
       prev.includes(ctx) ? prev.filter(c => c !== ctx) : [...prev, ctx]
     );
 
+  const addCustomCompany = () => {
+    const trimmed = companyCustom.trim();
+    if (!trimmed) return;
+    setSelectedCompanies(prev =>
+      prev.some(c => c.toLowerCase() === trimmed.toLowerCase()) ? prev : [...prev, trimmed]
+    );
+    setCompanyCustom("");
+  };
+
   const knownCompanies = Object.values(COMPANIES_BY_INDUSTRY).flat();
   const companiesList = COMPANIES_BY_INDUSTRY[interviewSector] ?? [];
   const customCompaniesInList = selectedCompanies.filter(c => !knownCompanies.includes(c));
@@ -187,10 +196,9 @@ export default function SettingsPage() {
     try {
       const isInterview = coachingGoal === "interview";
       const isWorkplace = coachingGoal === "workplace";
-      const companies = [...selectedCompanies];
-      if (companyCustom.trim() && !companies.includes(companyCustom.trim())) {
-        companies.push(companyCustom.trim());
-      }
+      const companies = companyCustom.trim() && !selectedCompanies.some(c => c.toLowerCase() === companyCustom.trim().toLowerCase())
+        ? [...selectedCompanies, companyCustom.trim()]
+        : [...selectedCompanies];
       await api.users.update({
         name,
         educationLevel: educationLevel || null,
@@ -358,7 +366,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-gray-700">Target companies</p>
                 <p className="text-xs text-gray-400">Select all that apply</p>
                 {companiesList.length > 0 && (
-                  <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  <div className="space-y-1.5">
                     {companiesList.map(company => {
                       const selected = selectedCompanies.includes(company);
                       return (
@@ -396,14 +404,28 @@ export default function SettingsPage() {
                     <span>{c}</span>
                   </button>
                 ))}
-                <div className="pt-1">
+                <div className="pt-1 flex gap-2">
                   <input
                     type="text"
                     value={companyCustom}
                     onChange={(e) => setCompanyCustom(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        addCustomCompany();
+                      }
+                    }}
                     placeholder={companiesList.length > 0 ? "Add another company…" : "Company name"}
-                    className="w-full rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
+                    className="flex-1 rounded border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-900"
                   />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addCustomCompany}
+                    disabled={!companyCustom.trim()}
+                  >
+                    Add
+                  </Button>
                 </div>
               </div>
             )}

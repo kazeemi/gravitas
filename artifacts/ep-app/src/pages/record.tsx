@@ -220,7 +220,7 @@ export default function RecordPage() {
   // since restricting to a short fixed list would be less representative
   // of the real interview than it is for a company like McKinsey or Amazon
   // that actually does draw from a fixed set every time.
-  const COMPANIES_WITHOUT_FIXED_FRAMEWORK = ["Bain & Company"];
+  const COMPANIES_WITHOUT_FIXED_FRAMEWORK = ["Bain & Company", "Oliver Wyman"];
   const [showCustomPrompt, setShowCustomPrompt] = useState(false);
   const [recordingContext, setRecordingContext] = useState("seated");
   const [sessionId, setSessionId] = useState<string | null>(null);

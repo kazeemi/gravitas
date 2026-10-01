@@ -883,6 +883,83 @@ export const PROMPTS: Prompt[] = [
     company: "Boston Consulting Group",
   },
 
+  // ── INTERVIEW — OLIVER WYMAN ──────────────────────────────────────────────
+  // No peiDimension here, same reasoning as Bain: OW publishes company
+  // values but explicitly does not say interviews are scored against them —
+  // even weaker footing than Bain's named "qualities it evaluates" in
+  // hiring. Tagged with company only, merged into the generic consulting
+  // pool via COMPANIES_WITHOUT_FIXED_FRAMEWORK in record.tsx.
+  {
+    id: "OW1",
+    structureFamily: "rationale",
+    category: "Motivation",
+    context: "Impromptu",
+    text: "Why Oliver Wyman?",
+    recommendedDurationSeconds: 90,
+    sector: "consulting",
+    company: "Oliver Wyman",
+  },
+  {
+    id: "OW2",
+    structureFamily: "rationale",
+    category: "Motivation",
+    context: "Impromptu",
+    text: "Why consulting?",
+    recommendedDurationSeconds: 90,
+    sector: "consulting",
+    company: "Oliver Wyman",
+  },
+  {
+    id: "OW3",
+    structureFamily: "rationale",
+    category: "Motivation",
+    context: "Impromptu",
+    text: "Why Oliver Wyman rather than one of the larger strategy firms?",
+    recommendedDurationSeconds: 90,
+    sector: "consulting",
+    company: "Oliver Wyman",
+  },
+  {
+    id: "OW4",
+    structureFamily: "narrative",
+    category: "Introduction",
+    context: "Impromptu",
+    text: "Tell me about yourself and your background.",
+    recommendedDurationSeconds: 90,
+    sector: "consulting",
+    company: "Oliver Wyman",
+  },
+  {
+    id: "OW5",
+    structureFamily: "narrative",
+    category: "Introduction",
+    context: "Impromptu",
+    text: "Walk me through your resume.",
+    recommendedDurationSeconds: 90,
+    sector: "consulting",
+    company: "Oliver Wyman",
+  },
+  {
+    id: "OW6",
+    structureFamily: "story",
+    category: "Impact",
+    context: "Impromptu",
+    text: "Tell me about a time you did more than what you were asked to do.",
+    recommendedDurationSeconds: 120,
+    sector: "consulting",
+    company: "Oliver Wyman",
+  },
+  {
+    id: "OW7",
+    structureFamily: "story",
+    category: "Achievement",
+    context: "Impromptu",
+    text: "Tell me about something you're proud of.",
+    recommendedDurationSeconds: 120,
+    sector: "consulting",
+    company: "Oliver Wyman",
+  },
+
   // ── INTERVIEW — BANKING & FINANCE ─────────────────────────────────────────
 
   {

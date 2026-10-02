@@ -255,6 +255,8 @@ const FIRM_INTERVIEW_STYLES: Record<string, string> = {
     "Citi interviewers typically balance behavioral drilling with questions on why the candidate wants this specific role and division, and will ask for concrete metrics wherever a result is claimed but not quantified.",
   "Amazon":
     "Amazon interviewers (including a Bar Raiser from outside the hiring team) score answers against specific Leadership Principles, ask several distinct behavioral questions per session rather than one deep story, drill 3-4 levels into any decision or number with 'why' and 'what exactly did you do', and expect first-person 'I' framing with quantified impact — not 'we' language or effort described without a measurable result.",
+  "Google":
+    "Google interviewers use structured, standardized questions scored against a defined rubric, probe the candidate's thought process more than the 'right' answer with genuine follow-ups, expect STAR-structured answers (Situation, Task, Activity, Result) with data-backed impact ('accomplished X, as measured by Y, by doing Z'), and may ask open-ended or hypothetical questions where clarifying assumptions out loud is expected and rewarded, not a sign of weakness.",
 };
 
 // ============================================================
@@ -485,6 +487,61 @@ const COMPANY_DIMENSION_QUESTIONS: Record<string, CompanyDimensionEntry[]> = {
       dimension: "Drive",
       whatTheyLookFor: "honest reflection on a real leadership setback and what changed afterward",
       commonWeakSpots: "a 'failure' that wasn't really a failure, or no concrete change in behavior described",
+    },
+  ],
+  // Google's 4 official behavioral themes. "Strategic thinking" has zero
+  // candidate evidence of ever actually being asked — see
+  // company_knowledge_base.json — so its guidance is framed more generally.
+  // "Googleyness"-labeled content intentionally has no entry here, since
+  // that term isn't on Google's own interview-prep page.
+  "Google": [
+    {
+      questionText: "how do you deal with ambiguous situations and problems",
+      dimension: "Navigating complexity and ambiguity",
+      whatTheyLookFor: "genuine comfort operating without the full picture, not just tolerating ambiguity passively",
+      commonWeakSpots: "a story where the ambiguity was resolved for the candidate by someone else; no real decision made under uncertainty",
+    },
+    {
+      questionText: "tell me about a time you had to make an important decision without having the full picture",
+      dimension: "Navigating complexity and ambiguity",
+      whatTheyLookFor: "a real decision made under genuine uncertainty, with reasoning about what was and wasn't known",
+      commonWeakSpots: "a decision presented as obvious in hindsight with no acknowledgment of the uncertainty at the time",
+    },
+    {
+      questionText: "how would you address a conflict with someone you work with",
+      dimension: "Working with people and teams",
+      whatTheyLookFor: "genuine collaboration and conflict resolution across peers and cross-functional teams",
+      commonWeakSpots: "describing the conflict without resolution, or resolution that came from someone else stepping in",
+    },
+    {
+      questionText: "what strategies would you use to influence teammates",
+      dimension: "Working with people and teams",
+      whatTheyLookFor: "real influence without formal authority, not just directing people who already report to you",
+      commonWeakSpots: "an answer that assumes formal authority rather than genuine influence",
+    },
+    {
+      questionText: "tell me about a time you drove collaboration across a team",
+      dimension: "Working with people and teams",
+      whatTheyLookFor: "actively driving collaboration, not just participating in a collaborative team",
+      commonWeakSpots: "a story about being part of a good team rather than actively creating the collaboration",
+    },
+    {
+      questionText: "how have you used your communication and decision-making skills to mobilize others",
+      dimension: "Leadership",
+      whatTheyLookFor: "mobilizing others specifically without formal title or authority",
+      commonWeakSpots: "a leadership story that relied on formal authority, missing the 'without being the official leader' angle",
+    },
+    {
+      questionText: "tell me about a time your actions had a positive impact on your team",
+      dimension: "Leadership",
+      whatTheyLookFor: "a clear, specific individual action and its measurable impact on the team",
+      commonWeakSpots: "vague impact with no specific action or measurable outcome named",
+    },
+    {
+      questionText: "tell me about a time you had to think several steps ahead",
+      dimension: "Strategic thinking",
+      whatTheyLookFor: "setting a forward-looking direction, not just executing a near-term task well",
+      commonWeakSpots: "a tactical/short-term story mistaken for strategic thinking, with no multi-step reasoning about the future",
     },
   ],
 };

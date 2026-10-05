@@ -12,6 +12,7 @@ const navItems = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { logout, user } = useAuth();
+  const isResultsSlides = /^\/sessions\/[^/]+$/.test(location);
   const hrefFor = (path: string) => (path === "/record" ? getRecordHref(user) : path);
 
   return (
@@ -87,7 +88,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
-          {children}
+          {/* One shared content column so every page's title starts at the same
+              left edge. The results slides (/sessions/:id) bleed to the edges of
+              <main> themselves, so they are left unframed. */}
+          {isResultsSlides ? children : <div className="mx-auto w-full max-w-5xl">{children}</div>}
         </main>
 
         <nav className="flex md:hidden items-center justify-around border-t border-border bg-sidebar px-2 py-2">

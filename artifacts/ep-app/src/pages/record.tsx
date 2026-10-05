@@ -1069,7 +1069,7 @@ export default function RecordPage() {
 
   if (isAtLimit) {
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl">
         <div className="rounded-2xl border border-gray-200 bg-white px-8 py-10 space-y-6">
           <div className="space-y-3">
             <h1 className="text-2xl font-bold text-gray-900">You have used your {allowanceMins} minutes.</h1>
@@ -1109,7 +1109,7 @@ export default function RecordPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -1713,18 +1713,35 @@ export default function RecordPage() {
               <p className="text-right text-xs text-gray-400 font-mono">{progressPct}%</p>
             </div>
 
-            {/* Rotating insight / self-reflection card — fixed height so dimensions below never shift */}
-            <div className="rounded-xl border border-[#F0953E]/20 bg-[#FBF7F2] px-5 py-4 h-[96px] overflow-hidden flex flex-col justify-center">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C84A18] mb-1.5">
-                {showReflection ? "Reflect on this" : "Did you know"}
-              </p>
-              <p
-                className="text-sm text-gray-700 leading-relaxed line-clamp-2"
-                style={{ opacity: insightFade ? 1 : 0, transition: "opacity 0.4s ease" }}
-              >
-                {showReflection ? REFLECTIONS[reflectionIdx] : INSIGHTS[insightIdx]}
-              </p>
-            </div>
+            {/* Rotating insight / self-reflection card. Every message is laid out in the
+                same grid cell with only the current one visible, so the card is always
+                as tall as the longest message at the current screen width: nothing is
+                cut off on a narrow phone, and the dimensions below never shift. */}
+            {(() => {
+              const current = showReflection ? REFLECTIONS[reflectionIdx] : INSIGHTS[insightIdx];
+              return (
+                <div className="rounded-xl border border-[#F0953E]/20 bg-[#FBF7F2] px-5 py-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-[#C84A18] mb-1.5">
+                    {showReflection ? "Reflect on this" : "Did you know"}
+                  </p>
+                  <div className="grid">
+                    {[...INSIGHTS, ...REFLECTIONS].map((text) => {
+                      const visible = text === current && insightFade;
+                      return (
+                        <p
+                          key={text}
+                          aria-hidden={text !== current}
+                          className="col-start-1 row-start-1 text-sm text-gray-700 leading-relaxed"
+                          style={{ opacity: visible ? 1 : 0, transition: "opacity 0.4s ease" }}
+                        >
+                          {text}
+                        </p>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Dimension chips — always rendered to keep vertical position stable */}
             <div className="space-y-2.5" style={{ visibility: processingStep >= 2 ? "visible" : "hidden" }}>

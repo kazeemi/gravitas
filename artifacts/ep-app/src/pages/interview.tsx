@@ -28,23 +28,35 @@ export default function InterviewLandingPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-5 py-6 md:py-3">
+    <div className="min-h-screen flex items-center justify-center bg-background px-5 py-6 md:py-4">
       <div className="w-full max-w-5xl space-y-5 md:space-y-4">
         <div className="text-center space-y-2 md:space-y-2.5">
-          <div className="flex items-center justify-center gap-4">
-            <img src="/gravitas-logo-light.png" alt="" className="h-20 w-auto md:h-28 md:-my-5" />
-            <span
-              className="text-5xl md:text-6xl font-semibold text-foreground"
-              style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-            >
-              Gravitas
-            </span>
-          </div>
-          <h1
-            className="text-3xl md:text-4xl font-semibold leading-tight text-foreground"
+          {/* The logo file has wide transparent margins, so crop it to the mark itself
+              (content box 90x31 inside the 180x120 image, shown at 1.556x). */}
+          <div
+            role="img"
+            aria-hidden="true"
+            className="mx-auto"
+            style={{
+              width: 140,
+              height: 48,
+              backgroundImage: "url(/gravitas-logo-light.png)",
+              backgroundRepeat: "no-repeat",
+              backgroundSize: "280px auto",
+              backgroundPosition: "-90px -67px",
+            }}
+          />
+          <span
+            className="block text-5xl md:text-6xl font-semibold leading-none text-foreground"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
-            Walk in prepared.<br />Speak with presence.
+            Gravitas
+          </span>
+          <h1
+            className="pt-2 text-3xl md:text-4xl font-semibold leading-tight text-foreground"
+            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
+          >
+            Walk in prepared.<br className="md:hidden" /> Speak with presence.
           </h1>
           <p className="mx-auto max-w-3xl text-base md:text-lg leading-relaxed text-muted-foreground">
             Practice real interview questions out loud and get specific feedback on how clearly you think, how confidently you speak, and how you show up on camera.

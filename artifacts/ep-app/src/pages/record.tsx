@@ -176,22 +176,23 @@ export default function RecordPage() {
 
   // First-time Record page walkthrough. Stored client-side (not on the user
   // record) since it's purely cosmetic and replayable via the "?" button —
-  // not worth a migration/API round trip.
-  const TOUR_STORAGE_KEY = "gravitas:hasSeenRecordTour";
+  // not worth a migration/API round trip. Keyed by account ID so a new account
+  // on a browser that already ran the tour still gets it.
+  const tourStorageKey = user?.id ? `gravitas:hasSeenRecordTour:${user.id}` : null;
   const [tourIntroOpen, setTourIntroOpen] = useState(false);
   const [tourActive, setTourActive] = useState(false);
 
   useEffect(() => {
-    if (step !== "setup") return;
-    if (localStorage.getItem(TOUR_STORAGE_KEY)) return;
+    if (step !== "setup" || !tourStorageKey) return;
+    if (localStorage.getItem(tourStorageKey)) return;
     setTourIntroOpen(true);
-  }, [step]);
+  }, [step, tourStorageKey]);
 
   const closeTour = useCallback(() => {
-    localStorage.setItem(TOUR_STORAGE_KEY, "1");
+    if (tourStorageKey) localStorage.setItem(tourStorageKey, "1");
     setTourIntroOpen(false);
     setTourActive(false);
-  }, []);
+  }, [tourStorageKey]);
 
   const tourSteps: TourStep[] = [
     {

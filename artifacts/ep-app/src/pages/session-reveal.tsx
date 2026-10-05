@@ -1035,7 +1035,7 @@ export default function SessionRevealPage() {
           className={
             currentSlide === "pillars"
               ? "flex items-center justify-between pt-5 flex-shrink-0"
-              : "sticky bottom-0 z-10 -mx-6 mt-auto flex items-center justify-between px-6 pb-4 pt-8 flex-shrink-0"
+              : "sticky -bottom-6 md:-bottom-8 z-10 -mx-6 mt-auto flex items-center justify-between px-6 pb-4 pt-8 flex-shrink-0"
           }
           style={currentSlide === "pillars" ? undefined : { background: "linear-gradient(to top, #0F1B2D 70%, rgba(15,27,45,0))" }}
         >

@@ -496,26 +496,9 @@ export default function OnboardingPage() {
                 <p className="text-base leading-relaxed" style={{ color: "#0F1B2D70" }}>
                   A few quick questions so your feedback fits your situation.
                 </p>
-              </div>
-
-              {/* What to expect */}
-              <div
-                className="rounded-2xl px-6 py-5 text-left space-y-3.5"
-                style={{ backgroundColor: "white", border: "2px solid #0F1B2D08" }}
-              >
-                <p className="text-xs tracking-widest uppercase" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
-                  What to expect
+                <p className="text-sm" style={{ color: "#0F1B2D50" }}>
+                  Takes about 3 minutes.
                 </p>
-                {[
-                  "Takes about 3 minutes",
-                  "A few quick questions about your goals and context",
-                  path === "interview" ? "Then you'll record your first answer" : "Then a short recording to set your starting point",
-                ].map((text) => (
-                  <div key={text} className="flex items-start gap-3">
-                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#F0953E" }} />
-                    <p className="text-sm leading-snug" style={{ color: "#0F1B2D75" }}>{text}</p>
-                  </div>
-                ))}
               </div>
 
               {/* CTA */}

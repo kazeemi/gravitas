@@ -279,20 +279,35 @@ export async function sendWelcomeEmail(to: string, name: string, interviewMode: 
   const interviewBody = `
     <p style="margin:0 0 20px;font-size:15px;color:#0F1B2D;line-height:1.7;">Hi ${firstName},</p>
     <p style="margin:0 0 20px;font-size:15px;color:#4B5563;line-height:1.7;">
-      My name is Kanza — I am the founder of Gravitas, and also an executive coach and leadership advisor to companies and governments. Before this, I spent seven years at McKinsey &amp; Company, as an Engagement Manager, People Leader and Interviewer.
+      I’m Kanza, the founder of Gravitas.
     </p>
     <p style="margin:0 0 20px;font-size:15px;color:#4B5563;line-height:1.7;">
-      I built Gravitas because I kept seeing the same thing: brilliant people not showing up in the room the way their ability deserved. They were ready. They just didn't always look and sound like it.
+      I’m also an executive coach and leadership advisor. Before starting my own practice, I spent seven years at McKinsey &amp; Company, including as an Engagement Manager, People Leader and interviewer. I interviewed hundreds of candidates over the years, and later spent much of my coaching work helping leaders become clearer, more confident and more effective in how they communicate.
     </p>
     <p style="margin:0 0 20px;font-size:15px;color:#4B5563;line-height:1.7;">
-      You are preparing for interviews. That is exactly the moment Gravitas was built for.
+      I kept seeing the same thing from both sides of the table:<br/>
+      People with the ability to do the job were not always coming across with the presence to match.
+    </p>
+    <p style="margin:0 0 20px;font-size:15px;color:#4B5563;line-height:1.7;">
+      Sometimes the thinking was strong, but the answer was hard to follow. Sometimes the content was good, but the delivery undercut it. Sometimes someone was clearly capable, yet came across as less confident, less senior or less compelling than they actually were.
+    </p>
+    <p style="margin:0 0 20px;font-size:15px;color:#4B5563;line-height:1.7;">
+      That gap is what led me to build Gravitas.
+    </p>
+    <p style="margin:0 0 20px;font-size:15px;color:#4B5563;line-height:1.7;">
+      You’re preparing for an interview, so this is a good place to start. You don’t need another place to rehearse polished answers. You need a chance to hear yourself, see how you’re coming across, and understand what to work on.
+    </p>
+    <p style="margin:0 0 20px;font-size:15px;color:#4B5563;line-height:1.7;">
+      After each session, Gravitas gives you specific feedback on your thought clarity, voice, vocal delivery and physical presence, along with practical guidance on what to sharpen next.
     </p>
     <p style="margin:0 0 28px;font-size:15px;color:#4B5563;line-height:1.7;">
-      After every session, you will receive an objective, specific picture of how you actually come across: your structure, your voice quality, your vocal delivery, the dimensions of communication that shape how interviewers experience you. Gravitas is not generic feedback — it is built with consulting rigour and executive coaching depth to help you show up the way your capability deserves.
-    </p>
-    <p style="margin:0 0 28px;font-size:15px;color:#4B5563;line-height:1.7;">
-      Your first session takes a minimum of one minute. No preparation needed — just speak.
+      Your first session takes at least one minute. No preparation needed. Just choose a question, press record, and answer as you would in the room.
     </p>`;
+
+  const interviewClosing = `
+            <p style="margin:0 0 20px;font-size:15px;color:#4B5563;line-height:1.7;">
+              I hope it helps you walk into your interview feeling not just prepared, but ready to be seen at your best.
+            </p>`;
 
   const workplaceBody = `
     <p style="margin:0 0 20px;font-size:15px;color:#0F1B2D;line-height:1.7;">Hi ${firstName},</p>
@@ -319,6 +334,7 @@ export async function sendWelcomeEmail(to: string, name: string, interviewMode: 
   const workplaceSignoff = `To showing up at your best,`;
 
   const body = interviewMode ? interviewBody : workplaceBody;
+  const closing = interviewMode ? interviewClosing : "";
   const signoff = interviewMode ? interviewSignoff : workplaceSignoff;
 
   const { error } = await resend.emails.send({
@@ -356,7 +372,7 @@ export async function sendWelcomeEmail(to: string, name: string, interviewMode: 
                   </a>
                 </td>
               </tr>
-            </table>
+            </table>${closing}
             <p style="margin:0 0 4px;font-size:15px;color:#4B5563;line-height:1.7;">${signoff}</p>
             <p style="margin:0 0 4px;font-size:15px;font-weight:600;color:#0F1B2D;">Kanza Azeemi</p>
             <p style="margin:0 0 4px;font-size:14px;color:#4B5563;">Founder, Gravitas</p>

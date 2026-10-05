@@ -252,6 +252,10 @@ export default function SessionRevealPage() {
 
   // ── Navigation ───────────────────────────────────────────────────────────
 
+  // The page scrolls inside <main>; a new slide should start at its top rather
+  // than wherever the previous one was scrolled to.
+  const scrollToTop = () => document.querySelector("main")?.scrollTo({ top: 0 });
+
   const goNext = () => {
     if (slideIndex >= slides.length - 1) return;
     setSlideIn(false);
@@ -266,6 +270,7 @@ export default function SessionRevealPage() {
       setAnimatedScore(0);
       setTierUpVisible(false);
       setBadgeVisible(false);
+      scrollToTop();
       setSlideIn(true);
     }, 240);
   };
@@ -284,6 +289,7 @@ export default function SessionRevealPage() {
       setAnimatedScore(0);
       setTierUpVisible(false);
       setBadgeVisible(false);
+      scrollToTop();
       setSlideIn(true);
     }, 240);
   };
@@ -1021,7 +1027,18 @@ export default function SessionRevealPage() {
         )}
 
         {/* ── Footer nav ── */}
-        <div className="flex items-center justify-between pt-5 flex-shrink-0">
+        {/* Sticky so Back / Next stay on screen however long the slide is; the
+            gradient fades the slide content out underneath it. The pillars slide
+            is the full results breakdown, so its buttons stay at the end of the
+            content and the user scrolls through everything before moving on. */}
+        <div
+          className={
+            currentSlide === "pillars"
+              ? "flex items-center justify-between pt-5 flex-shrink-0"
+              : "sticky bottom-0 z-10 -mx-6 mt-auto flex items-center justify-between px-6 pb-4 pt-8 flex-shrink-0"
+          }
+          style={currentSlide === "pillars" ? undefined : { background: "linear-gradient(to top, #0F1B2D 70%, rgba(15,27,45,0))" }}
+        >
           {/* Left side: Back or Full report */}
           <div className="flex items-center gap-4">
             {slideIndex > 0 && (

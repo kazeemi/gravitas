@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { BASELINE_PROMPTS } from "@/lib/baseline";
 import { INDUSTRIES } from "@/lib/industries";
 import { isInterviewEntry, clearEntry } from "@/lib/entry";
+import { BrandMark } from "@/components/brand-mark";
 
 const ONBOARDING_DRAFT_KEY = "gravitas_onboarding_draft";
 
@@ -238,7 +239,9 @@ export default function OnboardingPage() {
   const [currentStep, setCurrentStep] = useState<StepId>("welcome");
   // Interview intent comes from the landing page: the account (set at signup,
   // works across devices) or the browser flag (same-device fallback).
-  const [skipGoal] = useState(() => isInterviewEntry() || user?.primaryGoal === "interview_prep");
+  // Derived each render: the user object from email verification omits the saved
+  // goal, so it is only known after the /me refresh below completes.
+  const skipGoal = isInterviewEntry() || user?.primaryGoal === "interview_prep";
   const [path, setPath] = useState<Path>(() => (skipGoal ? "interview" : null));
   const [loading, setLoading] = useState(false);
 
@@ -321,6 +324,18 @@ export default function OnboardingPage() {
     highStakesContexts,
   ]);
 
+  useEffect(() => {
+    refreshUser().catch(() => {});
+  }, []);
+
+  // Once interview intent is known, commit to the interview path and drop the
+  // goal question if the user had already landed on it.
+  useEffect(() => {
+    if (!skipGoal || path !== null) return;
+    setPath("interview");
+    if (currentStep === "primary_goal") setCurrentStep("industry");
+  }, [skipGoal]);
+
   // ── Step navigation ─────────────────────────────────────────────────────────
 
   const steps = getStepList(path, skipGoal);
@@ -354,6 +369,13 @@ export default function OnboardingPage() {
     setCurrentStep(nextStep);
   };
 
+  const addCustomCompany = () => {
+    const name = companyCustom.trim();
+    if (!name) return;
+    setSelectedCompanies(prev => (prev.some(c => c.toLowerCase() === name.toLowerCase()) ? prev : [...prev, name]));
+    setCompanyCustom("");
+  };
+
   const toggleCompany = (c: string) =>
     setSelectedCompanies(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
 
@@ -366,7 +388,8 @@ export default function OnboardingPage() {
     setLoading(true);
     try {
       const companies = [...selectedCompanies];
-      if (companyCustom.trim()) companies.push(companyCustom.trim());
+      const pending = companyCustom.trim();
+      if (pending && !companies.some(c => c.toLowerCase() === pending.toLowerCase())) companies.push(pending);
 
       await api.users.completeOnboarding({
         primaryGoal: path === "interview" ? "interview_prep" : "workplace_presence",
@@ -460,16 +483,7 @@ export default function OnboardingPage() {
           {/* ── STEP: welcome ──────────────────────────────────────────────── */}
           {currentStep === "welcome" && (
             <div className="space-y-8 text-center">
-              {/* Logo */}
-              <div className="flex items-center justify-center gap-2.5">
-                <img src="/gravitas-logo-light.png" alt="Gravitas" className="h-9 w-auto" />
-                <span
-                  className="text-3xl font-semibold"
-                  style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
-                >
-                  Gravitas
-                </span>
-              </div>
+              <BrandMark />
 
               {/* Headline */}
               <div className="space-y-3">
@@ -495,7 +509,7 @@ export default function OnboardingPage() {
                 {[
                   "Takes about 3 minutes",
                   "A few quick questions about your goals and context",
-                  "Your feedback is tailored to your answers",
+                  path === "interview" ? "Then you'll record your first answer" : "Then a short recording to set your starting point",
                 ].map((text) => (
                   <div key={text} className="flex items-start gap-3">
                     <span className="mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#F0953E" }} />
@@ -657,30 +671,50 @@ export default function OnboardingPage() {
                   Select all that apply, or skip if you're not sure yet.
                 </p>
               </div>
-              {industry !== "other" && (COMPANIES_BY_INDUSTRY[industry] ?? []).length > 0 && (
-                <div className="space-y-2">
-                  {(COMPANIES_BY_INDUSTRY[industry] ?? []).map(company => (
-                    <CheckCard
-                      key={company}
-                      label={company}
-                      selected={selectedCompanies.includes(company)}
-                      onClick={() => toggleCompany(company)}
-                    />
-                  ))}
-                </div>
-              )}
+              {(() => {
+                // Preset companies for the industry, plus anything the user added
+                // themselves — shown as ticked so it is clear it was captured.
+                const presets = industry !== "other" ? (COMPANIES_BY_INDUSTRY[industry] ?? []) : [];
+                const added = selectedCompanies.filter(c => !presets.includes(c));
+                const list = [...presets, ...added];
+                return list.length > 0 ? (
+                  <div className="space-y-2">
+                    {list.map(company => (
+                      <CheckCard
+                        key={company}
+                        label={company}
+                        selected={selectedCompanies.includes(company)}
+                        onClick={() => toggleCompany(company)}
+                      />
+                    ))}
+                  </div>
+                ) : null;
+              })()}
               <div>
                 <p className="text-xs mb-2" style={{ color: "#0F1B2D45" }}>
                   {industry !== "other" ? "Add another company:" : "Which company?"}
                 </p>
-                <input
-                  type="text"
-                  value={companyCustom}
-                  onChange={(e) => setCompanyCustom(e.target.value)}
-                  placeholder="e.g. Bridgewater Associates"
-                  className="w-full rounded-xl border-2 px-4 py-3 text-sm focus:outline-none transition-colors"
-                  style={{ borderColor: companyCustom ? "#F0953E" : "#0F1B2D15", backgroundColor: "white", color: "#0F1B2D" }}
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={companyCustom}
+                    onChange={(e) => setCompanyCustom(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCustomCompany(); } }}
+                    enterKeyHint="done"
+                    placeholder="e.g. Bridgewater Associates"
+                    className="min-w-0 flex-1 rounded-xl border-2 px-4 py-3 text-sm focus:outline-none transition-colors"
+                    style={{ borderColor: companyCustom ? "#F0953E" : "#0F1B2D15", backgroundColor: "white", color: "#0F1B2D" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomCompany}
+                    disabled={!companyCustom.trim()}
+                    className="rounded-xl border-2 px-4 text-sm font-semibold transition-all disabled:opacity-40"
+                    style={{ borderColor: "#F0953E", color: "#C84A18", backgroundColor: "white" }}
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
               <ContinueButton
                 onClick={goNext}
@@ -758,8 +792,10 @@ export default function OnboardingPage() {
                 value={interviewDate}
                 min={new Date().toISOString().split("T")[0]}
                 onChange={(e) => setInterviewDate(e.target.value)}
-                className="w-full rounded-xl border-2 px-4 py-3 text-sm focus:outline-none transition-colors"
-                style={{ borderColor: interviewDate ? "#F0953E" : "#0F1B2D15", backgroundColor: "white", color: "#0F1B2D" }}
+                // iOS Safari gives date inputs an intrinsic width that overflows the
+                // container unless appearance and min-width are reset.
+                className="block w-full min-w-0 max-w-full appearance-none rounded-xl border-2 px-4 py-3 text-sm focus:outline-none transition-colors"
+                style={{ borderColor: interviewDate ? "#F0953E" : "#0F1B2D15", backgroundColor: "white", color: "#0F1B2D", WebkitAppearance: "none", boxSizing: "border-box" }}
               />
               <ContinueButton onClick={goNext} disabled={!interviewDate} />
             </div>
@@ -1061,7 +1097,7 @@ export default function OnboardingPage() {
                 ))}
               </div>
 
-              <ContinueButton onClick={save} disabled={loading} label={loading ? "Saving your profile…" : "Start my baseline →"} />
+              <ContinueButton onClick={save} disabled={loading} label={loading ? "Saving your profile…" : path === "interview" ? "Record my first answer →" : "Start my baseline →"} />
             </div>
           )}
 

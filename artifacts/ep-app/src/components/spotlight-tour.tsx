@@ -13,6 +13,18 @@ export type TourStep = {
 
 const PADDING = 8;
 
+// The same tour target can exist twice (desktop sidebar + mobile bottom nav),
+// with one of them hidden. A hidden element measures as an empty box at 0,0, so
+// pick the first one that is actually visible.
+function findTarget(selector: string): Element | null {
+  const all = document.querySelectorAll(selector);
+  for (const el of Array.from(all)) {
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return el;
+  }
+  return null;
+}
+
 function useTargetRect(selector: string | null) {
   const [rect, setRect] = useState<DOMRect | null>(null);
 
@@ -22,7 +34,7 @@ function useTargetRect(selector: string | null) {
       return;
     }
     const measure = () => {
-      const el = document.querySelector(selector);
+      const el = findTarget(selector);
       setRect(el ? el.getBoundingClientRect() : null);
     };
     measure();
@@ -53,7 +65,7 @@ export function SpotlightTour({
   // rendered for every user, so steps must be able to skip themselves.
   const resolvedIndex = (() => {
     for (let i = index; i < steps.length; i++) {
-      if (document.querySelector(steps[i].target)) return i;
+      if (findTarget(steps[i].target)) return i;
     }
     return -1;
   })();
@@ -64,6 +76,22 @@ export function SpotlightTour({
   useEffect(() => {
     if (open) setIndex(0);
   }, [open]);
+
+  // The page must not scroll while the tour is running: the spotlight is
+  // positioned for the current scroll position and would drift off its target.
+  useEffect(() => {
+    if (!open) return;
+    const lockables = [document.body, document.querySelector("main")].filter(Boolean) as HTMLElement[];
+    const previous = lockables.map(el => el.style.overflow);
+    lockables.forEach(el => { el.style.overflow = "hidden"; });
+    return () => { lockables.forEach((el, i) => { el.style.overflow = previous[i]; }); };
+  }, [open]);
+
+  // Bring the highlighted element into view before measuring it.
+  useEffect(() => {
+    if (!open || !current) return;
+    findTarget(current.target)?.scrollIntoView({ block: "nearest" });
+  }, [open, current?.target]);
 
   useEffect(() => {
     if (open && resolvedIndex === -1) {
@@ -85,7 +113,7 @@ export function SpotlightTour({
   return createPortal(
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-[100]"
+        className="fixed inset-0 z-[100] touch-none"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}

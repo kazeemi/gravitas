@@ -15,7 +15,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const hrefFor = (path: string) => (path === "/record" ? getRecordHref(user) : path);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    // 100vh on iOS Safari includes the area under the browser toolbar, which pushed
+    // the bottom nav off-screen; 100dvh tracks the visible height.
+    <div className="flex h-screen overflow-hidden bg-background" style={{ height: "100dvh" }}>
       <nav className="hidden md:flex w-56 flex-col border-r border-border bg-sidebar px-3 py-6">
         <div className="mb-8 px-3">
           <div className="flex flex-col gap-1 items-start">
@@ -95,6 +97,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             return (
               <button
                 key={item.path}
+                data-tour={item.path === "/dashboard" ? "nav-dashboard" : item.path === "/settings" ? "nav-settings" : undefined}
                 onClick={() => setLocation(hrefFor(item.path))}
                 className={`flex flex-col items-center gap-0.5 rounded px-2 py-1 text-xs transition-colors ${
                   active ? "text-primary" : "text-muted-foreground"

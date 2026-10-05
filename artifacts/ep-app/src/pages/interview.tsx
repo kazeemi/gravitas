@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { setInterviewEntry } from "@/lib/entry";
+import { BrandMark } from "@/components/brand-mark";
 
 const ORANGE = "#F0953E";
 const TERRACOTTA = "#C84A18";
@@ -51,27 +52,7 @@ export default function InterviewLandingPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-5 py-6 md:py-3">
       <div className="w-full max-w-5xl space-y-5 md:space-y-3">
         <div className="text-center space-y-2 md:space-y-2.5">
-          {/* The logo file has wide transparent margins, so crop it to the mark itself
-              (content box 90x31 inside the 180x120 image, shown at 1.556x). */}
-          <div
-            role="img"
-            aria-hidden="true"
-            className="mx-auto"
-            style={{
-              width: 140,
-              height: 48,
-              backgroundImage: "url(/gravitas-logo-light.png)",
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "280px auto",
-              backgroundPosition: "-90px -67px",
-            }}
-          />
-          <span
-            className="block text-5xl md:text-5xl font-semibold leading-none text-foreground"
-            style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
-          >
-            Gravitas
-          </span>
+          <BrandMark />
           <h1
             className="pt-1 text-3xl md:text-4xl font-semibold leading-tight text-foreground"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}

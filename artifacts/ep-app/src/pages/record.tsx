@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useSearch } from "wouter";
 import { api, type Prompt } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { getIndustryLabel } from "@/lib/industries";
 import { Button } from "@/components/ui/button";
 import { SpotlightTour, TourIntroModal, type TourStep } from "@/components/spotlight-tour";
 import {
@@ -157,14 +158,20 @@ export default function RecordPage() {
 
   // Company dropdown: only relevant when the user picked a fixed industry
   // (not "other" — there's no company-specific data for that category at
-  // all) and selected 2+ companies. Every selected company gets a slot,
-  // recognized or custom-typed, since the user explicitly told us they're
-  // preparing for it — only the content behind the selection differs.
+  // all). Every selected company gets a slot, recognized or custom-typed,
+  // since the user explicitly told us they're preparing for it — only the
+  // content behind the selection differs. A synthetic "General {industry}"
+  // option is always included too, for users who'd rather not commit to one
+  // company's flavor every session (e.g. someone prepping for 5 banks who
+  // sometimes just wants generic banking practice). Shown even for a single
+  // selected company, since General is always a second real choice now.
+  const GENERAL_COMPANY = "General";
   const selectedCompanies = (user?.interviewCompanies || "")
     .split(";")
     .map(c => c.trim())
     .filter(Boolean);
-  const showCompanyDropdown = user?.interviewSector !== "other" && selectedCompanies.length >= 2;
+  const industryLabel = getIndustryLabel(user?.interviewSector, user?.interviewSectorCustom) ?? "practice";
+  const showCompanyDropdown = user?.interviewSector !== "other";
   const [activeCompany, setActiveCompany] = useState<string | null>(null);
 
   // First-time Record page walkthrough. Stored client-side (not on the user
@@ -299,26 +306,21 @@ export default function RecordPage() {
   const baselineInstruction = params.get("instruction");
   const baselineDuration = params.get("duration");
 
-  // Default the active company once per user load: last-used company if one
-  // was recorded, otherwise the first company they selected at onboarding.
-  // Only meaningful when the dropdown would actually show (see
-  // showCompanyDropdown above) — for single-company or "other" users this
-  // just quietly holds their one company (or null) without any UI for it.
+  // Default the active company once per user load: last-used selection if
+  // one was recorded (whether that's a specific company or "General" from
+  // a prior session), otherwise — the very first time this user ever sees
+  // the dropdown — default to General rather than assuming they want one
+  // particular company's flavor. Persisted immediately so the backend's
+  // per-session lookup sees the same default, not a blended fallback.
   useEffect(() => {
     if (activeCompany !== null) return;
     if (user?.lastActiveInterviewCompany) {
       setActiveCompany(user.lastActiveInterviewCompany);
-    } else if (selectedCompanies.length > 0) {
-      // First-ever session with 2+ companies: default to the first one
-      // chosen at onboarding, and persist it immediately — otherwise the
-      // backend's per-session lookup would still see lastActiveInterviewCompany
-      // as null and fall back to blending all selected companies' styles
-      // together for this session, defeating the point of the default.
-      const defaultCompany = selectedCompanies[0];
-      setActiveCompany(defaultCompany);
-      api.users.update({ lastActiveInterviewCompany: defaultCompany }).catch(() => {});
+    } else if (user?.interviewMode) {
+      setActiveCompany(GENERAL_COMPANY);
+      api.users.update({ lastActiveInterviewCompany: GENERAL_COMPANY }).catch(() => {});
     }
-  }, [user?.lastActiveInterviewCompany, user?.interviewCompanies]);
+  }, [user?.lastActiveInterviewCompany, user?.interviewMode]);
 
   const handleCompanyChange = useCallback((company: string) => {
     setActiveCompany(company);
@@ -1209,6 +1211,7 @@ export default function RecordPage() {
                 onChange={(e) => handleCompanyChange(e.target.value)}
                 className="text-sm text-gray-700 border border-gray-200 rounded px-2 py-1 bg-white"
               >
+                <option value={GENERAL_COMPANY}>{`General ${industryLabel}`}</option>
                 {selectedCompanies.map(company => (
                   <option key={company} value={company}>{company}</option>
                 ))}

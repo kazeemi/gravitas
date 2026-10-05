@@ -390,7 +390,7 @@ export default function DashboardPage() {
             Welcome back{user?.name ? `, ${user.name.split(" ")[0]}` : ""}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
-            Track and improve your executive presence
+            {user?.interviewMode ? "Track how your answers are landing" : "Track and improve your executive presence"}
           </p>
         </div>
         <button

@@ -31,12 +31,12 @@ export default function PrivacyPolicyPage() {
               </div>
               <div>
                 <h3 className="font-medium text-[#0F1B2D] mb-1">Professional profile</h3>
-                <p>Career stage, work experience, role title, goals, industry, and interview details you provide during onboarding. We use this to personalise your coaching experience. Legal basis: contract performance and your consent.</p>
+                <p>Career stage, work experience, role title, goals, industry, and interview details you provide during onboarding. We use this to personalize your coaching experience. Legal basis: contract performance and your consent.</p>
               </div>
               <div>
                 <h3 className="font-medium text-[#0F1B2D] mb-1">Voice and video recordings</h3>
                 <p>
-                  When you submit a practice session, we process your audio recording and (for video sessions) video frames. These are used solely to analyse your communication and provide coaching feedback. <strong>We do not permanently store your audio files or video recordings.</strong> They are processed in memory and immediately discarded after analysis.
+                  When you submit a practice session, we process your audio recording and (for video sessions) video frames. These are used solely to analyze your communication and provide coaching feedback. <strong>We do not permanently store your audio files or video recordings.</strong> They are processed in memory and immediately discarded after analysis.
                 </p>
                 <p className="mt-1">Legal basis: your explicit consent (Article 6(1)(a) and Article 9(2)(a) GDPR for biometric data).</p>
               </div>

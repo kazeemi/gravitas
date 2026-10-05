@@ -22,6 +22,7 @@ import NotFound from "@/pages/not-found";
 import PrivacyPolicyPage from "@/pages/privacy";
 import TermsPage from "@/pages/terms";
 import RestoreAccountPage from "@/pages/restore-account";
+import InterviewLandingPage from "@/pages/interview";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,9 @@ function AppRouter() {
     <Switch>
       <Route path="/">
         {user ? (!user.onboardingCompleted ? <Redirect to="/onboarding" /> : <Redirect to="/record" />) : <Redirect to="/login" />}
+      </Route>
+      <Route path="/interview">
+        {user ? (!user.onboardingCompleted ? <Redirect to="/onboarding" /> : <Redirect to="/record" />) : <InterviewLandingPage />}
       </Route>
       <Route path="/login">
         {user ? (!user.onboardingCompleted ? <Redirect to="/onboarding" /> : <Redirect to="/record" />) : <LoginPage />}

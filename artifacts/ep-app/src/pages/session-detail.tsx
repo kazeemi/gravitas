@@ -132,7 +132,7 @@ function getContextualFallbackMessage(
   ];
 
   const CAME_BACK_2 = [
-    "You came back. That matters more than most people realise — the habit starts here.",
+    "You came back. That matters more than most people realize — the habit starts here.",
     "Two sessions in. Most people never get here. You did, and that gap matters.",
     "Coming back for a second session puts you ahead of most people who think about doing this.",
     "The hardest part after starting is returning. You did both.",

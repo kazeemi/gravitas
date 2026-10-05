@@ -51,7 +51,7 @@ export default function ProgressPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Your progress</h1>
-          <p className="mt-1 text-sm text-gray-500">Track your executive presence over time</p>
+          <p className="mt-1 text-sm text-gray-500">{user?.interviewMode ? "Track your interview progress over time" : "Track your executive presence over time"}</p>
         </div>
         <Button onClick={() => setLocation(getRecordHref(user))} className="gap-2">
           <PlusIcon className="h-4 w-4" />

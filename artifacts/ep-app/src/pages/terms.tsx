@@ -29,7 +29,7 @@ export default function TermsPage() {
                 <strong className="text-[#0F1B2D]">Trial / demonstration service.</strong> Gravitas is currently made available on a trial and demonstration basis, for evaluation purposes only. It is not intended for business-critical, high-stakes, or reliance use of any kind, and is not a substitute for professional coaching, psychological, medical, or career advice. You use the Service entirely at your own risk.
               </p>
               <p>
-                Gravitas is an AI-powered communication coaching platform that analyses voice and video recordings to provide feedback on executive presence, communication effectiveness, and delivery. The platform is currently in Beta and is provided for personal professional development purposes.
+                Gravitas is an AI-powered communication coaching platform that analyzes voice and video recordings to provide feedback on executive presence, communication effectiveness, and delivery. The platform is currently in Beta and is provided for personal professional development purposes.
               </p>
             </div>
           </section>
@@ -55,7 +55,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold mb-2">5. Recordings and content</h2>
             <div className="space-y-2 text-gray-700 leading-relaxed">
-              <p>When you submit a recording, you grant Gravitas a limited, non-exclusive licence to process that recording solely for the purpose of providing coaching analysis and feedback to you. We do not use your recordings to train AI models.</p>
+              <p>When you submit a recording, you grant Gravitas a limited, non-exclusive license to process that recording solely for the purpose of providing coaching analysis and feedback to you. We do not use your recordings to train AI models.</p>
               <p>You must not submit recordings containing third parties without their consent. You must not submit recordings containing sensitive information about others (e.g., confidential business information, other people's private details).</p>
               <p>You retain all rights to content you create. Gravitas retains the analysis and feedback derived from your content as part of your account.</p>
             </div>
@@ -70,7 +70,7 @@ export default function TermsPage() {
               <li>Submit content that is abusive, defamatory, or violates the rights of others</li>
               <li>Use automated tools to access the platform without our written permission</li>
               <li>Attempt to circumvent security or access controls</li>
-              <li>Resell or sublicence access to the platform</li>
+              <li>Resell or sublicense access to the platform</li>
             </ul>
           </section>
 
@@ -101,7 +101,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold mb-2">9. Intellectual property</h2>
             <p className="text-gray-700 leading-relaxed">
-              All intellectual property in the Gravitas platform, including its design, scoring methodology, software, and content (excluding your personal data), is owned by Gravitas AI. You are granted a limited, non-transferable licence to use the platform for personal professional development. Nothing in these terms transfers any intellectual property rights to you.
+              All intellectual property in the Gravitas platform, including its design, scoring methodology, software, and content (excluding your personal data), is owned by Gravitas AI. You are granted a limited, non-transferable license to use the platform for personal professional development. Nothing in these terms transfers any intellectual property rights to you.
             </p>
           </section>
 
@@ -118,7 +118,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold mb-2">10a. Data security and cyber incidents</h2>
             <p className="text-gray-700 leading-relaxed">
-              Gravitas implements reasonable technical and organisational measures designed to protect your data, as described in our{" "}
+              Gravitas implements reasonable technical and organizational measures designed to protect your data, as described in our{" "}
               <a href="/privacy" className="text-[#C84A18] underline">Privacy Policy</a>. No method of transmission or storage is completely secure, and we cannot guarantee the absolute security of your data. In the event of a security incident, data breach, or unauthorised access affecting your data, Gravitas's obligations are limited to those required by applicable data protection law (including notifying affected individuals and/or regulators where required). To the maximum extent permitted by law, Gravitas excludes all liability for any loss, damage, or expense arising from such an incident, including where it results from the acts or omissions of a third party, a third-party service provider (including but not limited to our AI, hosting, or database providers), or a cyberattack.
             </p>
           </section>

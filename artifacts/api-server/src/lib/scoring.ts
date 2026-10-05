@@ -858,7 +858,7 @@ export async function analyzeAudioDelivery(
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}
 
-You are a senior executive presence coach listening to this audio recording. Be specific; no generic statements. Ignore silence at the start/end; analyse only from first word to last word. Keep each field to 1-2 sentences unless stated otherwise.
+You are a senior executive presence coach listening to this audio recording. Be specific; no generic statements. Ignore silence at the start/end; analyze only from first word to last word. Keep each field to 1-2 sentences unless stated otherwise. Use American spelling (e.g. "analyze", "practice", "behavior").
 
 Assess the following ACOUSTIC qualities — the RAW SONIC QUALITIES of the voice, what you hear in the audio itself:
 
@@ -1080,7 +1080,7 @@ export async function analyzeVideoPresence(
 
   const analysisPrompt = `${promptText ? `The speaker was responding to this prompt: "${promptText}". ` : ""}${recordingContext ? `Recording context: ${recordingContext}.` : ""}
 
-You are a senior executive presence coach reviewing a series of ${frames.length} video frames captured at regular intervals during a ${recordingContext || "seated"} presentation. Analyze ONLY what you can directly observe in the images. Be specific and honest.
+You are a senior executive presence coach reviewing a series of ${frames.length} video frames captured at regular intervals during a ${recordingContext || "seated"} presentation. Analyze ONLY what you can directly observe in the images. Be specific and honest. Use American spelling (e.g. "analyze", "practice", "behavior").
 
 CALIBRATE YOUR CERTAINTY TO YOUR SAMPLE SIZE: you are working from ${frames.length} still images sampled across the recording, not continuous footage. ${frames.length < 8
   ? "This is a small sample. Use tentative, hedged language (e.g. \"in the moments captured, ...\", \"what's available suggests...\")."
@@ -1323,7 +1323,7 @@ async function runAIEvaluation(
     ? "\n\nLANGUAGE — STRICTLY ENFORCED: Write every candidate-facing feedback field (strengthText, gapText, nextStepText, and all overallFeedback fields) in Modern Standard Arabic. Keep dimension keys, tier labels, and any JSON field names in English exactly as specified below — only the feedback prose itself is in Arabic. Maintain the same warm, direct, second-person coaching voice in Arabic (use \"أنتَ/أنتِ\" address) as described in the FEEDBACK STANDARDS below.\n"
     : "";
 
-  const systemPrompt = `You are a senior executive presence coach and evaluator implementing the Gravitas Scoring Methodology v4.0. Your assessments are rigorous, evidence-based, and honest. Write as if you listened to the recording yourself — every piece of feedback should feel as though it was written by a human coach who heard this specific person in this specific session, not generic advice that could apply to anyone.${feedbackLanguageDirective}
+  const systemPrompt = `You are a senior executive presence coach and evaluator implementing the Gravitas Scoring Methodology v4.0. Your assessments are rigorous, evidence-based, and honest. Write as if you listened to the recording yourself — every piece of feedback should feel as though it was written by a human coach who heard this specific person in this specific session, not generic advice that could apply to anyone. Use American spelling (e.g. "analyze", "practice", "behavior").${feedbackLanguageDirective}
 
 METHODOLOGY v4.0 — SCORING TIERS:
 - 1–3 (Needs Focus): Absent, severely deficient, or actively undermining presence.

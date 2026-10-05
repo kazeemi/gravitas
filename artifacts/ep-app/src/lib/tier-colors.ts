@@ -78,7 +78,7 @@ export const DIMENSION_DESCRIPTIONS: Record<string, string> = {
   breath_control: "Whether breath supports delivery through full phrases or the voice thins at endings and forces mid-thought breaks.",
   // Pillar 3
   confidence_language: "The balance between assertive and hedging language — direct ownership of ideas versus qualified, tentative expression.",
-  structure: "Whether the response has clear architecture — an opening that signals direction, organised body, and decisive close.",
+  structure: "Whether the response has clear architecture — an opening that signals direction, organized body, and decisive close.",
   conciseness: "Whether the speaker says what needs to be said and stops — without repetition, padding, or over-explanation.",
   // Pillar 4
   eye_contact: "How consistently and intentionally the speaker connects with the camera — the equivalent of direct eye contact in a room.",

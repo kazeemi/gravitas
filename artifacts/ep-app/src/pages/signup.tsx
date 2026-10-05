@@ -1,3 +1,4 @@
+import { signedOutTagline } from "@/lib/entry";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
@@ -53,7 +54,7 @@ export default function SignupPage() {
               Gravitas
             </h1>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Executive Presence, Elevated.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{signedOutTagline()}</p>
           {!done && <p className="text-xs text-muted-foreground">Create your account</p>}
         </div>
 
@@ -169,7 +170,7 @@ export default function SignupPage() {
                   <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-gray-900 underline">
                     Privacy Policy
                   </a>
-                  , including the processing of my voice and video recordings by AI services (OpenAI and Anthropic) to deliver coaching feedback, and my use of this trial service on the terms described there, including the liability and indemnification terms.
+                  , including the processing of my voice and video recordings by AI services (OpenAI and Anthropic) to deliver coaching feedback.
                 </label>
               </div>
               <Button type="submit" className="w-full" disabled={loading || !consentAccepted}>

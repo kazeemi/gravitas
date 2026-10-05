@@ -40,10 +40,12 @@ async function request<T>(
 
 export const api = {
   auth: {
-    signup: (email: string, password: string, name: string, consentAccepted: boolean) =>
+    // `entry` records which landing page the visitor came from, so the choice
+    // survives email verification on a different device.
+    signup: (email: string, password: string, name: string, consentAccepted: boolean, entry?: "interview") =>
       request<{ message: string; emailSent?: boolean }>("/v1/auth/signup", {
         method: "POST",
-        body: JSON.stringify({ email, password, name, consentAccepted }),
+        body: JSON.stringify({ email, password, name, consentAccepted, entry }),
       }),
     // `identifier` is either an email or a username (e.g. a client-provided
     // candidate account with no real email) — routed to the matching field

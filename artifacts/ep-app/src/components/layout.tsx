@@ -33,7 +33,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground leading-tight font-medium tracking-wide pl-0.5">
-              Executive Presence, Elevated.
+              {user?.interviewMode ? "Walk in prepared. Speak with presence." : "Executive Presence, Elevated."}
             </p>
           </div>
         </div>

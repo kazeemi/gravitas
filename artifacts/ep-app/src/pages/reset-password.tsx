@@ -1,3 +1,4 @@
+import { signedOutTagline } from "@/lib/entry";
 import { useState, useEffect } from "react";
 import { useLocation, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -49,7 +50,7 @@ export default function ResetPasswordPage() {
               Gravitas
             </h1>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Executive Presence, Elevated.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{signedOutTagline()}</p>
           <p className="text-xs text-muted-foreground">Choose a new password</p>
         </div>
 

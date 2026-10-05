@@ -29,7 +29,7 @@ const passwordLimiter = rateLimit({
 });
 
 router.post("/v1/auth/signup", authLimiter, async (req, res) => {
-  const { email, password, name, consentAccepted } = req.body;
+  const { email, password, name, consentAccepted, entry } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ error: "email, password and name are required" });
   }
@@ -54,6 +54,9 @@ router.post("/v1/auth/signup", authLimiter, async (req, res) => {
     consentAcceptedAt: new Date(),
     privacyPolicyVersion: CURRENT_PRIVACY_POLICY_VERSION,
     termsVersion: CURRENT_TERMS_VERSION,
+    // Set when the visitor signed up from the interview landing page, so
+    // onboarding can skip the goal question even on another device.
+    primaryGoal: entry === "interview" ? "interview_prep" : null,
   }).returning();
 
   // The account exists either way, so this is not fatal — but the client must

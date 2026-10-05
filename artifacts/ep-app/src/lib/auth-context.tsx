@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import { useLocation } from "wouter";
 import { api, setToken, clearToken, isAuthenticated } from "./api";
 import { ConsentGate } from "@/components/consent-gate";
+import { isInterviewEntry } from "@/lib/entry";
 
 export interface User {
   id: string;
@@ -79,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signup = async (email: string, password: string, name: string, consentAccepted: boolean) => {
-    const result = await api.auth.signup(email, password, name, consentAccepted);
+    const result = await api.auth.signup(email, password, name, consentAccepted, isInterviewEntry() ? "interview" : undefined);
     // emailSent is false when the account was created but the verification
     // email could not be delivered. Older responses omit it; treat that as sent.
     return { emailSent: result.emailSent !== false };
@@ -112,7 +114,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // consent. Only gate when the server positively says so (`=== true`) — an
   // undefined field means the endpoint didn't return it, and gating on that
   // would re-prompt users who have already accepted.
-  const needsConsent = user?.needsConsent === true;
+  // The policy pages themselves must stay readable: the gate links to them in a
+  // new tab, and covering them there would trap the user in a loop.
+  const [location] = useLocation();
+  const onPolicyPage = location === "/terms" || location === "/privacy";
+  const needsConsent = user?.needsConsent === true && !onPolicyPage;
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, loginWithToken, logout, refreshUser }}>

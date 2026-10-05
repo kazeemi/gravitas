@@ -107,9 +107,9 @@ const INSIGHTS = [
   "Pausing before a key point signals authority. Most speakers rush exactly when they should slow down.",
   "How you open shapes everything that follows. Listeners decide early whether to lean in or tune out.",
   "Filler words are almost always a symptom of pace. Speaking a little slower naturally reduces them.",
-  "Vocal tone is doing more work than most speakers realise — it shapes how a message lands before the words register.",
+  "Vocal tone is doing more work than most speakers realize — it shapes how a message lands before the words register.",
   "Executive presence compounds. Every session builds on the last, even when progress isn't immediately visible.",
-  "The clearest speakers aren't always the most knowledgeable — they're the ones who organise before they speak.",
+  "The clearest speakers aren't always the most knowledgeable — they're the ones who organize before they speak.",
   "Breath control is the foundation of every other vocal quality. It's where steadiness begins.",
   "Listeners trust what sounds deliberate. Deliberateness comes from structure, not volume.",
   "Upward inflection at the end of a statement quietly undermines it. Statements land better as statements.",
@@ -137,7 +137,7 @@ const REFLECTIONS = [
   "Was there a point where you lost your thread? What happened just before it?",
   "Did your response actually answer what was asked, or did it drift to adjacent ideas?",
   "How was your energy level — consistent throughout, or did it dip in the middle?",
-  "If someone had to summarise your main point in one sentence, could they?",
+  "If someone had to summarize your main point in one sentence, could they?",
   "Were you speaking at a pace that felt comfortable for you, or for the listener?",
   "Did your closing feel earned, or did it arrive earlier than it should have?",
 ];
@@ -1130,6 +1130,8 @@ export default function RecordPage() {
               ? "Your coaching feedback is being prepared"
               : step === "done"
               ? "Your personalized coaching feedback is ready"
+              : user?.interviewMode
+              ? "Practice an interview answer and get feedback"
               : "Record and analyze your executive presence"}
           </p>
         </div>

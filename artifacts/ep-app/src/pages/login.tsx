@@ -1,3 +1,4 @@
+import { signedOutTagline } from "@/lib/entry";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth-context";
@@ -40,7 +41,7 @@ export default function LoginPage() {
               Gravitas
             </span>
           </div>
-          <p className="mt-1 text-sm text-muted-foreground">Executive Presence, Elevated.</p>
+          <p className="mt-1 text-sm text-muted-foreground">{signedOutTagline()}</p>
           <p className="text-xs text-muted-foreground">Sign in to your account</p>
         </div>
 

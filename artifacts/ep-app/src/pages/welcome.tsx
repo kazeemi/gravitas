@@ -39,7 +39,7 @@ export default function WelcomePage() {
               Gravitas exists for one reason — to help you show up at your best, in every room that matters.
             </p>
             <p>
-              What you practise here is grounded in real research and real interviewer experience. It will be honest. It will be specific. And it will move with you as you grow.
+              What you practice here is grounded in real research and real interviewer experience. It will be honest. It will be specific. And it will move with you as you grow.
             </p>
             <p style={{ color: "#0F1B2D90" }}>
               You have got this. Let's go.
@@ -53,7 +53,7 @@ export default function WelcomePage() {
           className="w-full rounded-xl py-3.5 text-sm font-semibold text-white transition-all duration-150 hover:opacity-90 active:opacity-80"
           style={{ background: "linear-gradient(135deg, #F0953E 0%, #C84A18 100%)" }}
         >
-          Start practising →
+          Start practicing →
         </button>
 
       </div>

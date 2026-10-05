@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { BASELINE_PROMPTS } from "@/lib/baseline";
 import { INDUSTRIES } from "@/lib/industries";
+import { isInterviewEntry, clearEntry } from "@/lib/entry";
 
 const ONBOARDING_DRAFT_KEY = "gravitas_onboarding_draft";
 
@@ -104,8 +105,12 @@ const META_STEPS: StepId[] = ["emotional_connect", "privacy_trust", "how_it_work
 
 type Path = "interview" | "workplace" | null;
 
-function getStepList(path: Path): StepId[] {
-  const common: StepId[] = ["experience", "education", "primary_goal"];
+// `skipGoal` is set for visitors who arrived via the interview landing page:
+// they have already told us their goal, so the goal question is dropped.
+function getStepList(path: Path, skipGoal = false): StepId[] {
+  const common: StepId[] = skipGoal && path === "interview"
+    ? ["experience", "education"]
+    : ["experience", "education", "primary_goal"];
   const bridge: StepId[] = ["emotional_connect", "privacy_trust", "how_it_works"];
   if (path === "interview") {
     return [...common, "industry", "company", "role", "interview_confirmed", "interview_detail", ...bridge, "baseline"];
@@ -227,11 +232,14 @@ function ContinueButton({ onClick, disabled, label = "Continue" }: { onClick: ()
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
-  const { refreshUser } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [, setLocation] = useLocation();
 
   const [currentStep, setCurrentStep] = useState<StepId>("welcome");
-  const [path, setPath] = useState<Path>(null);
+  // Interview intent comes from the landing page: the account (set at signup,
+  // works across devices) or the browser flag (same-device fallback).
+  const [skipGoal] = useState(() => isInterviewEntry() || user?.primaryGoal === "interview_prep");
+  const [path, setPath] = useState<Path>(() => (skipGoal ? "interview" : null));
   const [loading, setLoading] = useState(false);
 
   // Professional profile
@@ -315,7 +323,7 @@ export default function OnboardingPage() {
 
   // ── Step navigation ─────────────────────────────────────────────────────────
 
-  const steps = getStepList(path);
+  const steps = getStepList(path, skipGoal);
   const currentIndex = steps.indexOf(currentStep);
   const nonMetaSteps = steps.filter(s => !META_STEPS.includes(s));
   const displayTotal = nonMetaSteps.length;
@@ -333,7 +341,7 @@ export default function OnboardingPage() {
 
   const selectAndAdvance = (setter: (v: string) => void, value: string) => {
     setter(value);
-    const nextSteps = getStepList(path);
+    const nextSteps = getStepList(path, skipGoal);
     const nextIdx = nextSteps.indexOf(currentStep) + 1;
     if (nextIdx < nextSteps.length) setCurrentStep(nextSteps[nextIdx]);
   };
@@ -380,6 +388,7 @@ export default function OnboardingPage() {
       });
       await refreshUser();
       try { localStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch {}
+      clearEntry();
       const bp = path === "interview" ? BASELINE_PROMPTS.interview : BASELINE_PROMPTS.workplace;
       setLocation(`/record?baseline=1&prompt=${encodeURIComponent(bp.prompt)}&instruction=${encodeURIComponent(bp.instruction)}&duration=${encodeURIComponent(bp.duration)}`);
     } catch {
@@ -471,7 +480,7 @@ export default function OnboardingPage() {
                   Let's get to know you.
                 </h1>
                 <p className="text-base leading-relaxed" style={{ color: "#0F1B2D70" }}>
-                  This will help us personalise your coaching so you make the most of Gravitas from day one.
+                  A few quick questions so your feedback fits your situation.
                 </p>
               </div>
 
@@ -484,12 +493,12 @@ export default function OnboardingPage() {
                   What to expect
                 </p>
                 {[
-                  { icon: "⏱", text: "Takes about 2 minutes" },
-                  { icon: "💬", text: "A few quick questions about your goals and context" },
-                  { icon: "✨", text: "Your experience is tailored to your answers from the start" },
-                ].map(({ icon, text }) => (
+                  "Takes about 3 minutes",
+                  "A few quick questions about your goals and context",
+                  "Your feedback is tailored to your answers",
+                ].map((text) => (
                   <div key={text} className="flex items-start gap-3">
-                    <span className="text-base leading-snug flex-shrink-0">{icon}</span>
+                    <span className="mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: "#F0953E" }} />
                     <p className="text-sm leading-snug" style={{ color: "#0F1B2D75" }}>{text}</p>
                   </div>
                 ))}
@@ -559,7 +568,7 @@ export default function OnboardingPage() {
                   What brings you to Gravitas today?
                 </h1>
                 <p className="mt-2 text-sm" style={{ color: "#0F1B2D60" }}>
-                  We'll personalise your entire experience around your answer.
+                  We'll personalize your entire experience around your answer.
                 </p>
               </div>
               <div className="grid grid-cols-1 gap-3">
@@ -571,7 +580,7 @@ export default function OnboardingPage() {
                     I want to improve how I show up at work
                   </p>
                   <p className="text-sm mt-1" style={{ color: "#0F1B2D55" }}>
-                    Build the presence that matches your capability.
+                    Practice real work situations and track how you come across.
                   </p>
                 </button>
                 <button
@@ -582,7 +591,7 @@ export default function OnboardingPage() {
                     I have an interview coming up
                   </p>
                   <p className="text-sm mt-1" style={{ color: "#0F1B2D55" }}>
-                    Show up with the presence that matches your preparation.
+                    Practice your answers and get specific feedback before the day.
                   </p>
                 </button>
               </div>
@@ -938,17 +947,14 @@ export default function OnboardingPage() {
                   className="text-4xl font-semibold leading-tight mb-5"
                   style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
                 >
-                  You showed up.<br />That already sets you apart.
+                  Here's what happens next.
                 </h1>
                 <div className="h-px w-12 mb-5" style={{ backgroundColor: "#F0953E" }} />
                 <p className="text-base leading-relaxed" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  Most people never find out how they truly come across.
+                  You'll record a short baseline so Gravitas can show you how you currently come across: your thought clarity, vocal delivery, voice quality and, on video, your physical delivery. Then you can practice and watch your scores change.
                 </p>
                 <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  You are about to.
-                </p>
-                <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  Gravitas gives you a specific, honest picture of how you land — in the rooms and moments that matter most.
+                  Detailed, objective feedback on how you come across is hard to get. Most people go their whole careers without it, and professional coaching that offers it is out of reach for many. With Gravitas, you get it after every recording.
                 </p>
               </div>
               <ContinueButton onClick={goNext} label="Next" />
@@ -966,17 +972,11 @@ export default function OnboardingPage() {
                   className="text-4xl font-semibold leading-tight mb-5"
                   style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", color: "#0F1B2D" }}
                 >
-                  This is your space.<br />Completely.
+                  Your recordings and your data.
                 </h1>
                 <div className="h-px w-12 mb-5" style={{ backgroundColor: "#F0953E" }} />
                 <p className="text-base leading-relaxed" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  Your recordings are never stored, never shared, and never seen by anyone — including us.
-                </p>
-                <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  What happens here stays here. It is how we built it.
-                </p>
-                <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
-                  Record freely. Be unpolished. Make mistakes. Say the thing you are still figuring out. That is exactly how this tool works best.
+                  Your audio and video are deleted as soon as analysis finishes. Your transcript and feedback are available in your account so you can track progress, and you can delete them any time. Record freely.
                 </p>
                 <p className="text-base leading-relaxed mt-3" style={{ color: "#0F1B2D", opacity: 0.65 }}>
                   You can record audio only or add video. It's your choice, every time.
@@ -1000,7 +1000,7 @@ export default function OnboardingPage() {
                   What Gravitas measures.
                 </h1>
                 <p className="mt-2 text-sm" style={{ color: "#0F1B2D60" }}>
-                  Four pillars. 15 dimensions. One honest score.
+                  Four areas, scored from your audio, or audio and video.
                 </p>
               </div>
 
@@ -1009,22 +1009,22 @@ export default function OnboardingPage() {
                   {
                     num: "01",
                     title: "Thought Clarity",
-                    body: "Whether your thinking lands sharp and decisive, or leaves the listener doing the work.",
+                    body: "How clearly and concisely you structure your thinking.",
                   },
                   {
                     num: "02",
                     title: "Vocal Delivery",
-                    body: "The pace, pauses, and rhythm that signal confidence or anxiety.",
+                    body: "Your pace, pauses and rhythm.",
                   },
                   {
                     num: "03",
                     title: "Voice Quality",
-                    body: "Whether your voice carries authority and steadiness.",
+                    body: "How steady and authoritative your voice sounds.",
                   },
                   {
                     num: "04",
                     title: "Physical Delivery",
-                    body: "What the room sees — posture, eye contact, expression, gesture.",
+                    body: "Posture, eye contact, expression and gesture.",
                     note: "Video only",
                   },
                 ].map((pillar) => (
@@ -1079,7 +1079,7 @@ export default function OnboardingPage() {
                   Your baseline recording.
                 </h1>
                 <p className="mt-3 text-sm leading-relaxed" style={{ color: "#0F1B2D65" }}>
-                  Before your first coached session, we capture a short baseline — a snapshot of where you are today. It takes 1–2 minutes and gives us everything we need to personalise your coaching from day one.
+                  Before your first coached session, we capture a short baseline — a snapshot of where you are today. It takes 1–2 minutes and gives us everything we need to personalize your coaching from day one.
                 </p>
               </div>
 

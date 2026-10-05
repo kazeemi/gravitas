@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth, type User } from "@/lib/auth-context";
-import { getIndustryLabel } from "@/lib/industries";
+import { getSessionPrepTag } from "@/lib/industries";
 import { getRecordHref } from "@/lib/baseline";
 import { api, type SessionSummary, type ChartSession } from "@/lib/api";
 import { computeHighestBadge } from "@/lib/badges";
@@ -552,15 +552,12 @@ function StatCard({
 function SessionRow({ session, user, onClick }: { session: SessionSummary; user: User | null; onClick: () => void }) {
   const colors = session.compositeTier ? getTierColors(session.compositeTier) : null;
   const isProcessing = session.processingStatus === "processing" || session.processingStatus === "pending";
-  const prepTag = session.promptCompany
-    || (getIndustryLabel(user?.interviewSector, user?.interviewSectorCustom)
-      ? `General ${getIndustryLabel(user?.interviewSector, user?.interviewSectorCustom)}`
-      : null);
+  const prepTag = getSessionPrepTag(session.promptCompany, user?.interviewSector, user?.interviewSectorCustom);
   return (
     <li>
       <button
         onClick={onClick}
-        className="flex w-full items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors text-left"
+        className="flex w-full items-center justify-between px-4 py-4 sm:px-6 hover:bg-gray-50 transition-colors text-left"
       >
         <div className="flex items-center gap-3 min-w-0">
           {session.mode === "audio" ? (
@@ -569,22 +566,24 @@ function SessionRow({ session, user, onClick }: { session: SessionSummary; user:
             <VideoIcon className="h-4 w-4 flex-shrink-0 text-gray-400" />
           )}
           <div className="min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {session.promptText || `${session.mode} session`}
-              </p>
+            {/* The question gets its own line so it can never be squeezed out by the
+                company tag on a narrow screen; date and tag sit underneath. */}
+            <p className="text-sm font-medium text-gray-900 line-clamp-2 break-words">
+              {session.promptText || `${session.mode} session`}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="text-xs text-gray-400">
+                {format(new Date(session.createdAt), "MMM d, yyyy")}
+              </span>
               {prepTag && (
-                <span className="flex-shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 whitespace-nowrap">
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
                   {prepTag}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400">
-              {format(new Date(session.createdAt), "MMM d, yyyy")}
-            </p>
           </div>
         </div>
-        <div className="flex flex-shrink-0 items-center gap-3 ml-3">
+        <div className="flex flex-shrink-0 flex-col items-end gap-1 ml-3 sm:flex-row sm:items-center sm:gap-3">
           {isProcessing ? (
             <span className="flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium text-gray-400 bg-gray-100 whitespace-nowrap">
               <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
@@ -607,8 +606,8 @@ function SessionRow({ session, user, onClick }: { session: SessionSummary; user:
               )}
             </>
           )}
-          <ChevronRightIcon className="h-4 w-4 text-gray-300 flex-shrink-0" />
         </div>
+        <ChevronRightIcon className="hidden sm:block h-4 w-4 text-gray-300 flex-shrink-0 ml-3" />
       </button>
     </li>
   );

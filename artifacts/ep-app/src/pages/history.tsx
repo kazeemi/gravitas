@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getRecordHref } from "@/lib/baseline";
 import { api, type SessionSummary } from "@/lib/api";
 import { getTierColors } from "@/lib/tier-colors";
+import { getSessionPrepTag } from "@/lib/industries";
 import { Button } from "@/components/ui/button";
 import { MicIcon, VideoIcon, PlusIcon, ChevronRightIcon, Trash2Icon } from "lucide-react";
 import { format } from "date-fns";
@@ -58,6 +59,7 @@ export default function HistoryPage() {
             <SessionRow
               key={s.id}
               session={s}
+              prepTag={getSessionPrepTag(s.promptCompany, user?.interviewSector, user?.interviewSectorCustom)}
               onClick={() => s.processingStatus === "complete" && setLocation(`/sessions/${s.id}`)}
               onDelete={(e) => handleDelete(e, s.id)}
             />
@@ -70,10 +72,12 @@ export default function HistoryPage() {
 
 function SessionRow({
   session,
+  prepTag,
   onClick,
   onDelete,
 }: {
   session: SessionSummary;
+  prepTag: string | null;
   onClick: () => void;
   onDelete: (e: React.MouseEvent) => void;
 }) {
@@ -83,22 +87,23 @@ function SessionRow({
 
   return (
     <div
-      className={`flex items-center justify-between px-5 py-4 group ${isComplete ? "hover:bg-gray-50 cursor-pointer" : ""}`}
+      className={`flex items-center justify-between px-4 py-4 sm:px-5 group ${isComplete ? "hover:bg-gray-50 cursor-pointer" : ""}`}
       onClick={isComplete ? onClick : undefined}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         {session.mode === "audio" ? (
-          <MicIcon className="h-4 w-4 text-gray-400" />
+          <MicIcon className="h-4 w-4 flex-shrink-0 text-gray-400" />
         ) : (
-          <VideoIcon className="h-4 w-4 text-gray-400" />
+          <VideoIcon className="h-4 w-4 flex-shrink-0 text-gray-400" />
         )}
-        <div>
-          <p className="text-sm font-medium text-gray-900 line-clamp-1 max-w-sm">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-900 line-clamp-2 break-words max-w-sm">
             {session.promptText || `${session.mode} session`}
           </p>
-          <div className="flex items-center gap-2 mt-0.5">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1">
             <p className="text-xs text-gray-400">
-              {format(new Date(session.createdAt), "MMM d, yyyy h:mm a")}
+              <span className="sm:hidden">{format(new Date(session.createdAt), "MMM d, yyyy")}</span>
+              <span className="hidden sm:inline">{format(new Date(session.createdAt), "MMM d, yyyy h:mm a")}</span>
             </p>
             {session.durationSeconds && (
               <>
@@ -108,10 +113,15 @@ function SessionRow({
                 </span>
               </>
             )}
+            {prepTag && (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 whitespace-nowrap">
+                {prepTag}
+              </span>
+            )}
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-shrink-0 flex-col items-end gap-1 ml-3 sm:flex-row sm:items-center sm:gap-3">
         {isProcessing && (
           <span className="text-xs text-gray-400 animate-pulse">Processing…</span>
         )}
@@ -130,11 +140,11 @@ function SessionRow({
         )}
         <button
           onClick={onDelete}
-          className="opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-red-50 text-gray-300 hover:text-red-500 transition-all"
+          className="hidden sm:block opacity-0 group-hover:opacity-100 rounded p-1 hover:bg-red-50 text-gray-300 hover:text-red-500 transition-all"
         >
           <Trash2Icon className="h-4 w-4" />
         </button>
-        {isComplete && <ChevronRightIcon className="h-4 w-4 text-gray-300" />}
+        {isComplete && <ChevronRightIcon className="hidden sm:block h-4 w-4 text-gray-300" />}
       </div>
     </div>
   );

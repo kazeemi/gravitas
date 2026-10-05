@@ -1,21 +1,45 @@
+import { Fragment } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { setInterviewEntry } from "@/lib/entry";
 
-const POINTS = [
+const ORANGE = "#F0953E";
+const TERRACOTTA = "#C84A18";
+const MONO = "'DM Mono', monospace";
+const SERIF = "'Cormorant Garamond', Georgia, serif";
+
+// Practice -> Perceive -> Improve: the journey a student goes through.
+const STEPS = [
   {
-    title: "See what the interviewer sees",
-    body: "Get specific feedback on how clearly you think, how your voice comes across and how you present yourself, not just the content of your answer.",
+    num: "01",
+    title: "Practice",
+    lead: "Answer real questions out loud",
+    body: "Questions tailored to your role, company and industry, recorded on audio or video.",
   },
   {
-    title: "Know exactly what to fix",
-    body: "Every answer comes with honest, specific feedback and a clear next step, based on a real coaching methodology rather than generic tips.",
+    num: "02",
+    title: "Perceive",
+    lead: "See what the interviewer sees",
+    body: "Specific feedback on how clearly you think, how your voice comes across and how you present yourself.",
   },
   {
-    title: "Know when you're ready",
-    body: "Track your performance across sessions and see where your presence is improving and where to keep working.",
+    num: "03",
+    title: "Improve",
+    lead: "Know exactly what to improve",
+    body: "A clear next step after every answer, and a score that shows your progress across sessions.",
   },
 ];
+
+function JourneyArrow() {
+  return (
+    <div className="flex items-center justify-center py-0.5 md:px-2 md:py-0" aria-hidden="true">
+      <svg viewBox="0 0 40 24" className="h-6 w-10 rotate-90 md:rotate-0" fill="none" stroke={ORANGE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="2" y1="12" x2="36" y2="12" />
+        <polyline points="28,4 37,12 28,20" />
+      </svg>
+    </div>
+  );
+}
 
 export default function InterviewLandingPage() {
   const [, setLocation] = useLocation();
@@ -28,8 +52,8 @@ export default function InterviewLandingPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-5 py-6 md:py-4">
-      <div className="w-full max-w-5xl space-y-5 md:space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-5 py-6 md:py-3">
+      <div className="w-full max-w-5xl space-y-5 md:space-y-3">
         <div className="text-center space-y-2 md:space-y-2.5">
           {/* The logo file has wide transparent margins, so crop it to the mark itself
               (content box 90x31 inside the 180x120 image, shown at 1.556x). */}
@@ -47,13 +71,13 @@ export default function InterviewLandingPage() {
             }}
           />
           <span
-            className="block text-5xl md:text-6xl font-semibold leading-none text-foreground"
+            className="block text-5xl md:text-5xl font-semibold leading-none text-foreground"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
             Gravitas
           </span>
           <h1
-            className="pt-2 text-3xl md:text-4xl font-semibold leading-tight text-foreground"
+            className="pt-1 text-3xl md:text-4xl font-semibold leading-tight text-foreground"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
             Walk in prepared.<br className="md:hidden" /> Speak with presence.
@@ -61,25 +85,42 @@ export default function InterviewLandingPage() {
           <p className="mx-auto max-w-3xl text-base md:text-lg leading-relaxed text-muted-foreground">
             Practice real interview questions out loud and get specific feedback on how clearly you think, how confidently you speak, and how you show up on camera.
           </p>
-          <p className="text-sm md:text-base text-muted-foreground">
-            Questions tailored to your role, company and industry.
-          </p>
+          <div className="mx-auto h-0.5 w-12 rounded-full" style={{ backgroundColor: ORANGE }} />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
-          {POINTS.map((p) => (
-            <div key={p.title} className="rounded-2xl border border-border bg-white px-5 py-4 md:px-6 md:py-4">
-              <p className="text-lg font-semibold text-foreground">
-                {p.title}
-              </p>
-              <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">{p.body}</p>
-            </div>
+        <div className="flex flex-col items-stretch md:flex-row">
+          {STEPS.map((step, i) => (
+            <Fragment key={step.num}>
+              {i > 0 && <JourneyArrow />}
+              <div className="flex-1 rounded-2xl border border-border bg-white px-5 py-4 md:px-5 md:py-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <span className="text-sm font-medium tabular-nums" style={{ fontFamily: MONO, color: ORANGE }}>
+                      {step.num}
+                    </span>
+                    <p className="text-3xl font-semibold leading-none text-foreground" style={{ fontFamily: SERIF }}>
+                      {step.title}
+                    </p>
+                  </div>
+                </div>
+                <p className="mt-3 text-base font-semibold text-foreground">{step.lead}</p>
+                <p className="mt-1 text-base leading-relaxed text-muted-foreground">{step.body}</p>
+              </div>
+            </Fragment>
           ))}
         </div>
 
-        <p className="mx-auto max-w-3xl px-2 text-center text-sm md:text-base leading-relaxed text-muted-foreground">
-          Built by an executive coach and former McKinsey interviewer. Designed from hundreds of real interviews and years of coaching leaders on how to show up with presence.
-        </p>
+        <div className="mx-auto max-w-3xl px-2 text-center">
+          <p className="text-xs font-medium uppercase tracking-[0.2em]" style={{ fontFamily: MONO, color: TERRACOTTA }}>
+            Built from the other side of the table
+          </p>
+          <p className="mt-1 text-base font-semibold text-foreground md:text-lg">
+            Executive coach <span style={{ color: ORANGE }}>·</span> Former McKinsey interviewer <span style={{ color: ORANGE }}>·</span> Hundreds of interviews
+          </p>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            Designed from real interviews and years of coaching leaders on how to show up with presence.
+          </p>
+        </div>
 
         <div className="mx-auto max-w-md space-y-2.5">
           <Button

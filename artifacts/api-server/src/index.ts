@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startDeletionPurgeScheduler } from "./lib/deletion-purge";
 import { startSessionWorker } from "./lib/sessionWorker";
+import type { Worker } from "bullmq";
 import { startQueueBacklogMonitor } from "./lib/queueMonitor";
 
 const rawPort = process.env["PORT"] ?? "8080";
@@ -11,7 +12,9 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
+let sessionWorker: Worker | null = null;
+
+const server = app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
@@ -23,7 +26,7 @@ app.listen(port, (err) => {
   // queue worker rather than inline in the upload request, so a burst of
   // concurrent uploads gets processed a bounded number at a time instead of
   // all at once.
-  startSessionWorker();
+  sessionWorker = startSessionWorker();
 
   // Watches queue depth and emails an admin alert if the backlog gets large
   // enough to suggest processing is falling behind live demand.
@@ -63,3 +66,50 @@ app.listen(port, (err) => {
     }).catch(e => logger.error({ err: e }, "Admin bootstrap failed"));
   }
 });
+
+// ── Graceful shutdown ────────────────────────────────────────────────────────
+// A deploy restarts the server. Uploaded audio sits on this instance's local
+// disk until it has been analysed, and the next instance cannot see it — so a
+// restart mid-analysis fails the recording. On SIGTERM we therefore stop taking
+// new requests, let in-flight uploads finish, and wait for running analyses to
+// complete before exiting.
+//
+// SHUTDOWN_TIMEOUT_MS must stay below the platform's own kill deadline (on
+// Railway: RAILWAY_DEPLOYMENT_DRAINING_SECONDS), or the platform stops us first.
+const SHUTDOWN_TIMEOUT_MS = Number(process.env["SHUTDOWN_TIMEOUT_MS"] ?? 120_000);
+let shuttingDown = false;
+
+async function shutdown(signal: string) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  logger.info({ signal, timeoutMs: SHUTDOWN_TIMEOUT_MS }, "Shutdown requested — finishing in-progress work");
+
+  const forceExit = setTimeout(() => {
+    logger.error("Shutdown timed out — exiting with work still in progress");
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExit.unref();
+
+  try {
+    // 1. Stop accepting connections. In-flight requests (including uploads that
+    //    are still arriving) are allowed to finish and enqueue their job; the
+    //    worker is deliberately still running so it picks those jobs up.
+    //    Keep-alive connections that go idle once their request completes would
+    //    otherwise hold shutdown open for several seconds, so sweep them.
+    await new Promise<void>(resolve => {
+      const sweep = setInterval(() => server.closeIdleConnections(), 250);
+      server.close(() => { clearInterval(sweep); resolve(); });
+      server.closeIdleConnections();
+    });
+    // 2. Stop fetching new jobs and wait for the running analyses to finish.
+    await sessionWorker?.close();
+    logger.info("Shutdown complete");
+    process.exit(0);
+  } catch (err) {
+    logger.error({ err }, "Error during shutdown");
+    process.exit(1);
+  }
+}
+
+process.on("SIGTERM", () => { void shutdown("SIGTERM"); });
+process.on("SIGINT", () => { void shutdown("SIGINT"); });

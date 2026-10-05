@@ -28,67 +28,62 @@ export default function InterviewLandingPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-5 py-8 sm:py-10">
-      <div className="w-full max-w-md space-y-7">
-        <div className="text-center space-y-3">
-          <div className="flex items-center justify-center gap-3">
-            <img src="/gravitas-logo-light.png" alt="" className="h-11 w-auto sm:h-12" />
+    <div className="min-h-screen flex items-center justify-center bg-background px-5 py-6 md:py-3">
+      <div className="w-full max-w-5xl space-y-5 md:space-y-4">
+        <div className="text-center space-y-2 md:space-y-2.5">
+          <div className="flex items-center justify-center gap-4">
+            <img src="/gravitas-logo-light.png" alt="" className="h-20 w-auto md:h-28 md:-my-5" />
             <span
-              className="text-4xl sm:text-5xl font-semibold text-foreground"
+              className="text-5xl md:text-6xl font-semibold text-foreground"
               style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
             >
               Gravitas
             </span>
           </div>
           <h1
-            className="text-4xl sm:text-5xl font-semibold leading-tight text-foreground"
+            className="text-3xl md:text-4xl font-semibold leading-tight text-foreground"
             style={{ fontFamily: "'Cormorant Garamond', Georgia, serif" }}
           >
             Walk in prepared.<br />Speak with presence.
           </h1>
-          <p className="text-base leading-relaxed text-muted-foreground">
+          <p className="mx-auto max-w-3xl text-base md:text-lg leading-relaxed text-muted-foreground">
             Practice real interview questions out loud and get specific feedback on how clearly you think, how confidently you speak, and how you show up on camera.
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             Questions tailored to your role, company and industry.
           </p>
         </div>
 
-        <div className="space-y-3">
-          {POINTS.map((p, i) => (
-            <div key={p.title} className="rounded-2xl border border-border bg-white px-5 py-4">
-              <div className="flex items-start gap-4">
-                <span className="mt-0.5 text-xs tabular-nums" style={{ fontFamily: "'DM Mono', monospace", color: "#F0953E" }}>
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">{p.title}</p>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{p.body}</p>
-                </div>
-              </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-4">
+          {POINTS.map((p) => (
+            <div key={p.title} className="rounded-2xl border border-border bg-white px-5 py-4 md:px-6 md:py-4">
+              <p className="text-lg font-semibold text-foreground">
+                {p.title}
+              </p>
+              <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">{p.body}</p>
             </div>
           ))}
         </div>
 
-        <p className="px-2 text-center text-xs leading-relaxed text-muted-foreground">
+        <p className="mx-auto max-w-3xl px-2 text-center text-sm md:text-base leading-relaxed text-muted-foreground">
           Built by an executive coach and former McKinsey interviewer. Designed from hundreds of real interviews and years of coaching leaders on how to show up with presence.
         </p>
 
-        <div className="space-y-3">
+        <div className="mx-auto max-w-md space-y-2.5">
           <Button
-            className="w-full shadow-lg shadow-[#F0953E]/30"
+            className="w-full h-12 text-base shadow-lg shadow-[#F0953E]/30"
             onClick={() => start("/signup")}
             style={{ background: "linear-gradient(120deg,#F0953E 0%,#C84A18 100%)" }}
           >
             Create your account
           </Button>
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-base text-muted-foreground">
             Already have an account?{" "}
             <button onClick={() => start("/login")} className="font-semibold underline underline-offset-2" style={{ color: "#C84A18" }}>
               Sign in
             </button>
           </p>
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-center text-sm text-muted-foreground">
             Your audio and video are deleted from our servers after analysis.
           </p>
         </div>

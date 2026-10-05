@@ -85,14 +85,11 @@ export default function InterviewLandingPage() {
           ))}
         </div>
 
-        <div className="mx-auto max-w-3xl px-2 text-center">
-          <p className="text-xs font-medium uppercase tracking-[0.2em]" style={{ fontFamily: MONO, color: TERRACOTTA }}>
-            Built from the other side of the table
+        <div className="mx-auto max-w-4xl px-2 text-center">
+          <p className="text-xl md:text-[1.4rem] font-semibold leading-snug text-balance text-foreground" style={{ fontFamily: SERIF }}>
+            <span style={{ color: TERRACOTTA }}>Built from the other side of the table</span> — by an executive coach and former McKinsey interviewer.
           </p>
-          <p className="mt-1 text-base font-semibold text-foreground md:text-lg">
-            Executive coach <span style={{ color: ORANGE }}>·</span> Former McKinsey interviewer <span style={{ color: ORANGE }}>·</span> Hundreds of interviews
-          </p>
-          <p className="mt-0.5 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm md:text-base text-muted-foreground">
             Designed from real interviews and years of coaching leaders on how to show up with presence.
           </p>
         </div>

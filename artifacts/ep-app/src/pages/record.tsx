@@ -332,7 +332,12 @@ export default function RecordPage() {
       // Interview prompts always have a sector field; workplace prompts do not.
       let pool = data.prompts;
       if (user?.interviewMode) {
-        const sector = user.interviewSector ?? "all";
+        // Onboarding stores the industry id "technology", but prompts.ts
+        // tags tech-sector prompts as "tech" (matching T1-T10/Amazon/Google
+        // etc.) — without this normalization every Technology-industry user
+        // silently fell through to only "sector: all" generic prompts,
+        // never seeing any tech-sector or company-tagged content at all.
+        const sector = user.interviewSector === "technology" ? "tech" : (user.interviewSector ?? "all");
         const interviewPool = data.prompts.filter(
           p => p.sector !== undefined && (p.sector === sector || p.sector === "all")
         );

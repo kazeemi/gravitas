@@ -8,31 +8,27 @@ const TERRACOTTA = "#C84A18";
 const MONO = "'DM Mono', monospace";
 const SERIF = "'Cormorant Garamond', Georgia, serif";
 
-// Practice -> Perceive -> Improve: the journey a student goes through.
 const STEPS = [
   {
     num: "01",
-    title: "Practice",
-    lead: "Answer real questions out loud",
-    body: "Questions tailored to your role, company and industry, recorded on audio or video.",
+    title: "See what the interviewer sees",
+    body: "Get specific feedback on how clearly you think, how your voice comes across and how you present yourself, not just the content of your answer.",
   },
   {
     num: "02",
-    title: "Perceive",
-    lead: "See what the interviewer sees",
-    body: "Specific feedback on how clearly you think, how your voice comes across and how you present yourself.",
+    title: "Know exactly what to improve",
+    body: "Every answer comes with honest, specific feedback and a clear next step, based on a real coaching methodology rather than generic tips.",
   },
   {
     num: "03",
-    title: "Improve",
-    lead: "Know exactly what to improve",
-    body: "A clear next step after every answer, and a score that shows your progress across sessions.",
+    title: "Know when you're ready",
+    body: "Track your performance across sessions and see where your presence is improving and where to keep working.",
   },
 ];
 
 function JourneyArrow() {
   return (
-    <div className="flex items-center justify-center py-0.5 md:px-2 md:py-0" aria-hidden="true">
+    <div className="flex h-12 items-center justify-center md:h-auto md:px-2" aria-hidden="true">
       <svg viewBox="0 0 40 24" className="h-6 w-10 rotate-90 md:rotate-0" fill="none" stroke={ORANGE} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <line x1="2" y1="12" x2="36" y2="12" />
         <polyline points="28,4 37,12 28,20" />
@@ -85,6 +81,9 @@ export default function InterviewLandingPage() {
           <p className="mx-auto max-w-3xl text-base md:text-lg leading-relaxed text-muted-foreground">
             Practice real interview questions out loud and get specific feedback on how clearly you think, how confidently you speak, and how you show up on camera.
           </p>
+          <p className="text-sm md:text-base text-muted-foreground">
+            Questions tailored to your role, company and industry.
+          </p>
           <div className="mx-auto h-0.5 w-12 rounded-full" style={{ backgroundColor: ORANGE }} />
         </div>
 
@@ -93,18 +92,13 @@ export default function InterviewLandingPage() {
             <Fragment key={step.num}>
               {i > 0 && <JourneyArrow />}
               <div className="flex-1 rounded-2xl border border-border bg-white px-5 py-4 md:px-5 md:py-3.5">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <span className="text-sm font-medium tabular-nums" style={{ fontFamily: MONO, color: ORANGE }}>
-                      {step.num}
-                    </span>
-                    <p className="text-3xl font-semibold leading-none text-foreground" style={{ fontFamily: SERIF }}>
-                      {step.title}
-                    </p>
-                  </div>
-                </div>
-                <p className="mt-3 text-base font-semibold text-foreground">{step.lead}</p>
-                <p className="mt-1 text-base leading-relaxed text-muted-foreground">{step.body}</p>
+                <span className="text-sm font-medium tabular-nums" style={{ fontFamily: MONO, color: ORANGE }}>
+                  {step.num}
+                </span>
+                <p className="mt-0.5 text-lg font-semibold leading-snug" style={{ color: TERRACOTTA }}>
+                  {step.title}
+                </p>
+                <p className="mt-1.5 text-base leading-relaxed text-muted-foreground">{step.body}</p>
               </div>
             </Fragment>
           ))}

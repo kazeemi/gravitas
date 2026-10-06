@@ -126,13 +126,13 @@ function SessionRow({
           <span className="text-xs text-gray-400 animate-pulse">Processing…</span>
         )}
         {isComplete && session.compositeScore && (
-          <span className="text-sm font-semibold text-gray-900">
+          <span className="text-sm font-semibold tabular-nums text-gray-900">
             {parseFloat(session.compositeScore).toFixed(1)}
           </span>
         )}
         {isComplete && session.compositeTier && colors && (
           <span
-            className="rounded px-2 py-0.5 text-xs font-medium text-white"
+            className="rounded px-2 py-0.5 text-center text-xs font-medium text-white sm:min-w-[6.5rem]"
             style={{ backgroundColor: colors.hex }}
           >
             {session.compositeTier}

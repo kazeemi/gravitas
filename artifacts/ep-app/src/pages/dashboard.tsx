@@ -592,13 +592,13 @@ function SessionRow({ session, user, onClick }: { session: SessionSummary; user:
           ) : (
             <>
               {session.compositeScore && (
-                <span className="text-sm font-semibold text-gray-900">
+                <span className="text-sm font-semibold tabular-nums text-gray-900">
                   {parseFloat(session.compositeScore).toFixed(1)}
                 </span>
               )}
               {session.compositeTier && colors && (
                 <span
-                  className="rounded px-2 py-0.5 text-xs font-medium text-white whitespace-nowrap"
+                  className="rounded px-2 py-0.5 text-center text-xs font-medium text-white whitespace-nowrap sm:min-w-[6.5rem]"
                   style={{ backgroundColor: colors.hex }}
                 >
                   {session.compositeTier}
@@ -606,8 +606,8 @@ function SessionRow({ session, user, onClick }: { session: SessionSummary; user:
               )}
             </>
           )}
+          <ChevronRightIcon className="hidden sm:block h-4 w-4 text-gray-300 flex-shrink-0" />
         </div>
-        <ChevronRightIcon className="hidden sm:block h-4 w-4 text-gray-300 flex-shrink-0 ml-3" />
       </button>
     </li>
   );

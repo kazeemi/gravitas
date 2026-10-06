@@ -25,7 +25,7 @@ export const diagnosticMetricsTable = pgTable("diagnostic_metrics", {
   conciseness_flag: boolean("conciseness_flag"),
   breathSupportScore: decimal("breath_support_score", { precision: 4, scale: 3 }),
   audibleBreathEvents: integer("audible_breath_events"),
-});
+}).enableRLS();
 
 export const insertDiagnosticMetricSchema = createInsertSchema(diagnosticMetricsTable).omit({
   id: true,

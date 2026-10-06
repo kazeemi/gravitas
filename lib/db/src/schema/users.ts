@@ -98,7 +98,7 @@ export const usersTable = pgTable("users", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
-});
+}).enableRLS();
 
 export const insertUserSchema = createInsertSchema(usersTable).omit({
   id: true,

@@ -6,7 +6,7 @@ export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 export const insertConversationSchema = createInsertSchema(conversations).omit({
   id: true,

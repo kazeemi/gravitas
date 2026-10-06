@@ -26,7 +26,7 @@ export const sessionAiUsageTable = pgTable("session_ai_usage", {
   outputTokens: integer("output_tokens"),
   costUsd: decimal("cost_usd", { precision: 10, scale: 6 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}).enableRLS();
 
 export const insertSessionAiUsageSchema = createInsertSchema(sessionAiUsageTable).omit({
   id: true,

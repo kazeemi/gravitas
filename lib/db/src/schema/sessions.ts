@@ -44,7 +44,7 @@ export const sessionsTable = pgTable("sessions", {
   processingError: text("processing_error"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   scoredAt: timestamp("scored_at", { withTimezone: true }),
-});
+}).enableRLS();
 
 export const insertSessionSchema = createInsertSchema(sessionsTable).omit({
   id: true,

@@ -20,7 +20,7 @@ export const dimensionScoresTable = pgTable("dimension_scores", {
   strengthText: text("strength_text"),
   gapText: text("gap_text"),
   nextStepText: text("next_step_text"),
-});
+}).enableRLS();
 
 export const insertDimensionScoreSchema = createInsertSchema(dimensionScoresTable).omit({
   id: true,

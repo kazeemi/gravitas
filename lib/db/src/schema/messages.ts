@@ -12,7 +12,7 @@ export const messages = pgTable("messages", {
   role: text("role").notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}).enableRLS();
 
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,

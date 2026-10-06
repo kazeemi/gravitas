@@ -144,13 +144,16 @@ router.post("/v1/users/me/onboarding", requireAuth, async (req, res) => {
     logger.error({ err, userId: user.id }, "Failed to send welcome email after onboarding");
   }
 
-  try {
-    const nudgeEmailId = await scheduleNudgeEmail(user.email, user.name ?? "there", user.interviewMode ?? false);
-    if (nudgeEmailId) {
-      await db.update(usersTable).set({ nudgeEmailId }).where(eq(usersTable.id, user.id));
+  // First-session nudge is paused. Set NUDGE_EMAILS_ENABLED=true to turn it back on.
+  if (process.env.NUDGE_EMAILS_ENABLED === "true") {
+    try {
+      const nudgeEmailId = await scheduleNudgeEmail(user.email, user.name ?? "there", user.interviewMode ?? false);
+      if (nudgeEmailId) {
+        await db.update(usersTable).set({ nudgeEmailId }).where(eq(usersTable.id, user.id));
+      }
+    } catch (err) {
+      logger.error({ err, userId: user.id }, "Failed to schedule nudge email after onboarding");
     }
-  } catch (err) {
-    logger.error({ err, userId: user.id }, "Failed to schedule nudge email after onboarding");
   }
 
   const { passwordHash: _ph, ...safe } = user;
